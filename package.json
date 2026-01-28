@@ -17,7 +17,7 @@
     "lodash": "^4.17.21",
     "mongodb": "^7.0.0",
     "next": "^16.1.4",
-    "react": "^19.2.3",
+    "react": "^19.2.4",
     "react-dom": "^19.2.3",
     "react-is": "^19.2.3",
     "recharts": "^3.6.0"
@@ -27,7 +27,7 @@
     "@eslint/js": "^9.39.2",
     "@types/lodash": "^4.17.23",
     "@types/node": "^25.0.9",
-    "@types/react": "^19.2.8",
+    "@types/react": "^19.2.10",
     "@types/react-dom": "^19.2.3",
     "eslint": "^9.39.2",
     "eslint-config-next": "^16.1.4",
