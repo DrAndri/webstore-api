@@ -122,7 +122,9 @@ export default function PriceChart({ prices }: PriceChartProps) {
             ]}
           />
           <Tooltip
-            labelFormatter={(t: number) => dayjs.unix(t).format('DD-MMM-YYYY')}
+            labelFormatter={(label: any) =>
+              dayjs.unix(label).format('DD-MMM-YYYY')
+            }
             labelStyle={{ fontWeight: 'bold' }}
             formatter={(value: number | undefined) =>
               value && formatPrice(value) + ' kr.'

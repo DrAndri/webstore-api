@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
-import styles from '../styles/Home.module.css';
 import {
   RechartFormat,
   PricesResponse,
@@ -156,7 +155,10 @@ export default function Home({
   async function searchForSkusBeginningWith(
     term: string
   ): Promise<SelectValue[]> {
-    sendGAEvent('event', 'autocomplete', { term: term, stores: selectedStores });
+    sendGAEvent('event', 'autocomplete', {
+      term: term,
+      stores: selectedStores
+    });
     const body: AutocompleteApiRequestBody = {
       term: term,
       stores: selectedStores
@@ -172,7 +174,7 @@ export default function Home({
       });
   }
   return (
-    <div className={styles.container}>
+    <div>
       <Layout style={{ height: '100vh' }}>
         <Header
           style={{ minHeight: 64, height: 'unset', padding: '20px 50px' }}
