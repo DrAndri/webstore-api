@@ -6,6 +6,7 @@ import {
 } from '../../types';
 import getMongoDb from '../../utils/mongodb';
 import { ObjectId } from 'mongodb';
+import { escapeRegExp } from 'lodash';
 
 export default function handler(
   req: AutocompleteApiRequest,
@@ -14,8 +15,9 @@ export default function handler(
   const mongoDb = getMongoDb();
 
   const getTerms = async () => {
+    const safeTerm = escapeRegExp(req.body.term);
     const filter = {
-      sku: { $regex: new RegExp(`^${req.body.term}`) },
+      sku: { $regex: new RegExp(safeTerm) },
       store_id: {
         $in: req.body.stores.map((store_id) => new ObjectId(store_id))
       }
