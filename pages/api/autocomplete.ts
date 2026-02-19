@@ -17,7 +17,7 @@ export default function handler(
   const getTerms = async () => {
     const safeTerm = escapeRegExp(req.body.term);
     const filter = {
-      sku: { $regex: new RegExp(safeTerm) },
+      sku: { $regex: new RegExp(safeTerm, 'i') },
       store_id: {
         $in: req.body.stores.map((store_id) => new ObjectId(store_id))
       }
