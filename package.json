@@ -12,7 +12,7 @@
   "dependencies": {
     "@ant-design/cssinjs": "2.1.0",
     "@next/third-parties": "^16.1.6",
-    "antd": "^6.3.0",
+    "antd": "^6.3.1",
     "dayjs": "^1.11.19",
     "lodash": "^4.17.23",
     "mongodb": "^7.1.0",
