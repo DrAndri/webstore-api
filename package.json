@@ -23,7 +23,7 @@
     "recharts": "^3.7.0"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3.3.4",
+    "@eslint/eslintrc": "^3.3.5",
     "@eslint/js": "^10.0.1",
     "@types/lodash": "^4.17.24",
     "@types/node": "^25.4.0",
