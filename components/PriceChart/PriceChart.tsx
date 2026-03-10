@@ -66,7 +66,7 @@ export default function PriceChart({ prices }: PriceChartProps) {
           stroke={nameToColor(key.substring(0, key.lastIndexOf(' - ')))}
           strokeWidth={2}
           strokeDasharray={isSalePrice ? '4 2' : '0'}
-          //dataKey={key}
+          dataKey={key}
         />
       );
     });
