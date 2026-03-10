@@ -66,7 +66,7 @@ export default function PriceChart({ prices }: PriceChartProps) {
           stroke={nameToColor(key.substring(0, key.lastIndexOf(' - ')))}
           strokeWidth={2}
           strokeDasharray={isSalePrice ? '4 2' : '0'}
-          dataKey={key}
+          //dataKey={key}
         />
       );
     });
@@ -94,8 +94,9 @@ export default function PriceChart({ prices }: PriceChartProps) {
     return timestamps;
   };
 
-  const formatPrice = (number: number) =>
-    number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  const formatPrice = (number: number) => formatPriceString(number.toString());
+  const formatPriceString = (number: string) =>
+    number.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
   if (prices.length > 0) {
     return (
       <ResponsiveContainer height={'99%'} width={'100%'}>
@@ -126,8 +127,8 @@ export default function PriceChart({ prices }: PriceChartProps) {
               dayjs.unix(label).format('DD-MMM-YYYY')
             }
             labelStyle={{ fontWeight: 'bold' }}
-            formatter={(value: number | undefined) =>
-              value && formatPrice(value) + ' kr.'
+            formatter={(value) =>
+              value ? formatPriceString(value.toString()) + ' kr.' : ''
             }
           />
           <CartesianGrid stroke="#c2c2c2" strokeDasharray="3 3" />
