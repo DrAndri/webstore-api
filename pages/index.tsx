@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import dynamic from 'next/dynamic';
+// import dynamic from 'next/dynamic';
 import {
   RechartFormat,
   PricesResponse,
@@ -7,25 +7,30 @@ import {
   SelectValue,
   StoreConfig,
   PricesApiRequestBody,
-  AutocompleteApiRequestBody
+  AutocompleteApiRequestBody,
+  SolrProduct
 } from '../types';
 import { DatePicker, Flex, Layout, Select, Tooltip } from 'antd';
 import SkuSelector from '../components/SkuSelector/SkuSelector';
-import getMongoDb from '../utils/mongodb';
 import { InferGetServerSidePropsType } from 'next/types';
 import dayjs, { Dayjs } from 'dayjs';
 import callApi from '../utils/api';
 import { sendGAEvent } from '@next/third-parties/google';
+import { queryPool } from '../utils/mariadb';
+import PriceChart from '../components/PriceChart/PriceChart';
 
 const { Header, Content } = Layout;
 const { RangePicker } = DatePicker;
-const PriceChart = dynamic(() => import('../components/PriceChart/PriceChart'));
+// const PriceChart = dynamic(() => import('../components/PriceChart/PriceChart'));
 
 export async function getServerSideProps() {
-  const stores = await getMongoDb()
-    .collection<StoreConfig>('stores')
-    .find({ apiEnabled: true }, { projection: { _id: 1, name: 1 } })
-    .toArray();
+  const stores = await queryPool<StoreConfig[]>(
+    'SELECT id, name FROM stores WHERE apiEnabled = true'
+  );
+  // const stores = await getMongoDb()
+  //   .collection<StoreConfig>('stores')
+  //   .find({ apiEnabled: true }, { projection: { _id: 1, name: 1 } })
+  //   .toArray();
   return {
     props: {
       stores
@@ -38,17 +43,17 @@ export default function Home({
 }: InferGetServerSidePropsType<typeof getServerSideProps>) {
   const [prices, setPrices] = useState<RechartFormat[]>([]);
   const [loadingPrices, setLoadingPrices] = useState(false);
-  const [selectedSkus, setSelectedSkus] = useState<SelectValue[]>([]);
+  const [searchedProducts, setSearchedProducts] = useState<SolrProduct[]>([]);
+  const [selectedProducts, setSelectedProducts] = useState<SolrProduct[]>([]);
   const [selectedRange, setSelectedRange] = useState<
     [start: Dayjs | null, end: Dayjs | null] | null
   >(null);
   const [selectedStores, setSelectedStores] = useState<string[]>(
-    stores.map((store) => store._id.toString())
+    stores.map((store) => store.id.toString())
   );
 
   useEffect(() => {
-    const skuValues = selectedSkus.map((sku) => sku.value);
-    if (skuValues.length === 0 || selectedStores.length === 0) {
+    if (selectedProducts.length === 0 || selectedStores.length === 0) {
       setPrices([]);
       return;
     }
@@ -67,28 +72,54 @@ export default function Home({
     };
     const formatPricesForRechart = (res: PricesResponse) => {
       const prices: RechartFormat[] = [];
-      res.stores?.forEach((store) => {
-        store.skus.forEach((sku) => {
-          const storeName = stores.find(
-            (cachedStore) => cachedStore._id.toString() === store.id
-          )?.name;
-          if (!storeName) return;
-          const key = storeName + ' - ' + sku.sku + ' - price';
-          for (const price of sku.prices) {
-            const startDay = dayjs.unix(price.start).startOf('day');
+      res.forEach((productPrice) => {
+        const product = selectedProducts.find(
+          (product) => product.id === productPrice.id
+        );
+        if (!product) return;
+        const storeName = stores.find(
+          (store) => store.id === product.storeId
+        )?.name;
+        const key = storeName + ' - ' + product.sku + ' - price';
+        for (const price of productPrice.prices) {
+          const startDay = dayjs(price.start).startOf('day');
+          addToArray(
+            {
+              [key]: price.price,
+              timestamp: startDay.unix()
+            },
+            prices
+          );
+          const endDay = dayjs(price.end).endOf('day');
+          let nextDay = startDay.add(1, 'day');
+          while (nextDay.isBefore(endDay)) {
             addToArray(
               {
                 [key]: price.price,
+                timestamp: nextDay.unix()
+              },
+              prices
+            );
+            nextDay = nextDay.add(1, 'day');
+          }
+        }
+        const saleKey = storeName + ' - ' + product.sku + ' - salePrice';
+        if (productPrice.salePrices) {
+          for (const price of productPrice.salePrices) {
+            const startDay = dayjs(price.start).startOf('day');
+            addToArray(
+              {
+                [saleKey]: price.price,
                 timestamp: startDay.unix()
               },
               prices
             );
-            const endDay = dayjs.unix(price.end).endOf('day');
+            const endDay = dayjs(price.end).endOf('day');
             let nextDay = startDay.add(1, 'day');
             while (nextDay.isBefore(endDay)) {
               addToArray(
                 {
-                  [key]: price.price,
+                  [saleKey]: price.price,
                   timestamp: nextDay.unix()
                 },
                 prices
@@ -96,50 +127,22 @@ export default function Home({
               nextDay = nextDay.add(1, 'day');
             }
           }
-          const saleKey = storeName + ' - ' + sku.sku + ' - salePrice';
-          if (sku.salePrices) {
-            for (const price of sku.salePrices) {
-              const startDay = dayjs.unix(price.start).startOf('day');
-              addToArray(
-                {
-                  [saleKey]: price.price,
-                  timestamp: startDay.unix()
-                },
-                prices
-              );
-              const endDay = dayjs.unix(price.end).endOf('day');
-              let nextDay = startDay.add(1, 'day');
-              while (nextDay.isBefore(endDay)) {
-                addToArray(
-                  {
-                    [saleKey]: price.price,
-                    timestamp: nextDay.unix()
-                  },
-                  prices
-                );
-                nextDay = nextDay.add(1, 'day');
-              }
-            }
-          }
-        });
+        }
       });
       return prices;
     };
-
     const body: PricesApiRequestBody = {
-      skus: skuValues,
-      stores: selectedStores
+      productIds: selectedProducts.map((product) => product.id)
     };
 
     if (selectedRange !== null) {
-      body.start = selectedRange[0]?.unix();
-      body.end = selectedRange[1]?.unix();
+      body.start = selectedRange[0]?.toISOString().split('T')[0];
+      body.end = selectedRange[1]?.toISOString().split('T')[0];
     }
 
     setLoadingPrices(true);
     sendGAEvent('event', 'prices', {
-      skus: body.skus,
-      stores: body.stores,
+      productIds: body.productIds,
       start: body.start,
       end: body.end
     });
@@ -150,11 +153,9 @@ export default function Home({
         setLoadingPrices(false);
       })
       .catch((error) => console.log(error));
-  }, [selectedSkus, selectedStores, selectedRange, stores]);
+  }, [selectedProducts, selectedStores, selectedRange, stores]);
 
-  async function searchForSkusBeginningWith(
-    term: string
-  ): Promise<SelectValue[]> {
+  async function searchForProducts(term: string): Promise<SelectValue[]> {
     sendGAEvent('event', 'autocomplete', {
       term: term,
       stores: selectedStores
@@ -166,10 +167,11 @@ export default function Home({
     return callApi('autocomplete', body)
       .then((res) => res.json())
       .then((res: AutocompleteResponse) => {
-        return res.terms.map((term: string) => ({
-          key: term,
-          label: term,
-          value: term
+        setSearchedProducts(res.products);
+        return res.products.map((product: SolrProduct) => ({
+          key: product.id,
+          label: product.name,
+          value: product.id
         }));
       });
   }
@@ -187,15 +189,22 @@ export default function Home({
             wrap="wrap"
           >
             <SkuSelector
-              mode="multiple"
-              allowClear
-              value={selectedSkus}
-              placeholder="Leitaðu að vörunúmeri..."
-              fetchOptions={searchForSkusBeginningWith}
+              value={selectedProducts.map((product) => ({
+                key: product.id.toString(),
+                label: product.name,
+                value: product.id
+              }))}
+              fetchOptions={searchForProducts}
               onChange={(newValue) => {
-                setSelectedSkus(newValue as SelectValue[]);
+                const products: SolrProduct[] = [];
+                for (const newProduct of newValue as SelectValue[]) {
+                  const populatedProduct =
+                    selectedProducts.find((p) => p.id === newProduct.value) ??
+                    searchedProducts.find((p) => p.id === newProduct.value);
+                  if (populatedProduct) products.push(populatedProduct);
+                }
+                setSelectedProducts(products);
               }}
-              style={{ minWidth: 300, flex: 1 }}
               loading={loadingPrices}
             />
             <RangePicker
@@ -213,7 +222,7 @@ export default function Home({
               allowClear
               style={{ width: 200 }}
               placeholder="Veldu búð"
-              defaultValue={selectedStores}
+              value={selectedStores}
               maxTagPlaceholder={(omittedValues) => (
                 <Tooltip
                   styles={{ root: { pointerEvents: 'none' } }}
@@ -226,7 +235,7 @@ export default function Home({
                 setSelectedStores(newValue);
               }}
               options={stores.map((store) => {
-                return { label: store.name, value: store._id };
+                return { label: store.name, value: store.id.toString() };
               })}
               loading={loadingPrices}
             />

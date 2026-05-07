@@ -4,8 +4,10 @@ import type { SelectProps } from 'antd';
 import debounce from 'lodash/debounce';
 import { SelectValue } from '../../types';
 
-export interface DebounceSelectProps<ValueType>
-  extends Omit<SelectProps<ValueType | SelectValue[]>, 'options' | 'children'> {
+export interface DebounceSelectProps<ValueType> extends Omit<
+  SelectProps<ValueType>,
+  'options' | 'children'
+> {
   fetchOptions: (term: string) => Promise<SelectValue[]>;
   debounceTimeout?: number;
 }
@@ -14,7 +16,7 @@ export default function SkuSelector({
   fetchOptions,
   debounceTimeout = 500,
   ...props
-}: DebounceSelectProps<SelectValue>) {
+}: DebounceSelectProps<SelectValue | SelectValue[]>) {
   const [fetching, setFetching] = useState(false);
   const [options, setOptions] = useState<SelectValue[]>([]);
   const fetchRef = useRef(0);
@@ -45,9 +47,12 @@ export default function SkuSelector({
   return (
     <Select
       labelInValue
-      filterOption={false}
-      onSearch={debounceFetcher}
+      showSearch={{ filterOption: false, onSearch: debounceFetcher }}
       notFoundContent={fetching ? <Spin size="small" /> : null}
+      mode="multiple"
+      allowClear
+      placeholder="Leitaðu að vörunúmeri..."
+      style={{ minWidth: 300, flex: 1 }}
       {...props}
       options={options}
     />

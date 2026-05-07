@@ -1,147 +1,139 @@
 import type { NextApiResponse } from 'next';
 import {
   PricesResponse,
-  MongodbProductPrice,
-  SkuPrices,
-  StoreMap,
-  StorePrices,
-  SkuPricesResponse,
-  PricesApiRequest
+  ProductPrices,
+  PricesApiRequest,
+  DbId,
+  ProductMap
 } from '../../types';
-import getMongoDb from '../../utils/mongodb';
-import { Filter, ObjectId } from 'mongodb';
+import { queryPool } from '../../utils/mariadb';
+
+interface PriceResult {
+  productId: DbId;
+  price: number;
+  start: Date;
+  end: Date;
+}
+type Value = DbId[] | Date;
 
 export default function handler(
   req: PricesApiRequest,
   res: NextApiResponse<PricesResponse>
 ) {
-  const mongoDb = getMongoDb();
+  const getProductPricesFromMap = (
+    productMap: ProductMap,
+    id: string
+  ): ProductPrices => {
+    let productPrices = productMap.get(id);
 
-  const getPriceChanges = async (
-    skus: string[],
-    storeIds: string[],
-    startDate: number | undefined,
-    endDate: number | undefined
-  ): Promise<PricesResponse> => {
-    const storeMap: StoreMap = new Map<string, Map<string, SkuPrices>>();
-    const filter: Filter<MongodbProductPrice> = {
-      sku: { $in: skus },
-      store_id: { $in: storeIds.map((store_id) => new ObjectId(store_id)) }
-    };
-    if (startDate !== undefined) {
-      filter.end = {
-        $gte: startDate
-      };
-    }
-
-    if (endDate !== undefined) {
-      filter.start = {
-        $lte: endDate
-      };
-    }
-
-    const options = {
-      projection: {
-        _id: 0,
-        sku: 1,
-        price: 1,
-        store_id: 1,
-        salePrice: 1,
-        start: 1,
-        end: 1
-      }
-    };
-
-    const priceChanges = mongoDb
-      .collection<MongodbProductPrice>('priceChanges')
-      .find(filter, options)
-      .sort({ start: 1 });
-
-    for await (const doc of priceChanges) {
-      const skuPrices = getSkuPricesFromMap(
-        doc.store_id.toString(),
-        doc.sku,
-        storeMap
-      );
-      const entry = {
-        start: doc.start,
-        end: doc.end,
-        price: doc.price
-      };
-      if (doc.salePrice) {
-        skuPrices.salePrices.push(entry);
-        skuPrices.lastSalePrice = entry;
-      } else {
-        skuPrices.prices.push(entry);
-        skuPrices.lastPrice = entry;
-      }
-    }
-
-    const response: PricesResponse = {};
-    if (storeMap.size > 0) response.stores = [];
-    for (const entry of storeMap.entries()) {
-      response.stores?.push({
-        id: entry[0],
-        skus: getSkuResponse(entry[1])
-      });
-    }
-    return response;
-  };
-
-  const getSkuResponse = (storePrices: StorePrices): SkuPricesResponse[] => {
-    const skus = [];
-    for (const entry of storePrices.entries()) {
-      const skuPrice = {
-        sku: entry[0],
-        prices: entry[1].prices,
-        salePrices: entry[1].salePrices
-      };
-      if (entry[1].salePrices.length > 0)
-        skuPrice.salePrices = entry[1].salePrices;
-      skus.push(skuPrice);
-    }
-    return skus;
-  };
-
-  const getSkuPricesFromMap = (
-    store_id: string,
-    sku: string,
-    storeMap: StoreMap
-  ): SkuPrices => {
-    let storePrices = storeMap.get(store_id);
-    if (storePrices === undefined) {
-      storePrices = new Map<string, SkuPrices>();
-      storeMap.set(store_id, storePrices);
-      storePrices = storeMap.get(store_id);
-    }
-
-    let skuPrices = storePrices!.get(sku);
-    if (skuPrices === undefined) {
-      skuPrices = {
+    if (productPrices === undefined) {
+      productPrices = {
         lastPrice: undefined,
         lastSalePrice: undefined,
         prices: [],
         salePrices: []
       };
-      storePrices!.set(sku, skuPrices);
-      skuPrices = storePrices!.get(sku);
     }
-    return skuPrices!;
+    return productPrices;
   };
+  const getPriceChanges = async (
+    productIds: string[],
+    startDate: Date | undefined,
+    endDate: Date | undefined
+  ): Promise<PricesResponse> => {
+    const productMap: ProductMap = new Map<string, ProductPrices>();
+
+    const values: Value[] = [];
+
+    values.push(productIds.map((id) => parseInt(id)));
+    const parameters = '';
+    if (startDate) {
+      parameters.concat(' AND end >= ?');
+      values.push(startDate);
+    }
+    if (endDate) {
+      parameters.concat(' AND start <= ?');
+      values.push(endDate);
+    }
+
+    parameters.concat(' ORDER BY start ASC');
+
+    const query =
+      'SELECT productId, price, start, end FROM %TABLE% WHERE productId IN (?)';
+
+    const priceQuery = query.replace('%TABLE%', 'prices');
+    const salePriceQuery = query.replace('%TABLE%', 'salePrices');
+
+    const priceChangesPromise = queryPool<PriceResult[]>(
+      priceQuery + parameters,
+      values
+    ).then((results) => {
+      for (const row of results) {
+        const productPrices = getProductPricesFromMap(
+          productMap,
+          row.productId.toString()
+        );
+        const entry = {
+          start: row.start,
+          end: row.end,
+          price: row.price
+        };
+        productPrices.prices.push(entry);
+        productPrices.lastPrice = entry;
+        productMap.set(row.productId.toString(), productPrices);
+      }
+    });
+
+    const salePriceChangesPromise = queryPool<PriceResult[]>(
+      salePriceQuery + parameters,
+      values
+    ).then((results) => {
+      for (const row of results) {
+        const productPrices = getProductPricesFromMap(
+          productMap,
+          row.productId.toString()
+        );
+        const entry = {
+          start: row.start,
+          end: row.end,
+          price: row.price
+        };
+
+        productPrices.salePrices.push(entry);
+        productPrices.lastSalePrice = entry;
+        productMap.set(row.productId.toString(), productPrices);
+      }
+    });
+
+    await Promise.all([priceChangesPromise, salePriceChangesPromise]);
+
+    const response: PricesResponse = Array.from(productMap.entries()).map(
+      ([id, productPrices]) => {
+        return {
+          id: id,
+          prices: productPrices.prices,
+          salePrices: productPrices.salePrices
+        };
+      }
+    );
+    return response;
+  };
+
   //TODO: config for max products?
-  const skus: string[] = req.body.skus.splice(0, 20);
-  const stores: string[] = req.body.stores;
-  const start: number | undefined = req.body.start;
-  const end: number | undefined = req.body.end;
+  const productIds: string[] | undefined = req.body.productIds?.splice(0, 20);
+  const start: string | undefined = req.body.start;
+  const end: string | undefined = req.body.end;
 
   return new Promise<void>((resolve, reject) => {
-    if (!skus || skus.length == 0 || !stores || stores.length == 0) {
+    if (!productIds || productIds.length == 0) {
       res.status(200);
       resolve();
     } else {
-      getPriceChanges(skus, stores, start, end)
+      const startDate = start ? new Date(start) : undefined;
+      const endDate = end ? new Date(end) : undefined;
+      getPriceChanges(productIds, startDate, endDate)
         .then((body) => {
-          if (body.stores && body.stores.length > 0) {
+          if (body && body.length > 0) {
             res.status(200).json(body);
           } else {
             res.status(404).json(body);

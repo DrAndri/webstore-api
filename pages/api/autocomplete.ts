@@ -1,43 +1,25 @@
 import type { NextApiResponse } from 'next';
-import {
-  AutocompleteApiRequest,
-  AutocompleteResponse,
-  MongodbProductMetadata
-} from '../../types';
-import getMongoDb from '../../utils/mongodb';
-import { ObjectId } from 'mongodb';
+import { AutocompleteApiRequest, AutocompleteResponse } from '../../types';
 import { escapeRegExp } from 'lodash';
+import { querySolrAutocomplete } from '../../utils/solr';
 
 export default function handler(
   req: AutocompleteApiRequest,
   res: NextApiResponse<AutocompleteResponse>
 ) {
-  const mongoDb = getMongoDb();
-
-  const getTerms = async () => {
-    const safeTerm = escapeRegExp(req.body.term);
-    const filter = {
-      sku: { $regex: new RegExp(safeTerm, 'i') },
-      store_id: {
-        $in: req.body.stores.map((store_id) => new ObjectId(store_id))
-      }
-    };
-    const distinctSkus = await mongoDb
-      .collection<MongodbProductMetadata>('productMetadata')
-      .distinct('sku', filter, {
-        collation: { locale: 'is', numericOrdering: true }
-      });
-    return distinctSkus.splice(0, 20);
+  const searchSolr = async (term: string) => {
+    const response = await querySolrAutocomplete('products', `*:"${term}"`);
+    return response.response.docs.splice(0, 20);
   };
-
+  const safeTerm = escapeRegExp(req.body.term);
   return new Promise<void>((resolve, reject) => {
     if (req.body.term.length === 0) {
-      res.status(200).json({ terms: [] });
+      res.status(200).json({ products: [] });
       resolve();
     }
-    getTerms()
-      .then((terms) => {
-        res.status(200).json({ terms: terms });
+    searchSolr(safeTerm)
+      .then((products) => {
+        res.status(200).json({ products: products });
         resolve();
       })
       .catch((error) => {
