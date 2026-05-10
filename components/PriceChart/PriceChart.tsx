@@ -1,3 +1,5 @@
+'use client';
+import { useSWRConfig } from 'swr';
 import {
   CartesianGrid,
   Legend,
@@ -8,10 +10,144 @@ import {
   XAxis,
   YAxis
 } from 'recharts';
-import { PriceChartProps } from '../../types';
 import dayjs from 'dayjs';
+import {
+  PricesApiRequestBody,
+  PricesResponse,
+  ProductPricesResponse,
+  RechartFormat,
+  StoreConfig
+} from '../../types';
+import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { sendGAEvent } from '@next/third-parties/google';
+import { useCache } from '../../utils/api';
 
-export default function PriceChart({ prices }: PriceChartProps) {
+export default function PriceChart({ stores }: { stores: StoreConfig[] }) {
+  const { cache, mutate } = useSWRConfig();
+  const [prices, setPrices] = useState<RechartFormat[]>([]);
+  const [loadingPrices, setLoadingPrices] = useState(false);
+  const searchParams = useSearchParams();
+  const selectedProductIdsString = searchParams.get('selectedProductIds');
+  const productIdsFromParams = selectedProductIdsString?.split(',') || [];
+  const selectedRangeFromParams = searchParams.get('selectedRange');
+  const selectedRange = selectedRangeFromParams
+    ? selectedRangeFromParams.split(',').map((date) => dayjs(date))
+    : null;
+  useEffect(() => {
+    if (productIdsFromParams.length === 0) {
+      if (prices.length != 0) setPrices([]);
+      return;
+    }
+    const addToArray = (price: RechartFormat, prices: RechartFormat[]) => {
+      const index = prices.findIndex(
+        (onePrice) => onePrice.timestamp === price.timestamp
+      );
+      if (index < 0) {
+        prices.push(price);
+      } else {
+        prices[index] = {
+          ...price,
+          ...prices[index]
+        };
+      }
+    };
+    const formatPricesForRechart = (res: PricesResponse) => {
+      const prices: RechartFormat[] = [];
+      res.forEach((productPrice) => {
+        const storeName = stores.find(
+          (store) => store.id.toString() === productPrice.storeId
+        )?.name;
+        const key = storeName + ' - ' + productPrice.sku + ' - price';
+        for (const price of productPrice.prices) {
+          const startDay = dayjs(price.start).startOf('day');
+          addToArray(
+            {
+              [key]: price.price,
+              timestamp: startDay.unix()
+            },
+            prices
+          );
+          const endDay = dayjs(price.end).endOf('day');
+          let nextDay = startDay.add(1, 'day');
+          while (nextDay.isBefore(endDay)) {
+            addToArray(
+              {
+                [key]: price.price,
+                timestamp: nextDay.unix()
+              },
+              prices
+            );
+            nextDay = nextDay.add(1, 'day');
+          }
+        }
+        const saleKey = storeName + ' - ' + productPrice.sku + ' - salePrice';
+        if (productPrice.salePrices) {
+          for (const price of productPrice.salePrices) {
+            const startDay = dayjs(price.start).startOf('day');
+            addToArray(
+              {
+                [saleKey]: price.price,
+                timestamp: startDay.unix()
+              },
+              prices
+            );
+            const endDay = dayjs(price.end).endOf('day');
+            let nextDay = startDay.add(1, 'day');
+            while (nextDay.isBefore(endDay)) {
+              addToArray(
+                {
+                  [saleKey]: price.price,
+                  timestamp: nextDay.unix()
+                },
+                prices
+              );
+              nextDay = nextDay.add(1, 'day');
+            }
+          }
+        }
+      });
+      return prices;
+    };
+    const body: PricesApiRequestBody = {
+      productIds: productIdsFromParams
+    };
+
+    if (selectedRange !== null) {
+      body.start = selectedRange[0]?.toISOString().split('T')[0];
+      body.end = selectedRange[1]?.toISOString().split('T')[0];
+    }
+
+    setLoadingPrices(true);
+    sendGAEvent('event', 'prices', {
+      productIds: productIdsFromParams,
+      start: body.start,
+      end: body.end
+    });
+    useCache<ProductPricesResponse>(
+      'prices',
+      cache,
+      mutate,
+      productIdsFromParams,
+      (missingIds: string[]) => {
+        const body: PricesApiRequestBody = {
+          productIds: missingIds
+        };
+
+        if (selectedRange !== null) {
+          body.start = selectedRange[0]?.toISOString().split('T')[0];
+          body.end = selectedRange[1]?.toISOString().split('T')[0];
+        }
+        return body;
+      }
+    )
+      .then((res: PricesResponse) => {
+        setPrices(formatPricesForRechart(res));
+        setLoadingPrices(false);
+      })
+      .catch((error) => console.log(error));
+  }, [selectedProductIdsString]);
+
   const colors = [
     '#c10000',
     '#c15b00',

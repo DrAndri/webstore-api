@@ -1,14 +1,15 @@
-import React, { useMemo, useRef, useState } from 'react';
+'use client';
+import { useMemo, useRef, useState } from 'react';
 import { Select, Spin } from 'antd';
 import type { SelectProps } from 'antd';
 import debounce from 'lodash/debounce';
-import { SelectValue } from '../../types';
+import { DefaultOptionType } from 'antd/es/select';
 
 export interface DebounceSelectProps<ValueType> extends Omit<
   SelectProps<ValueType>,
   'options' | 'children'
 > {
-  fetchOptions: (term: string) => Promise<SelectValue[]>;
+  fetchOptions: (term: string) => Promise<DefaultOptionType[]>;
   debounceTimeout?: number;
 }
 
@@ -16,9 +17,9 @@ export default function SkuSelector({
   fetchOptions,
   debounceTimeout = 500,
   ...props
-}: DebounceSelectProps<SelectValue | SelectValue[]>) {
+}: DebounceSelectProps<DefaultOptionType | DefaultOptionType[]>) {
   const [fetching, setFetching] = useState(false);
-  const [options, setOptions] = useState<SelectValue[]>([]);
+  const [options, setOptions] = useState<DefaultOptionType[]>([]);
   const fetchRef = useRef(0);
 
   const debounceFetcher = useMemo(() => {

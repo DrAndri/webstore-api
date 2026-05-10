@@ -1,4 +1,4 @@
-import { SolrProduct } from '../types';
+import { AutocompleteResult } from '../types';
 
 interface SolrResponse<T> {
   responseHeader: {
@@ -21,11 +21,11 @@ export const querySolrAutocomplete = async (
   const params = {
     q: query,
     //TODO: remove when I've updated the core
-    fl: 'id,storeId,name,sku,image'
+    fl: 'id,storeId,name,sku'
   };
   const queryString = new URLSearchParams(params).toString();
   const response = await fetch(
     `${process.env.SOLR_URL}${collection}/autocomplete?${queryString}`
   );
-  return response.json() as Promise<SolrResponse<SolrProduct>>;
+  return response.json() as Promise<SolrResponse<AutocompleteResult>>;
 };

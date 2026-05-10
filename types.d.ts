@@ -7,28 +7,40 @@ export interface AutocompleteApiRequestBody {
   stores: string[];
   term: string;
 }
+export interface AutocompleteResponse {
+  results: AutocompleteResult[];
+}
 export interface PricesApiRequest extends NextApiRequest {
   body: PricesApiRequestBody;
 }
+
 export interface PricesApiRequestBody {
   productIds?: string[];
   start?: string;
   end?: string;
 }
-export interface AutocompleteResponse {
-  products: SolrProduct[];
+
+export interface AutocompleteResult {
+  id: string;
+  name: string;
+  sku: string;
+  storeId: number;
+  match: string;
 }
+
 export type PricesResponse = ProductPricesResponse[];
 
 export interface ProductPricesResponse {
   id: string;
+  sku: string;
+  storeId: string;
   prices: Price[];
   salePrices?: Price[];
 }
 
 export interface Price {
-  start: Date;
-  end: Date;
+  start: string;
+  end: string;
   price: number;
 }
 
@@ -47,13 +59,11 @@ export interface SelectValue {
   value: string;
 }
 
-export type ProductMap = Map<string, ProductPrices>;
+export type ProductMap = Map<string, Price[]>;
 
 export interface ProductPrices {
   prices: Price[];
   salePrices: Price[];
-  lastPrice?: Price;
-  lastSalePrice?: Price;
 }
 
 export interface SolrProduct {
