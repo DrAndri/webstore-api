@@ -1,10 +1,4 @@
-import {
-  PricesResponse,
-  ProductPrices,
-  DbId,
-  ProductMap,
-  Price
-} from '../../../types';
+import { PricesResponse, DbId, ProductMap, Price } from '../../../types';
 import { queryPool } from '../../../utils/mariadb';
 
 interface PriceResult {
@@ -22,6 +16,8 @@ interface ProductInfo {
   sku: string;
   storeId: DbId;
 }
+
+const dateRegex = /\d\d\d\d-0[1-9]|1[0-2]-(0|1|2)[0-9]|3[0-1]/gm;
 
 export async function POST(request: Request) {
   const getProductPricesFromMap = (
@@ -67,13 +63,10 @@ export async function POST(request: Request) {
     const priceQuery = query.replace('%TABLE%', 'prices');
     const salePriceQuery = query.replace('%TABLE%', 'salePrices');
 
-    const priceChangesPromise = queryPool<PriceResult[]>(
-      priceQuery + parameters,
-      values
-    ).then((results) => {
+    const upsertPricesInMap = (results: PriceResult[], map: ProductMap) => {
       for (const row of results) {
         const productPrices = getProductPricesFromMap(
-          pricesMap,
+          map,
           row.productId.toString()
         );
         const entry = {
@@ -82,29 +75,19 @@ export async function POST(request: Request) {
           price: row.price
         };
         productPrices.push(entry);
-        pricesMap.set(row.productId.toString(), productPrices);
+        map.set(row.productId.toString(), productPrices);
       }
-    });
+    };
+
+    const priceChangesPromise = queryPool<PriceResult[]>(
+      priceQuery + parameters,
+      values
+    ).then((results) => upsertPricesInMap(results, pricesMap));
 
     const salePriceChangesPromise = queryPool<PriceResult[]>(
       salePriceQuery + parameters,
       values
-    ).then((results) => {
-      for (const row of results) {
-        const productPrices = getProductPricesFromMap(
-          salePricesMap,
-          row.productId.toString()
-        );
-        const entry = {
-          start: row.start.toISOString().split('T')[0],
-          end: row.end.toISOString().split('T')[0],
-          price: row.price
-        };
-
-        productPrices.push(entry);
-        salePricesMap.set(row.productId.toString(), productPrices);
-      }
-    });
+    ).then((results) => upsertPricesInMap(results, salePricesMap));
 
     const productInfoPromise = queryPool<ProductInfo[]>(
       'SELECT id, sku, storeId FROM products WHERE id IN (?)',
@@ -121,8 +104,8 @@ export async function POST(request: Request) {
       productInfoPromise
     ]);
 
-    const response: PricesResponse = await Promise.all(
-      Array.from(pricesMap.entries()).map(async ([id, productPrices]) => {
+    const response: PricesResponse = Array.from(pricesMap.entries()).map(
+      ([id, productPrices]) => {
         const result = productInfoMap.get(id);
         const salePriceProductPrices = salePricesMap.get(id);
         return {
@@ -132,7 +115,7 @@ export async function POST(request: Request) {
           prices: productPrices,
           salePrices: salePriceProductPrices ?? []
         };
-      })
+      }
     );
     return response;
   };
@@ -142,7 +125,18 @@ export async function POST(request: Request) {
   if (!productIds || productIds.length == 0) {
     return Response.json([]);
   } else {
-    //TODO: validate input
+    if (start && !dateRegex.test(start)) {
+      return Response.json(
+        { error: 'Invalid start date format' },
+        { status: 400 }
+      );
+    }
+    if (end && !dateRegex.test(end)) {
+      return Response.json(
+        { error: 'Invalid end date format' },
+        { status: 400 }
+      );
+    }
     //TODO: config for max products?
     return getPriceChanges(productIds.slice(0, 20), start, end)
       .then((body) => {
