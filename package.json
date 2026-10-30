@@ -34,7 +34,7 @@
     "eslint-config-prettier": "^10.1.8",
     "prettier": "^3.9.10",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.72.0"
+    "typescript-eslint": "^8.72.1"
   },
   "resolutions": {
     "@rc-component/util": "^1.14.0"
