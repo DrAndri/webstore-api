@@ -1,6 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
+  // Loaded at runtime instead of bundled, node-cron spawns its own worker files
+  serverExternalPackages: ['node-cron'],
   reactStrictMode: true,
   transpilePackages: [
     // antd & deps
