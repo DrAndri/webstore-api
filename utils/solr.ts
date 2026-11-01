@@ -14,6 +14,10 @@ interface SolrResponse<T> {
   };
 }
 
+// SOLR_URL may end with a slash or not, Solr answers 400 to a double slash
+export const solrUrl = (path: string) =>
+  `${(process.env.SOLR_URL ?? '').replace(/\/+$/, '')}/${path}`;
+
 export const querySolrAutocomplete = async (
   collection: string,
   query: string
@@ -25,7 +29,7 @@ export const querySolrAutocomplete = async (
   };
   const queryString = new URLSearchParams(params).toString();
   const response = await fetch(
-    `${process.env.SOLR_URL}${collection}/autocomplete?${queryString}`
+    solrUrl(`${collection}/autocomplete?${queryString}`)
   );
   return response.json() as Promise<SolrResponse<AutocompleteResult>>;
 };

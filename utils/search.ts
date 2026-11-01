@@ -1,5 +1,6 @@
 // Advanced product search on the Solr products core
 import { queryPool } from './mariadb';
+import { solrUrl } from './solr';
 import {
   ATTRIBUTE_FIELD,
   Facet,
@@ -24,8 +25,7 @@ const PRODUCT_FIELDS =
 
 export class SearchError extends Error {}
 
-const solrUrl = (handler: string) =>
-  `${process.env.SOLR_URL}products/${handler}`;
+const productsUrl = (handler: string) => solrUrl(`products/${handler}`);
 
 // Lookups
 
@@ -97,7 +97,7 @@ let schema: { at: number; exact: boolean; attrIds: boolean } | undefined;
 const getSchemaSupport = async () => {
   if (schema && Date.now() - schema.at < 5 * 60 * 1000) return schema;
   try {
-    const response = await fetch(solrUrl('schema'), { cache: 'no-store' });
+    const response = await fetch(productsUrl('schema'), { cache: 'no-store' });
     const { schema: body } = (await response.json()) as {
       schema: { fields: { name: string }[]; dynamicFields: { name: string }[] };
     };
@@ -243,7 +243,7 @@ interface SolrResponse {
 }
 
 const querySolr = async (params: URLSearchParams): Promise<SolrResponse> => {
-  const response = await fetch(solrUrl('select'), {
+  const response = await fetch(productsUrl('select'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: params,
