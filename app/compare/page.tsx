@@ -4,12 +4,16 @@ import Link from 'next/link';
 import { Suspense } from 'react';
 import Compare from '../../components/Compare/Compare';
 import UserMenu from '../../components/UserMenu/UserMenu';
-import { getPublicStores } from '../../utils/stores';
+import { StoreConfig } from '../../types';
+import { queryPool } from '../../utils/mariadb';
 
 export const metadata = { title: 'Samanburður' };
+export const dynamic = 'force-dynamic';
 
 export default async function ComparePage() {
-  const stores = await getPublicStores();
+  const stores = await queryPool<StoreConfig[]>(
+    'SELECT id, name FROM stores WHERE apiEnabled = true'
+  );
   return (
     <Flex vertical gap={16} style={{ padding: 24 }}>
       <Flex justify="space-between" align="center" wrap gap={8}>
@@ -18,9 +22,7 @@ export default async function ComparePage() {
         </Title>
         <Flex gap={16} align="center" wrap>
           <Link href="/search">Til baka í leit</Link>
-          <Suspense>
-            <UserMenu returnTo="/compare" />
-          </Suspense>
+          <UserMenu returnTo="/compare" />
         </Flex>
       </Flex>
       <Suspense>

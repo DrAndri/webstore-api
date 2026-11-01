@@ -1,4 +1,4 @@
-import AntdRegistry from '../components/AntdRegistry/AntdRegistry';
+import { AntdRegistry } from '@ant-design/nextjs-registry';
 import { GoogleAnalytics } from '@next/third-parties/google';
 import { ConfigProvider } from 'antd';
 import '../styles/globals.css';

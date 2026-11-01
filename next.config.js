@@ -1,10 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
-  // Pages are prerendered where they can be, request time parts stream in
-  // behind Suspense. See utils/stores.ts for the cached data.
-  cacheComponents: true,
-  partialPrefetching: true,
   // Loaded at runtime instead of bundled, node-cron spawns its own worker files
   serverExternalPackages: ['node-cron'],
   reactStrictMode: true,

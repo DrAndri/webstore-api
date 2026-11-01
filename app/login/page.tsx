@@ -3,12 +3,8 @@ import Text from 'antd/es/typography/Text';
 import Title from 'antd/es/typography/Title';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { safeRedirect } from '../../auth';
-import { getSession } from '../../utils/session';
+import { auth, safeRedirect } from '../../auth';
 import { signInWithGoogle } from '../actions/auth';
-
-// Reads the session and returnTo, so it waits for the request
-export const instant = false;
 
 export const metadata = {
   title: 'Innskráning',
@@ -22,7 +18,7 @@ export default async function LoginPage({
 }) {
   const { returnTo, error } = await searchParams;
   const target = safeRedirect(returnTo);
-  const session = await getSession();
+  const session = await auth();
   if (session?.user) redirect(target);
 
   return (

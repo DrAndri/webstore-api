@@ -2,7 +2,7 @@ import { Avatar, Button, Flex } from 'antd';
 import Text from 'antd/es/typography/Text';
 import Link from 'next/link';
 import { signOutUser } from '../../app/actions/auth';
-import { getSession } from '../../utils/session';
+import { auth } from '../../auth';
 
 // Sign in and out for the public pages. dark is for the dark page header.
 export default async function UserMenu({
@@ -12,7 +12,7 @@ export default async function UserMenu({
   returnTo: string;
   dark?: boolean;
 }) {
-  const session = await getSession();
+  const session = await auth();
   if (!session?.user)
     return (
       <Link href={`/login?returnTo=${encodeURIComponent(returnTo)}`}>

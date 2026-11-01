@@ -1,16 +1,15 @@
 import { Button, Flex, Layout } from 'antd';
 import Link from 'next/link';
 import { Header, Content } from 'antd/es/layout/layout';
+import { StoreConfig } from '../types';
+import { queryPool } from '../utils/mariadb';
 import PriceChart from '../components/PriceChart/PriceChart';
 import Search from '../components/Search/Search';
 import UserMenu from '../components/UserMenu/UserMenu';
-import { Suspense } from 'react';
-import { getPublicStores } from '../utils/stores';
-
-// Prerendered with the stores from the database, the parts that depend on the
-// url or the session stream in at request time
 export default async function Page() {
-  const stores = await getPublicStores();
+  const stores = await queryPool<StoreConfig[]>(
+    'SELECT id, name FROM stores WHERE apiEnabled = true'
+  );
 
   return (
     <div>
@@ -25,15 +24,11 @@ export default async function Page() {
             style={{ height: '100%', width: '100%' }}
             wrap="wrap"
           >
-            <Suspense>
-              <Search stores={stores} />
-            </Suspense>
+            <Search stores={stores} />
             <Link href="/search">
               <Button ghost>Ítarleg leit</Button>
             </Link>
-            <Suspense>
-              <UserMenu returnTo="/" dark />
-            </Suspense>
+            <UserMenu returnTo="/" dark />
           </Flex>
         </Header>
         <Layout style={{ height: '100vh' }}>
@@ -43,9 +38,7 @@ export default async function Page() {
               align="center"
               style={{ height: '100%' }}
             >
-              <Suspense>
-                <PriceChart stores={stores} />
-              </Suspense>
+              <PriceChart stores={stores} />
             </Flex>
           </Content>
         </Layout>

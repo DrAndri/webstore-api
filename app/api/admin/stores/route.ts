@@ -7,8 +7,6 @@ import {
 } from '../../../../utils/admin/storeConfig';
 import { WebshopCrawlerOptions } from '../../../../utils/admin/types';
 import { UpsertResult } from 'mariadb';
-import { revalidateTag } from 'next/cache';
-import { STORES_TAG } from '../../../../utils/stores';
 
 // Creates the store and commits its config. The store id is only known after
 // the insert, so the config is sent without one.
@@ -37,8 +35,6 @@ export const POST = withAdmin(async (request, { user }) => {
     [name, !!body.scraperEnabled, !!body.apiEnabled]
   );
   const storeId = Number(result.insertId);
-  // The website lists the stores in the public search
-  revalidateTag(STORES_TAG, 'max');
 
   // storeId first, the rest in the order of the form
   const config = { storeId, ...body.config } as WebshopCrawlerOptions;
