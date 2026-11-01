@@ -8,7 +8,7 @@
 // Counters are kept in memory and written to apiUsage every few seconds, so the
 // limits assume a single webstore-api instance.
 import { createHash } from 'node:crypto';
-import { NextRequest, NextResponse } from 'next/server';
+import { connection, NextRequest, NextResponse } from 'next/server';
 import { queryPool } from './mariadb';
 import { auth } from '../auth';
 import { cookieOptions, randomToken, sign, verify } from './signedTokens';
@@ -336,6 +336,9 @@ export const liveUsage = () => {
 export const withApiAccess =
   <C>(handler: (request: NextRequest, context: C) => Promise<Response>) =>
   async (request: NextRequest, context: C) => {
+    // Never prerendered. Outside the try, which would otherwise catch the
+    // signal Next.js throws to stop prerendering.
+    await connection();
     let key: string;
     let limits: Limits;
     let tokenId = 0;

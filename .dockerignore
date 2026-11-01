@@ -1,6 +1,8 @@
 **/.classpath
 **/.dockerignore
-#**/.env
+# Local settings and secrets, the build gets its settings as build args and
+# secrets and the container from its environment
+**/.env*
 **/.git
 **/.gitignore
 **/.project

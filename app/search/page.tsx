@@ -7,7 +7,13 @@ export const metadata = { title: 'Ítarleg leit' };
 export default function SearchPage() {
   return (
     <Suspense>
-      <AdvancedSearch userMenu={<UserMenu returnTo="/search" />} />
+      <AdvancedSearch
+        userMenu={
+          <Suspense>
+            <UserMenu returnTo="/search" />
+          </Suspense>
+        }
+      />
     </Suspense>
   );
 }

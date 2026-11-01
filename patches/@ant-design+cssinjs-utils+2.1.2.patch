@@ -1,0 +1,78 @@
+diff --git a/node_modules/@ant-design/cssinjs-utils/es/_util/hooks/useUniqueMemo.js b/node_modules/@ant-design/cssinjs-utils/es/_util/hooks/useUniqueMemo.js
+index 1753865..9f1298b 100644
+--- a/node_modules/@ant-design/cssinjs-utils/es/_util/hooks/useUniqueMemo.js
++++ b/node_modules/@ant-design/cssinjs-utils/es/_util/hooks/useUniqueMemo.js
+@@ -3,6 +3,8 @@ import _classCallCheck from "@babel/runtime/helpers/esm/classCallCheck";
+ import _createClass from "@babel/runtime/helpers/esm/createClass";
+ import _defineProperty from "@babel/runtime/helpers/esm/defineProperty";
+ import React from 'react';
++// performance.now() instead of Date.now(), which Next.js Cache Components does
++// not allow while prerendering. Only used to age cache entries.
+ var BEAT_LIMIT = 1000 * 60 * 10;
+ 
+ /**
+@@ -29,14 +31,14 @@ var ArrayKeyMap = /*#__PURE__*/function () {
+       // Set logic
+       var compositeKey = this.getCompositeKey(keys);
+       this.map.set(compositeKey, value);
+-      this.lastAccessBeat.set(compositeKey, Date.now());
++      this.lastAccessBeat.set(compositeKey, performance.now());
+     }
+   }, {
+     key: "get",
+     value: function get(keys) {
+       var compositeKey = this.getCompositeKey(keys);
+       var cache = this.map.get(compositeKey);
+-      this.lastAccessBeat.set(compositeKey, Date.now());
++      this.lastAccessBeat.set(compositeKey, performance.now());
+       this.accessBeat += 1;
+       return cache;
+     }
+@@ -68,7 +70,7 @@ var ArrayKeyMap = /*#__PURE__*/function () {
+     value: function clear() {
+       var _this2 = this;
+       if (this.accessBeat > 10000) {
+-        var now = Date.now();
++        var now = performance.now();
+         this.lastAccessBeat.forEach(function (beat, key) {
+           if (now - beat > BEAT_LIMIT) {
+             _this2.map.delete(key);
+diff --git a/node_modules/@ant-design/cssinjs-utils/lib/_util/hooks/useUniqueMemo.js b/node_modules/@ant-design/cssinjs-utils/lib/_util/hooks/useUniqueMemo.js
+index 36f531f..4ca45d4 100644
+--- a/node_modules/@ant-design/cssinjs-utils/lib/_util/hooks/useUniqueMemo.js
++++ b/node_modules/@ant-design/cssinjs-utils/lib/_util/hooks/useUniqueMemo.js
+@@ -10,6 +10,8 @@ var _classCallCheck2 = _interopRequireDefault(require("@babel/runtime/helpers/cl
+ var _createClass2 = _interopRequireDefault(require("@babel/runtime/helpers/createClass"));
+ var _defineProperty2 = _interopRequireDefault(require("@babel/runtime/helpers/defineProperty"));
+ var _react = _interopRequireDefault(require("react"));
++// performance.now() instead of Date.now(), which Next.js Cache Components does
++// not allow while prerendering. Only used to age cache entries.
+ var BEAT_LIMIT = 1000 * 60 * 10;
+ 
+ /**
+@@ -36,14 +38,14 @@ var ArrayKeyMap = /*#__PURE__*/function () {
+       // Set logic
+       var compositeKey = this.getCompositeKey(keys);
+       this.map.set(compositeKey, value);
+-      this.lastAccessBeat.set(compositeKey, Date.now());
++      this.lastAccessBeat.set(compositeKey, performance.now());
+     }
+   }, {
+     key: "get",
+     value: function get(keys) {
+       var compositeKey = this.getCompositeKey(keys);
+       var cache = this.map.get(compositeKey);
+-      this.lastAccessBeat.set(compositeKey, Date.now());
++      this.lastAccessBeat.set(compositeKey, performance.now());
+       this.accessBeat += 1;
+       return cache;
+     }
+@@ -75,7 +77,7 @@ var ArrayKeyMap = /*#__PURE__*/function () {
+     value: function clear() {
+       var _this2 = this;
+       if (this.accessBeat > 10000) {
+-        var now = Date.now();
++        var now = performance.now();
+         this.lastAccessBeat.forEach(function (beat, key) {
+           if (now - beat > BEAT_LIMIT) {
+             _this2.map.delete(key);

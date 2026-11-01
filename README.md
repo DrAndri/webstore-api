@@ -24,6 +24,29 @@ yarn dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
+## Building
+
+The app uses [Cache Components](https://nextjs.org/docs/app/getting-started/caching).
+The front page, search and compare pages are prerendered at build time with
+the stores from the database (`utils/stores.ts`), the parts that depend on the
+url or the signed in user stream in at request time. The store list is cached
+for an hour and refreshed right away when a store is added or changed in the
+admin interface.
+
+The build therefore connects to MariaDB, which must be running with the stores
+in it:
+
+- `yarn build` uses the `MARIADB_*` settings like the app.
+- The Docker image gets `MARIADB_HOST`, `MARIADB_USER` and `MARIADB_DATABASE`
+  as build args and the password as the `mariadb_password` build secret, so it
+  is not kept in the image. `docker compose build webstore-api` in
+  webstore-scraper passes them and reaches mariadb through its published port.
+
+`patches/` holds a fix for `@ant-design/cssinjs-utils`, applied by
+patch-package after every install. antd timestamped its style cache with
+`Date.now()` while rendering, which Cache Components does not allow while
+prerendering. Check whether it is still needed when upgrading antd.
+
 ## Environment variables
 
 | Variable                                       | Used for                                                                              |

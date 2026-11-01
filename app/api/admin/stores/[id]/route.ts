@@ -1,4 +1,6 @@
 import { UpsertResult } from 'mariadb';
+import { revalidateTag } from 'next/cache';
+import { STORES_TAG } from '../../../../../utils/stores';
 import {
   HttpError,
   parseId,
@@ -94,5 +96,7 @@ export const PATCH = withAdmin<Context>(async (request, { params }) => {
       throw new HttpError(409, 'Another store has that name');
     throw e;
   }
+  // The website lists the names of the stores in the public search
+  revalidateTag(STORES_TAG, 'max');
   return getStore(id);
 });

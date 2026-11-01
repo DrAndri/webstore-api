@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 FROM node:26-alpine AS base
 
 # Node 25+ images no longer bundle Yarn or Corepack, so install Yarn 1 for the install/build stages only
@@ -12,6 +13,8 @@ WORKDIR /app
 
 # Install dependencies based on the preferred package manager
 COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* ./
+# Applied by patch-package after the install
+COPY patches ./patches
 RUN \
   if [ -f yarn.lock ]; then yarn --frozen-lockfile; \
   elif [ -f package-lock.json ]; then npm ci; \
@@ -31,7 +34,13 @@ COPY . .
 # Uncomment the following line in case you want to disable telemetry during the build.
 # ENV NEXT_TELEMETRY_DISABLED 1
 
-RUN \
+# The pages that list the stores are prerendered with the stores in the
+# database, so the build connects to it. The password is a build secret, only
+# mounted for this step and not kept in the image.
+ARG MARIADB_HOST
+ARG MARIADB_USER
+ARG MARIADB_DATABASE
+RUN --mount=type=secret,id=mariadb_password,env=MARIADB_PASSWORD,required=true \
   if [ -f yarn.lock ]; then yarn run build; \
   elif [ -f package-lock.json ]; then npm run build; \
   elif [ -f pnpm-lock.yaml ]; then corepack enable pnpm && pnpm run build; \

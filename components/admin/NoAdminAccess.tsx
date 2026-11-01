@@ -3,10 +3,10 @@ import Text from 'antd/es/typography/Text';
 import Title from 'antd/es/typography/Title';
 import Link from 'next/link';
 import { signOutUser } from '../../app/actions/auth';
-import { auth } from '../../auth';
+import { getSession } from '../../utils/session';
 
 export default async function NoAdminAccess() {
-  const session = await auth();
+  const session = await getSession();
   return (
     <Flex
       justify="center"

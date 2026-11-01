@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server';
+import { connection, NextRequest } from 'next/server';
 import { AdminUser, getAdmin, isSameOrigin } from './auth';
 
 export class HttpError extends Error {
@@ -25,6 +25,9 @@ export const withAdmin =
     ) => Promise<unknown>
   ) =>
   async (request: NextRequest, context: C) => {
+    // Never prerendered. Outside the try, which would otherwise catch the
+    // signal Next.js throws to stop prerendering.
+    await connection();
     if (request.method !== 'GET' && !isSameOrigin(request))
       return json({ error: 'Invalid origin' }, 403);
     try {

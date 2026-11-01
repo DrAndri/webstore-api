@@ -1,4 +1,4 @@
-import { auth } from '../../auth';
+import { getSession } from '../session';
 import { adminQuery } from './db';
 
 export interface AdminUser {
@@ -15,7 +15,7 @@ export const getAdmin = async (): Promise<{
   signedIn: boolean;
   admin?: AdminUser;
 }> => {
-  const session = await auth();
+  const session = await getSession();
   const email = session?.user?.email;
   if (!email) return { signedIn: false };
   const [row] = await adminQuery<{ id: number; name: string; email: string }[]>(
