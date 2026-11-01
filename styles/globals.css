@@ -34,3 +34,8 @@ a {
     background: black;
   }
 } */
+
+/* Rows of the comparison view whose values differ between products */
+.compare-differs > td {
+  background: #fffbe6;
+}

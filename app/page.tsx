@@ -1,4 +1,5 @@
-import { Flex, Layout } from 'antd';
+import { Button, Flex, Layout } from 'antd';
+import Link from 'next/link';
 import { Header, Content } from 'antd/es/layout/layout';
 import { StoreConfig } from '../types';
 import { queryPool } from '../utils/mariadb';
@@ -23,6 +24,9 @@ export default async function Page() {
             wrap="wrap"
           >
             <Search stores={stores} />
+            <Link href="/search">
+              <Button ghost>Ítarleg leit</Button>
+            </Link>
           </Flex>
         </Header>
         <Layout style={{ height: '100vh' }}>
