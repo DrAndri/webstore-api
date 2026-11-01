@@ -1,6 +1,8 @@
 **/.classpath
 **/.dockerignore
-#**/.env
+# Local settings and secrets, the container gets its settings from its
+# environment
+**/.env*
 **/.git
 **/.gitignore
 **/.project
