@@ -15,7 +15,7 @@ export const getPublicStores = (): Promise<StoreConfig[]> => {
   const cached = global.publicStores;
   if (cached && Date.now() - cached.at < TTL_MS) return cached.value;
   const value = queryPool<StoreConfig[]>(
-    'SELECT id, name FROM stores WHERE apiEnabled = true'
+    'SELECT id, name FROM stores WHERE apiEnabled = true ORDER BY name'
   ).then((rows) => rows.map((row) => ({ id: Number(row.id), name: row.name })));
   global.publicStores = { at: Date.now(), value };
   // A failed query is not cached
