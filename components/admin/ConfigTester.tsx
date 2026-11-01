@@ -176,16 +176,23 @@ export default function ConfigTester({
         latest && !['queued', 'running'].includes(latest.status) ? 0 : 2000
     }
   );
-  const [waitingSince, setWaitingSince] = useState<number>();
+  // When the test was started, and a clock that ticks while it is queued, to
+  // warn when the scraper does not pick it up
+  const [startedAt, setStartedAt] = useState(0);
+  const [now, setNow] = useState(0);
+  const queued = job?.status === 'queued';
   useEffect(() => {
-    if (job?.status === 'queued')
-      setWaitingSince((since) => since ?? Date.now());
-    else setWaitingSince(undefined);
-  }, [job?.status]);
+    if (!queued) return;
+    const interval = setInterval(() => setNow(Date.now()), 2000);
+    return () => clearInterval(interval);
+  }, [queued]);
+  const notPickedUp = queued && now - startedAt > 20000;
 
   const run = async () => {
     const config = getConfig();
     if (!config) return;
+    setStartedAt(Date.now());
+    setNow(Date.now());
     setStarting(true);
     try {
       const { jobId } = await sendJson<{ jobId: number }>(
@@ -238,7 +245,7 @@ export default function ConfigTester({
             </Typography.Text>
           </Flex>
         )}
-        {waitingSince && Date.now() - waitingSince > 20000 && (
+        {notPickedUp && (
           <Alert
             type="warning"
             showIcon

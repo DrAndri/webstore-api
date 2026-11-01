@@ -1,5 +1,3 @@
-import { ObjectId } from 'mongodb';
-
 export interface AutocompleteApiRequest extends NextApiRequest {
   body: AutocompleteApiRequestBody;
 }

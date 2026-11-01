@@ -17,6 +17,9 @@ export class ApiError extends Error {
 const handle = async <T>(response: Response): Promise<T> => {
   const body = (await response.json().catch(() => ({}))) as { error?: string };
   if (response.status === 401) {
+    // A full page load on purpose, so nothing of the expired session stays in
+    // memory. This runs outside components, where there is no router.
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
     window.location.href = `/admin/login?returnTo=${encodeURIComponent(window.location.pathname)}`;
   }
   if (!response.ok)

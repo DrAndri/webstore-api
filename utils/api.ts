@@ -1,9 +1,9 @@
 import { Cache, ScopedMutator } from 'swr';
 
-export default async function callApi(
+export default async function callApi<T = unknown>(
   method: string,
   body: unknown
-): Promise<any> {
+): Promise<T> {
   return fetch('/api/' + method, {
     method: 'POST',
     headers: {
@@ -14,7 +14,7 @@ export default async function callApi(
     if (!res.ok) {
       throw new Error(`API call failed with status ${res.status}`);
     }
-    return res.json();
+    return res.json() as Promise<T>;
   });
 }
 
@@ -22,9 +22,10 @@ interface CacheableResponse {
   id: string;
 }
 
-export const useCache = async <T extends CacheableResponse>(
+// Not a React hook, it reads and fills the SWR cache directly
+export const getCached = async <T extends CacheableResponse>(
   url: string,
-  cache: Cache<any>,
+  cache: Cache,
   mutate: ScopedMutator,
   idsToFetch: string[],
   getBodyForMissingIds?: (missingIds: string[]) => unknown
@@ -40,8 +41,11 @@ export const useCache = async <T extends CacheableResponse>(
     }
   }
   if (missingIds.length > 0 && getBodyForMissingIds) {
-    await callApi(url, getBodyForMissingIds(missingIds)).then((res) => {
-      res.forEach((item: CacheableResponse) => {
+    await callApi<CacheableResponse[]>(
+      url,
+      getBodyForMissingIds(missingIds)
+    ).then((res) => {
+      res.forEach((item) => {
         if (item.id) {
           cache.set(url + '/' + item.id, { data: item });
           // mutate(url + '/' + item.id, item);

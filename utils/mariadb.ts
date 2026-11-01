@@ -32,7 +32,7 @@ const getPool = () => {
 
 const pool = getPool();
 
-const usePoolConnection = async <T>(
+const withPoolConnection = async <T>(
   query: (conn: PoolConnection) => Promise<T>
 ): Promise<T> => {
   if (!pool) throw new Error('Database pool not initialized');
@@ -50,5 +50,5 @@ export const queryPool = async <T>(
   query: string,
   values?: (DbId | DbId[] | string)[]
 ): Promise<T> => {
-  return await usePoolConnection<T>((conn) => conn.query<T>(query, values));
+  return await withPoolConnection<T>((conn) => conn.query<T>(query, values));
 };

@@ -11,7 +11,7 @@ import {
 import SkuSelector from '../SkuSelector/SkuSelector';
 import { Dayjs } from 'dayjs';
 import { DatePicker, Select, Tooltip } from 'antd';
-import callApi, { useCache } from '../../utils/api';
+import callApi, { getCached } from '../../utils/api';
 import { sendGAEvent } from '@next/third-parties/google';
 import { DefaultOptionType } from 'antd/es/select';
 import { useSearchParams, usePathname, useRouter } from 'next/navigation';
@@ -32,7 +32,6 @@ export default function Search({ stores }: { stores: StoreConfig[] }) {
           .map((id) => ({ value: id, label: id }))
       : []
   );
-  const [loadingPrices, setLoadingPrices] = useState(false);
   const [selectedRange, setSelectedRange] = useState<
     [start: Dayjs | null, end: Dayjs | null] | null
   >(null);
@@ -43,7 +42,7 @@ export default function Search({ stores }: { stores: StoreConfig[] }) {
   useEffect(() => {
     if (selectedProductIds.length !== 0) {
       setTimeout(async () => {
-        const selectedProducts = await useCache<ProductPricesResponse>(
+        const selectedProducts = await getCached<ProductPricesResponse>(
           'prices',
           cache,
           mutate,
@@ -61,6 +60,8 @@ export default function Search({ stores }: { stores: StoreConfig[] }) {
         }
       }, 1000);
     }
+    // Only replaces the ids from the url with labels once, on the first render
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -78,6 +79,9 @@ export default function Search({ stores }: { stores: StoreConfig[] }) {
 
     // 3. Update the URL with the new query string
     replace(`${pathname}?${params.toString()}`);
+    // Writes the selection to the url when it changes, depending on the url
+    // itself would run it again after every replace
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedProductIds, selectedRange, selectedStores]);
 
   async function searchForProducts(term: string): Promise<DefaultOptionType[]> {
@@ -89,7 +93,7 @@ export default function Search({ stores }: { stores: StoreConfig[] }) {
       term: term,
       stores: selectedStores
     };
-    return callApi('autocomplete', body).then((res: AutocompleteResponse) => {
+    return callApi<AutocompleteResponse>('autocomplete', body).then((res) => {
       return res.results.map((result: AutocompleteResult) => ({
         label: result.name,
         value: result.id
@@ -108,7 +112,6 @@ export default function Search({ stores }: { stores: StoreConfig[] }) {
             setSelectedProductIds([newValue]);
           }
         }}
-        loading={loadingPrices}
       />
       <RangePicker
         style={{ width: 250 }}
@@ -140,7 +143,6 @@ export default function Search({ stores }: { stores: StoreConfig[] }) {
         options={stores.map((store) => {
           return { label: store.name, value: store.id.toString() };
         })}
-        loading={loadingPrices}
       />
     </>
   );

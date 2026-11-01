@@ -21,12 +21,11 @@ import {
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { sendGAEvent } from '@next/third-parties/google';
-import { useCache } from '../../utils/api';
+import { getCached } from '../../utils/api';
 
 export default function PriceChart({ stores }: { stores: StoreConfig[] }) {
   const { cache, mutate } = useSWRConfig();
-  const [prices, setPrices] = useState<RechartFormat[]>([]);
-  const [loadingPrices, setLoadingPrices] = useState(false);
+  const [loadedPrices, setPrices] = useState<RechartFormat[]>([]);
   const searchParams = useSearchParams();
   const selectedProductIdsString = searchParams.get('selectedProductIds');
   const productIdsFromParams = selectedProductIdsString?.split(',') || [];
@@ -35,10 +34,7 @@ export default function PriceChart({ stores }: { stores: StoreConfig[] }) {
     ? selectedRangeFromParams.split(',').map((date) => dayjs(date))
     : null;
   useEffect(() => {
-    if (productIdsFromParams.length === 0) {
-      if (prices.length != 0) setPrices([]);
-      return;
-    }
+    if (productIdsFromParams.length === 0) return;
     const addToArray = (price: RechartFormat, prices: RechartFormat[]) => {
       const index = prices.findIndex(
         (onePrice) => onePrice.timestamp === price.timestamp
@@ -118,13 +114,12 @@ export default function PriceChart({ stores }: { stores: StoreConfig[] }) {
       body.end = selectedRange[1]?.toISOString().split('T')[0];
     }
 
-    setLoadingPrices(true);
     sendGAEvent('event', 'prices', {
       productIds: productIdsFromParams,
       start: body.start,
       end: body.end
     });
-    useCache<ProductPricesResponse>(
+    getCached<ProductPricesResponse>(
       'prices',
       cache,
       mutate,
@@ -143,10 +138,12 @@ export default function PriceChart({ stores }: { stores: StoreConfig[] }) {
     )
       .then((res: PricesResponse) => {
         setPrices(formatPricesForRechart(res));
-        setLoadingPrices(false);
       })
       .catch((error) => console.log(error));
+    // The other values are derived from the selected products in the url
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedProductIdsString]);
+  const prices = productIdsFromParams.length === 0 ? [] : loadedPrices;
 
   const colors = [
     '#c10000',
@@ -259,8 +256,8 @@ export default function PriceChart({ stores }: { stores: StoreConfig[] }) {
             ]}
           />
           <Tooltip
-            labelFormatter={(label: any) =>
-              dayjs.unix(label).format('DD-MMM-YYYY')
+            labelFormatter={(label) =>
+              dayjs.unix(Number(label)).format('DD-MMM-YYYY')
             }
             labelStyle={{ fontWeight: 'bold' }}
             formatter={(value) =>

@@ -69,7 +69,7 @@ const buildRows = (products: ComparedProduct[]): Row[] => {
       label: 'Verð',
       values: products.map((p) =>
         p.price === null ? null : (
-          <Flex vertical>
+          <Flex vertical key={p.id}>
             {p.salePrice !== null ? (
               <>
                 <Typography.Text strong>
