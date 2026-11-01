@@ -90,7 +90,8 @@ export const getLookups = () => {
   return lookups.value;
 };
 
-// Whether the products core has the fields from the advanced search migration
+// Whether the products core has the advanced search fields, which the scraper
+// adds when it syncs the Solr schema
 let schema: { at: number; exact: boolean; attrIds: boolean } | undefined;
 
 const getSchemaSupport = async () => {
@@ -188,7 +189,7 @@ const conditionClause = (
     const target = attribute ? `attrci_${attribute[1]}` : `${field}_ci`;
     return `${target}:${op === 'exact' ? quote(value) : wildcard(op, escapeTerm(value))}`;
   }
-  // Before the migration: attribute values are case sensitive strings, name
+  // Before those fields exist: attribute values are case sensitive strings, name
   // and sku are matched word by word
   if (attribute)
     return `${field}:${op === 'exact' ? quote(value) : wildcard(op, escapeTerm(value))}`;

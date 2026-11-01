@@ -61,14 +61,13 @@ the `signIn` callback only when the provider verifies email addresses.
 
 ### Setup
 
-1. Run the migrations in `webstore-scraper/migrations` and change the password
-   of the `webstore-admin` database user.
+1. Create the database with `webstore-scraper/initMariaDb/init-db.sql` and
+   change the passwords of its users.
 2. Create an OAuth client in the Google Cloud console (APIs & Services →
    Credentials, type Web application) with the redirect URI
    `<AUTH_URL>/api/auth/callback/google`.
-3. Add yourself as the first admin with the commented out `INSERT` at the end
-   of `migrations/2026-11-01-user-sign-in.sql`. After that admins are managed
-   under API users.
+3. Add yourself as the first admin with the commented out `INSERT` in
+   `init-db.sql`. After that admins are managed under API users.
 4. Create a fine-grained personal access token for the scraper repository with
    **Contents: Read and write**. Config changes are committed with the admin's
    name and email as the author.
