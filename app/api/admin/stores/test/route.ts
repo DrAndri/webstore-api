@@ -36,7 +36,7 @@ export const POST = withAdmin(async (request, { user }) => {
   const result = await adminQuery<UpsertResult>(
     `INSERT INTO scrapeJobs (storeId, mode, source, status, requestedBy, queuedAt, testUrl, testConfig)
      VALUES (?, 'test', 'manual', 'queued', ?, UTC_TIMESTAMP(), ?, ?)`,
-    [storeId || null, user.login, url.href, JSON.stringify(config)]
+    [storeId || null, user.email, url.href, JSON.stringify(config)]
   );
   return { jobId: Number(result.insertId) };
 });

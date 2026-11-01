@@ -9,6 +9,7 @@ import {
   Input,
   InputNumber,
   Modal,
+  Switch,
   Table,
   Tag,
   Typography
@@ -134,12 +135,16 @@ export default function ApiUsers() {
           },
           {
             title: 'Status',
-            render: (_, user) =>
-              user.enabled ? (
-                <Tag color="success">Active</Tag>
-              ) : (
-                <Tag>Disabled</Tag>
-              )
+            render: (_, user) => (
+              <Flex gap={4} wrap>
+                {user.enabled ? (
+                  <Tag color="success">Active</Tag>
+                ) : (
+                  <Tag>Disabled</Tag>
+                )}
+                {user.admin && <Tag color="purple">Admin</Tag>}
+              </Flex>
+            )
           },
           {
             title: 'This minute',
@@ -221,8 +226,9 @@ export default function ApiUsers() {
           </Form.Item>
           <Form.Item
             name="email"
-            label="Contact email"
+            label="Email"
             rules={[{ type: 'email' }]}
+            extra="Signing in on the website with this Google address gives these limits"
           >
             <Input />
           </Form.Item>
@@ -242,6 +248,14 @@ export default function ApiUsers() {
               <InputNumber min={1} />
             </Form.Item>
           </Flex>
+          <Form.Item
+            name="admin"
+            label="Admin"
+            valuePropName="checked"
+            extra="Can sign in to the admin interface with the email address"
+          >
+            <Switch />
+          </Form.Item>
           <Form.Item name="note" label="Note">
             <Input.TextArea autoSize={{ minRows: 2 }} />
           </Form.Item>

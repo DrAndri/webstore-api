@@ -29,7 +29,7 @@ export const PUT = withAdmin(async (request, { user }) => {
 
   const result = await adminQuery<UpsertResult>(
     'UPDATE scraperSchedules SET cron = ?, enabled = ?, updatedAt = UTC_TIMESTAMP(), updatedBy = ? WHERE mode = ?',
-    [cron, body.enabled, user.login, body.mode]
+    [cron, body.enabled, user.email, body.mode]
   );
   if (result.affectedRows === 0)
     throw new HttpError(

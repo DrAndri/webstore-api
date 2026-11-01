@@ -10,7 +10,8 @@ import {
 import { App, Avatar, Button, Flex, Layout, Menu, Typography } from 'antd';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { AdminUser } from '../../utils/admin/session';
+import { signOutUser } from '../../app/actions/auth';
+import type { AdminUser } from '../../utils/admin/auth';
 
 const ITEMS = [
   { key: '/admin', icon: <DashboardOutlined />, label: 'Dashboard' },
@@ -64,13 +65,10 @@ export default function AdminShell({
               gap={12}
               style={{ height: '100%' }}
             >
-              <Avatar
-                size="small"
-                src={`https://avatars.githubusercontent.com/u/${user.id}?s=48`}
-                alt=""
-              />
+              {user.image && <Avatar size="small" src={user.image} alt="" />}
               <Typography.Text>{user.name}</Typography.Text>
-              <form action="/api/admin/auth/logout" method="post">
+              <form action={signOutUser}>
+                <input type="hidden" name="returnTo" value="/" />
                 <Button htmlType="submit" icon={<LogoutOutlined />} type="text">
                   Sign out
                 </Button>

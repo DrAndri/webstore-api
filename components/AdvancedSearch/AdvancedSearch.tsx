@@ -79,7 +79,12 @@ const isComplete = (condition: SearchCondition) =>
     condition.op === 'is' ||
     !!condition.value?.trim());
 
-export default function AdvancedSearch() {
+export default function AdvancedSearch({
+  userMenu
+}: {
+  // Rendered by the page, it reads the session on the server
+  userMenu?: React.ReactNode;
+}) {
   const params = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -226,7 +231,10 @@ export default function AdvancedSearch() {
         <Typography.Title level={3} style={{ margin: 0 }}>
           Ítarleg leit
         </Typography.Title>
-        <Link href="/">Til baka í verðsögu</Link>
+        <Flex gap={16} align="center" wrap>
+          <Link href="/">Til baka í verðsögu</Link>
+          {userMenu}
+        </Flex>
       </Flex>
 
       <Card size="small">

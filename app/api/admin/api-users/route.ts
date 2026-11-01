@@ -4,6 +4,7 @@ import {
   ApiUserInput,
   createToken,
   listApiUsers,
+  rethrowDuplicateEmail,
   validateApiUser
 } from '../../../../utils/admin/apiUsers';
 import { adminQuery } from '../../../../utils/admin/db';
@@ -15,12 +16,14 @@ export const POST = withAdmin(async (request, { user }) => {
   const input = await readJson<ApiUserInput>(request);
   if (!input.name) throw new HttpError(400, 'Enter a name');
   const values = validateApiUser({ enabled: true, ...input }, false);
+  if (values.admin && !values.email)
+    throw new HttpError(400, 'An admin needs an email address to sign in');
   const columns = Object.keys(values);
   const result = await adminQuery<UpsertResult>(
     `INSERT INTO apiUsers (${columns.join(', ')}, anonymous, createdAt, createdBy)
      VALUES (${columns.map(() => '?').join(', ')}, FALSE, UTC_TIMESTAMP(), ?)`,
-    [...Object.values(values), user.login]
-  );
+    [...Object.values(values), user.email]
+  ).catch(rethrowDuplicateEmail);
   const id = Number(result.insertId);
   const token = await createToken(id, 'Default', user);
   return { id, token };

@@ -238,9 +238,12 @@ export interface ApiUserLimits {
 export interface ApiUser extends ApiUserLimits {
   id: number;
   name: string;
+  // Users who sign in on the website with this address get these limits
   email: string | null;
   note: string | null;
   anonymous: boolean;
+  // Can sign in to the admin interface
+  admin: boolean;
   createdAt: string;
   createdBy: string | null;
   activeTokens: number;
@@ -274,4 +277,7 @@ export interface ApiUserDetails {
   user: ApiUser;
   tokens: ApiToken[];
   usage: ApiUsageDay[];
+  // Requests made while signed in on the website
+  websiteRequestsToday: number;
+  websiteRequestsThisMinute: number;
 }

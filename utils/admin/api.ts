@@ -1,10 +1,5 @@
 import { NextRequest } from 'next/server';
-import {
-  AdminUser,
-  isSameOrigin,
-  sessionCookieName,
-  verifySession
-} from './session';
+import { AdminUser, getAdmin, isSameOrigin } from './auth';
 
 export class HttpError extends Error {
   status: number;
@@ -20,8 +15,8 @@ const json = (body: unknown, status = 200) =>
     headers: { 'Cache-Control': 'no-store' }
   });
 
-// Wraps every admin api route. The session is checked here as well as in
-// proxy.ts so a route is never reachable without it.
+// Wraps every admin api route. proxy.ts only checks that someone is signed in,
+// whether they are an admin is checked here.
 export const withAdmin =
   <C>(
     handler: (
@@ -30,13 +25,12 @@ export const withAdmin =
     ) => Promise<unknown>
   ) =>
   async (request: NextRequest, context: C) => {
-    const user = await verifySession(
-      request.cookies.get(sessionCookieName())?.value
-    );
-    if (!user) return json({ error: 'Not signed in' }, 401);
     if (request.method !== 'GET' && !isSameOrigin(request))
       return json({ error: 'Invalid origin' }, 403);
     try {
+      const { signedIn, admin: user } = await getAdmin();
+      if (!signedIn) return json({ error: 'Not signed in' }, 401);
+      if (!user) return json({ error: 'You are not an admin' }, 403);
       return json(await handler(request, { ...context, user }));
     } catch (e) {
       if (e instanceof HttpError) return json({ error: e.message }, e.status);

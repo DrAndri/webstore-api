@@ -205,7 +205,7 @@ export default function ApiUserPage({ userId }: { userId: number }) {
             }
           >
             <Form
-              key={`${user.requestsPerMinute}-${user.requestsPerDay}-${user.enabled}`}
+              key={`${user.requestsPerMinute}-${user.requestsPerDay}-${user.enabled}-${user.admin}`}
               form={form}
               layout="vertical"
               initialValues={user}
@@ -222,10 +222,19 @@ export default function ApiUserPage({ userId }: { userId: number }) {
                   </Form.Item>
                   <Form.Item
                     name="email"
-                    label="Contact email"
+                    label="Email"
                     rules={[{ type: 'email' }]}
+                    extra="Signing in on the website with this Google address gives these limits"
                   >
                     <Input />
+                  </Form.Item>
+                  <Form.Item
+                    name="admin"
+                    label="Admin"
+                    valuePropName="checked"
+                    extra="Can sign in to the admin interface with the email address"
+                  >
+                    <Switch />
                   </Form.Item>
                 </>
               )}
@@ -254,7 +263,7 @@ export default function ApiUserPage({ userId }: { userId: number }) {
                 extra={
                   user.anonymous
                     ? 'When off, the website search stops working and every request needs a token.'
-                    : 'When off, all tokens of the user are refused.'
+                    : 'When off, all tokens of the user are refused and signing in on the website gives the anonymous limits.'
                 }
               >
                 <Switch />
@@ -291,6 +300,13 @@ export default function ApiUserPage({ userId }: { userId: number }) {
                 </Flex>
               }
             >
+              {user.email && (
+                <Typography.Paragraph type="secondary">
+                  Signed in on the website as {user.email}:{' '}
+                  {formatNumber(data.websiteRequestsThisMinute)} requests this
+                  minute, {formatNumber(data.websiteRequestsToday)} today
+                </Typography.Paragraph>
+              )}
               <Table<ApiToken>
                 rowKey="id"
                 size="small"

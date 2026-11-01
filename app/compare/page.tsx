@@ -1,7 +1,9 @@
-import { Flex, Typography } from 'antd';
+import { Flex } from 'antd';
+import Title from 'antd/es/typography/Title';
 import Link from 'next/link';
 import { Suspense } from 'react';
 import Compare from '../../components/Compare/Compare';
+import UserMenu from '../../components/UserMenu/UserMenu';
 import { StoreConfig } from '../../types';
 import { queryPool } from '../../utils/mariadb';
 
@@ -15,10 +17,13 @@ export default async function ComparePage() {
   return (
     <Flex vertical gap={16} style={{ padding: 24 }}>
       <Flex justify="space-between" align="center" wrap gap={8}>
-        <Typography.Title level={3} style={{ margin: 0 }}>
+        <Title level={3} style={{ margin: 0 }}>
           Samanburður
-        </Typography.Title>
-        <Link href="/search">Til baka í leit</Link>
+        </Title>
+        <Flex gap={16} align="center" wrap>
+          <Link href="/search">Til baka í leit</Link>
+          <UserMenu returnTo="/compare" />
+        </Flex>
       </Flex>
       <Suspense>
         <Compare stores={stores} />

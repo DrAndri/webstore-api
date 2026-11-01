@@ -1,7 +1,7 @@
 import { generateToken, invalidateAccessCache, liveUsage } from '../apiAccess';
 import { HttpError } from './api';
 import { adminQuery } from './db';
-import { AdminUser } from './session';
+import { AdminUser } from './auth';
 import { ApiToken, ApiUser, ApiUserDetails } from './types';
 
 interface UserRow {
@@ -10,6 +10,7 @@ interface UserRow {
   email: string | null;
   note: string | null;
   anonymous: number;
+  admin: number;
   enabled: number;
   requestsPerMinute: number;
   requestsPerDay: number;
@@ -24,7 +25,9 @@ interface UserRow {
 
 const iso = (date: Date | null) => (date ? date.toISOString() : null);
 
-// The database counts are written every few seconds, the minute is only in memory
+// The database counts are written every few seconds, the minute is only in
+// memory. Counter keys are t<tokenId>, u<userId> for signed in users and
+// a<visitor> for anonymous visitors.
 const liveForUser = (
   userId: number,
   anonymous: boolean,
@@ -33,15 +36,16 @@ const liveForUser = (
   const live = liveUsage();
   let minute = 0;
   for (const [key, usage] of live) {
-    if (
-      anonymous ? key.startsWith('a') : tokenIds.includes(Number(key.slice(1)))
-    )
-      minute += usage.minute;
+    const counts = anonymous
+      ? key.startsWith('a')
+      : key === `u${userId}` ||
+        (key.startsWith('t') && tokenIds.includes(Number(key.slice(1))));
+    if (counts) minute += usage.minute;
   }
   return minute;
 };
 
-const USER_COLUMNS = `u.id, u.name, u.email, u.note, u.anonymous, u.enabled, u.requestsPerMinute,
+const USER_COLUMNS = `u.id, u.name, u.email, u.note, u.anonymous, u.admin, u.enabled, u.requestsPerMinute,
   u.requestsPerDay, u.createdAt, u.createdBy,
   (SELECT COUNT(*) FROM apiTokens t WHERE t.userId = u.id AND t.revokedAt IS NULL) AS activeTokens,
   (SELECT MAX(lastUsedAt) FROM apiTokens t WHERE t.userId = u.id) AS lastUsedAt,
@@ -55,6 +59,7 @@ const toUser = (row: UserRow, tokenIds: number[]): ApiUser => ({
   email: row.email,
   note: row.note,
   anonymous: !!row.anonymous,
+  admin: !!row.admin,
   enabled: !!row.enabled,
   requestsPerMinute: row.requestsPerMinute,
   requestsPerDay: row.requestsPerDay,
@@ -86,7 +91,7 @@ export const listApiUsers = async (): Promise<ApiUser[]> => {
 };
 
 export const getApiUser = async (id: number): Promise<ApiUserDetails> => {
-  const [[row], tokens, usage] = await Promise.all([
+  const [[row], tokens, usage, [website]] = await Promise.all([
     adminQuery<UserRow[]>(
       `SELECT ${USER_COLUMNS} FROM apiUsers u WHERE u.id = ?`,
       [id]
@@ -111,6 +116,11 @@ export const getApiUser = async (id: number): Promise<ApiUserDetails> => {
       `SELECT DATE_FORMAT(day, '%Y-%m-%d') AS day, SUM(requests) AS requests, SUM(rejected) AS rejected
        FROM apiUsage WHERE userId = ? AND day > UTC_DATE() - INTERVAL 30 DAY GROUP BY day ORDER BY day`,
       [id]
+    ),
+    // Requests made while signed in on the website are counted as token 0
+    adminQuery<{ requests: number }[]>(
+      'SELECT requests FROM apiUsage WHERE userId = ? AND tokenId = 0 AND day = UTC_DATE()',
+      [id]
     )
   ]);
   if (!row) throw new HttpError(404, 'API user not found');
@@ -128,7 +138,9 @@ export const getApiUser = async (id: number): Promise<ApiUserDetails> => {
       requestsToday: token.requestsToday ?? 0,
       requestsThisMinute: live.get(`t${token.id}`)?.minute ?? 0
     })),
-    usage
+    usage,
+    websiteRequestsToday: website?.requests ?? 0,
+    websiteRequestsThisMinute: live.get(`u${id}`)?.minute ?? 0
   };
 };
 
@@ -136,6 +148,7 @@ export interface ApiUserInput {
   name?: string;
   email?: string | null;
   note?: string | null;
+  admin?: boolean;
   enabled?: boolean;
   requestsPerMinute?: number;
   requestsPerDay?: number;
@@ -151,17 +164,19 @@ export const validateApiUser = (input: ApiUserInput, anonymous: boolean) => {
     values.name = name;
   }
   if (input.email !== undefined && !anonymous) {
-    const email = input.email ? String(input.email).trim() : null;
+    // Matched to the address of users who sign in on the website
+    const email = input.email ? String(input.email).trim().toLowerCase() : null;
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
       throw new HttpError(400, 'Invalid email');
     values.email = email;
   }
   if (input.note !== undefined)
     values.note = input.note ? String(input.note).slice(0, 2000) : null;
-  if (input.enabled !== undefined) {
-    if (typeof input.enabled !== 'boolean')
-      throw new HttpError(400, 'enabled must be true or false');
-    values.enabled = input.enabled;
+  for (const flag of ['enabled', 'admin'] as const) {
+    if (input[flag] === undefined || (flag === 'admin' && anonymous)) continue;
+    if (typeof input[flag] !== 'boolean')
+      throw new HttpError(400, `${flag} must be true or false`);
+    values[flag] = input[flag];
   }
   for (const limit of ['requestsPerMinute', 'requestsPerDay'] as const) {
     if (input[limit] !== undefined) {
@@ -177,6 +192,13 @@ export const validateApiUser = (input: ApiUserInput, anonymous: boolean) => {
   return values;
 };
 
+// Email addresses are unique, they decide the limits of signed in users
+export const rethrowDuplicateEmail = (e: unknown): never => {
+  if ((e as { code?: string }).code === 'ER_DUP_ENTRY')
+    throw new HttpError(409, 'Another user has that email address');
+  throw e;
+};
+
 export const createToken = async (
   userId: number,
   name: string | null,
@@ -185,7 +207,7 @@ export const createToken = async (
   const { token, prefix, hash } = generateToken();
   await adminQuery(
     'INSERT INTO apiTokens (userId, name, prefix, hash, createdAt, createdBy) VALUES (?, ?, ?, ?, UTC_TIMESTAMP(), ?)',
-    [userId, name?.trim().slice(0, 255) || null, prefix, hash, admin.login]
+    [userId, name?.trim().slice(0, 255) || null, prefix, hash, admin.email]
   );
   invalidateAccessCache();
   return token;

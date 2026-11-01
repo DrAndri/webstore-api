@@ -1,12 +1,17 @@
-// Tokens and request limits of the public api. API users send a token in the
-// Authorization header, website visitors get an anonymous token in a cookie.
+// Tokens and request limits of the public api, in this order:
+// - API users send a token in the Authorization header.
+// - Users signed in on the website whose email address is an enabled api user
+//   get the limits of that user.
+// - Everyone else gets an anonymous token in a cookie, with the limits of the
+//   anonymous user.
 //
 // Counters are kept in memory and written to apiUsage every few seconds, so the
 // limits assume a single webstore-api instance.
 import { createHash } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { queryPool } from './mariadb';
-import { cookieOptions, randomToken, sign, verify } from './admin/session';
+import { auth } from '../auth';
+import { cookieOptions, randomToken, sign, verify } from './signedTokens';
 
 const VISITOR_COOKIE = 'api-visitor';
 const VISITOR_TOKEN_DAYS = 30;
@@ -41,6 +46,8 @@ interface Counter {
 
 interface State {
   tokens: Map<string, { at: number; record: TokenRecord | null }>;
+  // Api users by lowercase email, for signed in users
+  users: Map<string, { at: number; limits: Limits | null }>;
   anonymous?: { at: number; limits: Limits | null };
   counters: Map<string, Counter>;
   issued: Map<string, { hour: number; count: number }>;
@@ -58,6 +65,7 @@ declare global {
 const state = (): State => {
   global.apiAccess ??= {
     tokens: new Map(),
+    users: new Map(),
     counters: new Map(),
     issued: new Map(),
     pending: new Map(),
@@ -77,6 +85,7 @@ export const generateToken = () => {
 // Changes in the admin interface apply right away instead of after the cache
 export const invalidateAccessCache = () => {
   state().tokens.clear();
+  state().users.clear();
   state().anonymous = undefined;
 };
 
@@ -113,6 +122,29 @@ const lookupToken = async (token: string): Promise<TokenRecord | null> => {
     : null;
   state().tokens.set(hash, { at: Date.now(), record });
   return record;
+};
+
+// The enabled api user with the email address of a signed in user
+const lookupUser = async (email: string): Promise<Limits | null> => {
+  const key = email.toLowerCase();
+  const cached = state().users.get(key);
+  if (cached && Date.now() - cached.at < CACHE_TTL_MS) return cached.limits;
+  const [row] = await queryPool<
+    { id: number; requestsPerMinute: number; requestsPerDay: number }[]
+  >(
+    'SELECT id, requestsPerMinute, requestsPerDay FROM apiUsers WHERE email = ? AND enabled = 1 AND anonymous = 0',
+    [key]
+  );
+  const limits = row
+    ? {
+        userId: Number(row.id),
+        enabled: true,
+        requestsPerMinute: Number(row.requestsPerMinute),
+        requestsPerDay: Number(row.requestsPerDay)
+      }
+    : null;
+  state().users.set(key, { at: Date.now(), limits });
+  return limits;
 };
 
 const anonymousLimits = async (): Promise<Limits | null> => {
@@ -210,8 +242,15 @@ const startFlushing = () => {
   state().flushing = interval;
 };
 
-// Counts the request against the limits of the token, false when over a limit
-const consume = async (key: string, limits: Limits, tokenId: number) => {
+// Counts the request against the limits of the token, false when over a
+// limit. Anonymous visitors are counted together in the database, so their
+// day count is only kept in memory.
+const consume = async (
+  key: string,
+  limits: Limits,
+  tokenId: number,
+  anonymous: boolean
+) => {
   const minute = currentMinute();
   const day = utcDay();
   let counter = state().counters.get(key);
@@ -219,7 +258,7 @@ const consume = async (key: string, limits: Limits, tokenId: number) => {
     counter = { minute, minuteCount: 0, day, dayCount: 0 };
     state().counters.set(key, counter);
     // Requests made before a restart still count for api users
-    if (tokenId > 0) {
+    if (!anonymous) {
       const current = counter;
       current.dayLoaded = queryPool<{ requests: number }[]>(
         'SELECT requests FROM apiUsage WHERE userId = ? AND tokenId = ? AND day = ?',
@@ -300,6 +339,7 @@ export const withApiAccess =
     let key: string;
     let limits: Limits;
     let tokenId = 0;
+    let anonymous = false;
     let visitorCookie: string | undefined;
     try {
       const token =
@@ -313,13 +353,21 @@ export const withApiAccess =
         key = `t${found.tokenId}`;
         limits = found;
         tokenId = found.tokenId;
-      } else {
-        const anonymous = await anonymousLimits();
-        if (!anonymous?.enabled) return error(401, 'An API token is required');
+      }
+      const email = token ? undefined : (await auth())?.user?.email;
+      const user = email ? await lookupUser(email) : null;
+      if (user) {
+        // Requests of signed in users are counted as token 0 of the user
+        key = `u${user.userId}`;
+        limits = user;
+      } else if (!token) {
+        const anonymousUser = await anonymousLimits();
+        if (!anonymousUser?.enabled)
+          return error(401, 'An API token is required');
+        anonymous = true;
         let visitor = (
           await verify<{ v: string }>(
-            request.cookies.get(VISITOR_COOKIE)?.value,
-            'API_TOKEN_SECRET'
+            request.cookies.get(VISITOR_COOKIE)?.value
           )
         )?.v;
         if (!visitor) {
@@ -334,19 +382,18 @@ export const withApiAccess =
           visitor = randomToken(16);
           visitorCookie = await sign(
             { v: visitor },
-            VISITOR_TOKEN_DAYS * 24 * 3600,
-            'API_TOKEN_SECRET'
+            VISITOR_TOKEN_DAYS * 24 * 3600
           );
         }
         key = `a${visitor}`;
-        limits = anonymous;
+        limits = anonymousUser;
       }
     } catch (e) {
       console.error('Checking api access failed', e);
       return error(503, 'The API is not available');
     }
 
-    const usage = await consume(key, limits, tokenId);
+    const usage = await consume(key!, limits!, tokenId, anonymous);
     if (!usage.allowed)
       return error(429, 'Too many requests', {
         ...usage.headers,

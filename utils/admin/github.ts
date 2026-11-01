@@ -1,6 +1,6 @@
 // Reads and commits the store configs in the webstore-scraper repository
 import { HttpError } from './api';
-import { AdminUser } from './session';
+import { AdminUser } from './auth';
 import { ConfigCommit } from './types';
 
 const repo = () => {
@@ -112,10 +112,9 @@ export const saveConfigFile = async (
       content: Buffer.from(text, 'utf8').toString('base64'),
       branch: branch(),
       ...(sha ? { sha } : {}),
-      author: {
-        name: user.name || user.login,
-        email: `${user.id}+${user.login}@users.noreply.github.com`
-      }
+      // GitHub links the commit to the admin's account when the email is
+      // verified there
+      author: { name: user.name || user.email, email: user.email }
     }
   });
   if (status === 409 || status === 422)

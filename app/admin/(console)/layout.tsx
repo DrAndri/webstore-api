@@ -1,7 +1,7 @@
-import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import AdminShell from '../../../components/admin/AdminShell';
-import { sessionCookieName, verifySession } from '../../../utils/admin/session';
+import NoAdminAccess from '../../../components/admin/NoAdminAccess';
+import { getAdmin } from '../../../utils/admin/auth';
 
 export const metadata = {
   title: 'Scraper admin',
@@ -13,9 +13,8 @@ export default async function ConsoleLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const user = await verifySession(
-    (await cookies()).get(sessionCookieName())?.value
-  );
-  if (!user) redirect('/admin/login');
-  return <AdminShell user={user}>{children}</AdminShell>;
+  const { signedIn, admin } = await getAdmin();
+  if (!signedIn) redirect('/login?returnTo=/admin');
+  if (!admin) return <NoAdminAccess />;
+  return <AdminShell user={admin}>{children}</AdminShell>;
 }

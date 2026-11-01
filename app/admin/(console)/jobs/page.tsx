@@ -1,12 +1,13 @@
-import { Flex, Typography } from 'antd';
+import { Flex } from 'antd';
+import Title from 'antd/es/typography/Title';
 import JobHistory from '../../../../components/admin/JobHistory';
 
 export default function JobsPage() {
   return (
     <Flex vertical gap={16}>
-      <Typography.Title level={3} style={{ margin: 0 }}>
+      <Title level={3} style={{ margin: 0 }}>
         Scan history
-      </Typography.Title>
+      </Title>
       <JobHistory />
     </Flex>
   );

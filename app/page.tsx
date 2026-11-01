@@ -5,6 +5,7 @@ import { StoreConfig } from '../types';
 import { queryPool } from '../utils/mariadb';
 import PriceChart from '../components/PriceChart/PriceChart';
 import Search from '../components/Search/Search';
+import UserMenu from '../components/UserMenu/UserMenu';
 export default async function Page() {
   const stores = await queryPool<StoreConfig[]>(
     'SELECT id, name FROM stores WHERE apiEnabled = true'
@@ -27,6 +28,7 @@ export default async function Page() {
             <Link href="/search">
               <Button ghost>Ítarleg leit</Button>
             </Link>
+            <UserMenu returnTo="/" dark />
           </Flex>
         </Header>
         <Layout style={{ height: '100vh' }}>

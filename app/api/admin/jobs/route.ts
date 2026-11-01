@@ -75,7 +75,7 @@ export const POST = withAdmin(async (request, { user }) => {
      WHERE ${condition} AND NOT EXISTS (
        SELECT 1 FROM scrapeJobs j WHERE j.storeId = s.id AND j.mode = ? AND j.status IN ('queued', 'running')
      )`,
-    [body.mode, user.login, ...values, body.mode]
+    [body.mode, user.email, ...values, body.mode]
   );
   return { queued: result.affectedRows };
 });
