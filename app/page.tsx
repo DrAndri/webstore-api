@@ -1,15 +1,17 @@
 import { Button, Flex, Layout } from 'antd';
 import Link from 'next/link';
 import { Header, Content } from 'antd/es/layout/layout';
-import { StoreConfig } from '../types';
-import { queryPool } from '../utils/mariadb';
+import { getPublicStores } from '../utils/stores';
 import PriceChart from '../components/PriceChart/PriceChart';
 import Search from '../components/Search/Search';
 import UserMenu from '../components/UserMenu/UserMenu';
+
+// Rendered on each request, the stores come from a cache in memory, so the
+// build does not need the database
+export const dynamic = 'force-dynamic';
+
 export default async function Page() {
-  const stores = await queryPool<StoreConfig[]>(
-    'SELECT id, name FROM stores WHERE apiEnabled = true'
-  );
+  const stores = await getPublicStores();
 
   return (
     <div>

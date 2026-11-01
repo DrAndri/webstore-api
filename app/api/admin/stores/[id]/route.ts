@@ -1,4 +1,5 @@
 import { UpsertResult } from 'mariadb';
+import { invalidatePublicStores } from '../../../../../utils/stores';
 import {
   HttpError,
   parseId,
@@ -94,5 +95,7 @@ export const PATCH = withAdmin<Context>(async (request, { params }) => {
       throw new HttpError(409, 'Another store has that name');
     throw e;
   }
+  // The website lists the names of the stores in the public search
+  invalidatePublicStores();
   return getStore(id);
 });

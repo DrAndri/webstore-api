@@ -4,16 +4,13 @@ import Link from 'next/link';
 import { Suspense } from 'react';
 import Compare from '../../components/Compare/Compare';
 import UserMenu from '../../components/UserMenu/UserMenu';
-import { StoreConfig } from '../../types';
-import { queryPool } from '../../utils/mariadb';
+import { getPublicStores } from '../../utils/stores';
 
 export const metadata = { title: 'Samanburður' };
 export const dynamic = 'force-dynamic';
 
 export default async function ComparePage() {
-  const stores = await queryPool<StoreConfig[]>(
-    'SELECT id, name FROM stores WHERE apiEnabled = true'
-  );
+  const stores = await getPublicStores();
   return (
     <Flex vertical gap={16} style={{ padding: 24 }}>
       <Flex justify="space-between" align="center" wrap gap={8}>
