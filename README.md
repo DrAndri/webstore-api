@@ -152,6 +152,21 @@ Search conditions are `{ field, op, value, value2? }` where `field` is `name`,
 `startsWith`, `endsWith`, `exact`, `between` or `is`. See
 `utils/searchFields.ts`.
 
+Autocomplete answers `{ total, results }`, where `total` is how many products
+matched and `results` has the first 10. Each result has `matches`, the parts of
+its `name` or `sku` the term matched, as `[start, end)` offsets into that
+value:
+
+```json
+{
+  "id": "1",
+  "name": "Samsung Galaxy S24 Ultra",
+  "sku": "SM-S928B",
+  "storeId": 1,
+  "matches": [{ "field": "sku", "ranges": [[0, 5]] }]
+}
+```
+
 Exact whole value matching needs the `name_ci`, `sku_ci` and `attrci_*` fields
 in the products core, which the scraper adds when it starts. Until the products
 are reindexed, matching is word by word and attribute values are case

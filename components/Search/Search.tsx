@@ -8,7 +8,8 @@ import {
   ProductPricesResponse,
   StoreConfig
 } from '../../types';
-import SkuSelector from '../SkuSelector/SkuSelector';
+import SkuSelector, { SkuOptions } from '../SkuSelector/SkuSelector';
+import AutocompleteOption from './AutocompleteOption';
 import { Dayjs } from 'dayjs';
 import { DatePicker, Select, Tooltip } from 'antd';
 import callApi, { getCached } from '../../utils/api';
@@ -84,7 +85,7 @@ export default function Search({ stores }: { stores: StoreConfig[] }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedProductIds, selectedRange, selectedStores]);
 
-  async function searchForProducts(term: string): Promise<DefaultOptionType[]> {
+  async function searchForProducts(term: string): Promise<SkuOptions> {
     sendGAEvent('event', 'autocomplete', {
       term: term,
       stores: selectedStores
@@ -93,18 +94,29 @@ export default function Search({ stores }: { stores: StoreConfig[] }) {
       term: term,
       stores: selectedStores
     };
-    return callApi<AutocompleteResponse>('autocomplete', body).then((res) => {
-      return res.results.map((result: AutocompleteResult) => ({
+    return callApi<AutocompleteResponse>('autocomplete', body).then((res) => ({
+      total: res.total,
+      options: res.results.map((result: AutocompleteResult) => ({
         label: result.name,
-        value: result.id
-      }));
-    });
+        value: result.id,
+        result
+      }))
+    }));
   }
   return (
     <>
       <SkuSelector
         value={selectedProductIds}
         fetchOptions={searchForProducts}
+        optionRender={(option) => (
+          <AutocompleteOption
+            result={option.data.result}
+            storeName={
+              stores.find((store) => store.id === option.data.result.storeId)
+                ?.name
+            }
+          />
+        )}
         onChange={(newValue) => {
           if (Array.isArray(newValue)) {
             setSelectedProductIds(newValue);

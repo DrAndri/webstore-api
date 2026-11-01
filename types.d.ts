@@ -6,6 +6,8 @@ export interface AutocompleteApiRequestBody {
   term: string;
 }
 export interface AutocompleteResponse {
+  // How many products matched, results has the first few of them
+  total: number;
   results: AutocompleteResult[];
 }
 export interface PricesApiRequest extends NextApiRequest {
@@ -23,7 +25,14 @@ export interface AutocompleteResult {
   name: string;
   sku: string;
   storeId: number;
-  match: string;
+  matches: AutocompleteMatch[];
+}
+
+// The parts of a field the query matched, as [start, end) offsets into the
+// value of the field in the result
+export interface AutocompleteMatch {
+  field: 'name' | 'sku';
+  ranges: [start: number, end: number][];
 }
 
 export type PricesResponse = ProductPricesResponse[];
