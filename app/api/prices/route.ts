@@ -1,3 +1,4 @@
+import { withApiAccess } from '../../../utils/apiAccess';
 import { PricesResponse, DbId, ProductMap, Price } from '../../../types';
 import { queryPool } from '../../../utils/mariadb';
 
@@ -19,7 +20,7 @@ interface ProductInfo {
 
 const dateRegex = /\d\d\d\d-0[1-9]|1[0-2]-(0|1|2)[0-9]|3[0-1]/gm;
 
-export async function POST(request: Request) {
+export const POST = withApiAccess(async (request: Request) => {
   const getProductPricesFromMap = (
     productMap: ProductMap,
     id: string
@@ -151,4 +152,4 @@ export async function POST(request: Request) {
         return Response.error();
       });
   }
-}
+});

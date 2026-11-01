@@ -228,3 +228,50 @@ export interface AttributeSelectors {
   attributeValue: string;
   attributeGroupName?: string;
 }
+
+export interface ApiUserLimits {
+  enabled: boolean;
+  requestsPerMinute: number;
+  requestsPerDay: number;
+}
+
+export interface ApiUser extends ApiUserLimits {
+  id: number;
+  name: string;
+  email: string | null;
+  note: string | null;
+  anonymous: boolean;
+  createdAt: string;
+  createdBy: string | null;
+  activeTokens: number;
+  lastUsedAt: string | null;
+  // Requests today, in the last 30 days and in the current minute
+  requestsToday: number;
+  rejectedToday: number;
+  requests30Days: number;
+  requestsThisMinute: number;
+}
+
+export interface ApiToken {
+  id: number;
+  name: string | null;
+  prefix: string;
+  createdAt: string;
+  createdBy: string | null;
+  lastUsedAt: string | null;
+  revokedAt: string | null;
+  requestsToday: number;
+  requestsThisMinute: number;
+}
+
+export interface ApiUsageDay {
+  day: string;
+  requests: number;
+  rejected: number;
+}
+
+export interface ApiUserDetails {
+  user: ApiUser;
+  tokens: ApiToken[];
+  usage: ApiUsageDay[];
+}

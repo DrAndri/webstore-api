@@ -1,7 +1,8 @@
+import { withApiAccess } from '../../../utils/apiAccess';
 import { search, SearchError } from '../../../utils/search';
 import { SearchRequest } from '../../../utils/searchFields';
 
-export async function POST(request: Request) {
+export const POST = withApiAccess(async (request: Request) => {
   let body: SearchRequest;
   try {
     body = (await request.json()) as SearchRequest;
@@ -16,4 +17,4 @@ export async function POST(request: Request) {
     console.error('Search failed', e);
     return Response.json({ error: 'Leitin mistókst' }, { status: 500 });
   }
-}
+});

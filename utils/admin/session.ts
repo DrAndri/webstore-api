@@ -67,10 +67,13 @@ const fromBase64Url = (value: string) =>
     c.charCodeAt(0)
   );
 
-const getKey = () => {
-  const secret = process.env.ADMIN_SESSION_SECRET;
+// Admin sessions and visitor api tokens are signed with different secrets
+export type SecretName = 'ADMIN_SESSION_SECRET' | 'API_TOKEN_SECRET';
+
+const getKey = (secretName: SecretName) => {
+  const secret = process.env[secretName];
   if (!secret || secret.length < 32)
-    throw new Error('ADMIN_SESSION_SECRET must be at least 32 characters');
+    throw new Error(`${secretName} must be at least 32 characters`);
   return crypto.subtle.importKey(
     'raw',
     encoder.encode(secret),
@@ -89,7 +92,11 @@ export const sha256Base64Url = async (value: string) =>
   );
 
 // payload.signature, the payload is base64url encoded JSON with an exp in seconds
-export const sign = async (payload: object, ttlSeconds: number) => {
+export const sign = async (
+  payload: object,
+  ttlSeconds: number,
+  secretName: SecretName = 'ADMIN_SESSION_SECRET'
+) => {
   const body = toBase64Url(
     encoder.encode(
       JSON.stringify({
@@ -100,20 +107,23 @@ export const sign = async (payload: object, ttlSeconds: number) => {
   );
   const signature = await crypto.subtle.sign(
     'HMAC',
-    await getKey(),
+    await getKey(secretName),
     encoder.encode(body)
   );
   return `${body}.${toBase64Url(new Uint8Array(signature))}`;
 };
 
-export const verify = async <T>(token: string | undefined) => {
+export const verify = async <T>(
+  token: string | undefined,
+  secretName: SecretName = 'ADMIN_SESSION_SECRET'
+) => {
   if (!token) return undefined;
   const [body, signature] = token.split('.');
   if (!body || !signature) return undefined;
   try {
     const valid = await crypto.subtle.verify(
       'HMAC',
-      await getKey(),
+      await getKey(secretName),
       fromBase64Url(signature),
       encoder.encode(body)
     );

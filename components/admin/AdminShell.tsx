@@ -3,6 +3,7 @@ import {
   CalendarOutlined,
   DashboardOutlined,
   HistoryOutlined,
+  KeyOutlined,
   LogoutOutlined,
   ShopOutlined
 } from '@ant-design/icons';
@@ -15,7 +16,8 @@ const ITEMS = [
   { key: '/admin', icon: <DashboardOutlined />, label: 'Dashboard' },
   { key: '/admin/jobs', icon: <HistoryOutlined />, label: 'Scan history' },
   { key: '/admin/stores', icon: <ShopOutlined />, label: 'Stores' },
-  { key: '/admin/schedules', icon: <CalendarOutlined />, label: 'Schedules' }
+  { key: '/admin/schedules', icon: <CalendarOutlined />, label: 'Schedules' },
+  { key: '/admin/api-users', icon: <KeyOutlined />, label: 'API users' }
 ];
 
 export default function AdminShell({

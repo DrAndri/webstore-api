@@ -1,6 +1,7 @@
+import { withApiAccess } from '../../../utils/apiAccess';
 import { compareProducts, MAX_COMPARED } from '../../../utils/compare';
 
-export async function POST(request: Request) {
+export const POST = withApiAccess(async (request: Request) => {
   const body = (await request.json().catch(() => ({}))) as {
     productIds?: unknown;
   };
@@ -15,4 +16,4 @@ export async function POST(request: Request) {
     console.error('Compare failed', e);
     return Response.json({ error: 'Samanburðurinn mistókst' }, { status: 500 });
   }
-}
+});

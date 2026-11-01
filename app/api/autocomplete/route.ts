@@ -1,7 +1,8 @@
+import { withApiAccess } from '../../../utils/apiAccess';
 import { escapeRegExp } from 'lodash';
 import { querySolrAutocomplete } from '../../../utils/solr';
 
-export async function POST(request: Request) {
+export const POST = withApiAccess(async (request: Request) => {
   const searchSolr = async (term: string) => {
     const response = await querySolrAutocomplete('products', `*:"${term}"`);
     return response.response.docs.splice(0, 20);
@@ -21,4 +22,4 @@ export async function POST(request: Request) {
       console.log(error);
       return Response.error();
     });
-}
+});
