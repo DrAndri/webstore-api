@@ -27,7 +27,7 @@ import { JobStatusTag } from './StatusTags';
 const percentOf = (value: number, total: number) =>
   total > 0 ? ` (${Math.round((value / total) * 100)}%)` : '';
 
-function JobDetails({ job }: { job: Job }) {
+export function JobDetails({ job }: { job: Job }) {
   return (
     <Flex vertical gap={12}>
       {job.errorMessage && (
@@ -184,7 +184,13 @@ export default function JobHistory({ storeId }: { storeId?: number }) {
           onChange: setPage
         }}
         columns={[
-          { title: '#', dataIndex: 'id', width: 70 },
+          {
+            title: '#',
+            width: 70,
+            render: (_, job) => (
+              <Link href={`/admin/jobs/${job.id}`}>{job.id}</Link>
+            )
+          },
           ...(storeId === undefined
             ? [
                 {
@@ -237,20 +243,28 @@ export default function JobHistory({ storeId }: { storeId?: number }) {
           {
             title: '',
             align: 'right',
-            render: (_, job) =>
-              (job.status === 'queued' || job.status === 'running') &&
-              !job.cancelRequested && (
-                <Popconfirm
-                  title="Cancel this scan?"
-                  onConfirm={() =>
-                    cancelJob(job.id, message, () => void mutate())
-                  }
-                >
-                  <Button size="small" danger>
-                    Cancel
-                  </Button>
-                </Popconfirm>
-              )
+            render: (_, job) => (
+              <Flex gap={8} justify="end">
+                {job.status !== 'queued' && (
+                  <Link href={`/admin/jobs/${job.id}`}>
+                    <Button size="small">Log</Button>
+                  </Link>
+                )}
+                {(job.status === 'queued' || job.status === 'running') &&
+                  !job.cancelRequested && (
+                    <Popconfirm
+                      title="Cancel this scan?"
+                      onConfirm={() =>
+                        cancelJob(job.id, message, () => void mutate())
+                      }
+                    >
+                      <Button size="small" danger>
+                        Cancel
+                      </Button>
+                    </Popconfirm>
+                  )}
+              </Flex>
+            )
           }
         ]}
       />

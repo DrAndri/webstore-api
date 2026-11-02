@@ -1,5 +1,14 @@
 'use client';
-import { App, Button, Empty, Popconfirm, Table, Tag, Typography } from 'antd';
+import {
+  App,
+  Button,
+  Empty,
+  Flex,
+  Popconfirm,
+  Table,
+  Tag,
+  Typography
+} from 'antd';
 import Link from 'next/link';
 import dayjs from 'dayjs';
 import { Job, MODE_LABELS } from '../../utils/admin/types';
@@ -101,21 +110,29 @@ export default function ActiveJobs({
         {
           title: '',
           align: 'right',
-          render: (_, job) =>
-            !job.cancelRequested && (
-              <Popconfirm
-                title={
-                  job.status === 'running'
-                    ? 'Stop this scan? Pages in progress finish first.'
-                    : 'Remove this scan from the queue?'
-                }
-                onConfirm={() => cancelJob(job.id, message, onChange)}
-              >
-                <Button size="small" danger>
-                  Cancel
-                </Button>
-              </Popconfirm>
-            )
+          render: (_, job) => (
+            <Flex gap={8} justify="end">
+              {job.status === 'running' && (
+                <Link href={`/admin/jobs/${job.id}`}>
+                  <Button size="small">Log</Button>
+                </Link>
+              )}
+              {!job.cancelRequested && (
+                <Popconfirm
+                  title={
+                    job.status === 'running'
+                      ? 'Stop this scan? Pages in progress finish first.'
+                      : 'Remove this scan from the queue?'
+                  }
+                  onConfirm={() => cancelJob(job.id, message, onChange)}
+                >
+                  <Button size="small" danger>
+                    Cancel
+                  </Button>
+                </Popconfirm>
+              )}
+            </Flex>
+          )
         }
       ]}
     />

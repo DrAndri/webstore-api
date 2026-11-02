@@ -281,3 +281,41 @@ export interface ApiUserDetails {
   websiteRequestsToday: number;
   websiteRequestsThisMinute: number;
 }
+
+// Winston's npm levels, most severe first
+export const LOG_LEVELS = [
+  'error',
+  'warn',
+  'info',
+  'http',
+  'verbose',
+  'debug',
+  'silly'
+] as const;
+export type LogLevel = (typeof LOG_LEVELS)[number];
+
+export interface LogEntry {
+  // Identifies the line across requests
+  key: string;
+  // Nanoseconds since the epoch, Loki's timestamp
+  ts: string;
+  time: string;
+  level: string;
+  // The module that logged the line, in the app log
+  label?: string;
+  // The page the line is about, in the log of a scan
+  page?: string;
+  message: string;
+  // The other fields of the line and the labels of its stream
+  fields: Record<string, unknown>;
+}
+
+export interface LogsResponse {
+  entries: LogEntry[];
+  // The LogQL query, to open the same log in Grafana
+  query: string;
+  // Whether there are older lines than the oldest entry
+  hasMore: boolean;
+  // Why a scan has no log yet
+  note?: string;
+}

@@ -2,6 +2,7 @@
 import {
   CalendarOutlined,
   DashboardOutlined,
+  FileTextOutlined,
   HistoryOutlined,
   KeyOutlined,
   LogoutOutlined,
@@ -16,6 +17,7 @@ import type { AdminUser } from '../../utils/admin/auth';
 const ITEMS = [
   { key: '/admin', icon: <DashboardOutlined />, label: 'Dashboard' },
   { key: '/admin/jobs', icon: <HistoryOutlined />, label: 'Scan history' },
+  { key: '/admin/logs', icon: <FileTextOutlined />, label: 'Logs' },
   { key: '/admin/stores', icon: <ShopOutlined />, label: 'Stores' },
   { key: '/admin/schedules', icon: <CalendarOutlined />, label: 'Schedules' },
   { key: '/admin/api-users', icon: <KeyOutlined />, label: 'API users' }

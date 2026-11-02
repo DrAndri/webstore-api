@@ -42,6 +42,8 @@ Open [http://localhost:3000](http://localhost:3000).
 | `GITHUB_CONFIG_BRANCH`                         | Branch the configs are read from and committed to, default `master`                   |
 | `GITHUB_CONFIG_DIR`                            | Directory of the configs in the repository, default `stores`                          |
 | `GITHUB_TOKEN`                                 | Fine-grained token with read and write access to the contents of `GITHUB_CONFIG_REPO` |
+| `LOKI_URL`                                     | Loki the scraper logs to, for the admin logs, e.g. `http://loki:3100`                 |
+| `LOKI_USERNAME`, `LOKI_PASSWORD`               | Basic auth for Loki, when it needs it                                                 |
 
 Generate secrets with `openssl rand -base64 48`.
 
@@ -79,6 +81,17 @@ The admin interface shows the health of the scraper and each store, running
 and past scans with error trends, lets you start and cancel scans, edit the
 cron schedules, add and edit stores, and manage api users and admins.
 
+**Logs** shows the scraper's own log from Loki (the job runner, Solr, the
+scheduler, crawlee and the rest), filtered by level, by the label of the module
+that logged a line and by text. Each scan has a page with its log, filtered by
+level, by page and by text. Both follow new lines live, and each shows its
+LogQL query to open the same log in Grafana.
+
+The scraper labels the log of a scan with the id of its job. Older scans are
+found by the store and the time they ran, so two scans of a store running at
+the same time show each other's lines. Scans log their pages only with
+`ENABLE_SCRAPER_LOGGING=true` in the scraper.
+
 ### Security
 
 - `proxy.ts` sends visitors who are not signed in to `/login` and refuses admin
@@ -101,6 +114,8 @@ The admin interface and the scraper only talk through the database:
 - The schedules are rows in `scraperSchedules`, the scraper applies changes
   within 30 seconds.
 - The scraper reports in `scraperStatus` every 5 seconds.
+- The logs are read from Loki, which the scraper sends them to every 5
+  seconds. The browser never talks to Loki, the admin api builds the queries.
 - Store configs are `stores/<storeId>.jsonc` in the scraper repository. Saving a
   config commits it through the GitHub api, the scraper loads it from GitHub
   before the next scan. History comes from the commits of the file.
