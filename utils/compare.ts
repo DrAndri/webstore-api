@@ -12,6 +12,8 @@ export interface ComparedProduct {
   ean: string | null;
   image: string | null;
   description: string | null;
+  // The page of the product in the store
+  url: string | null;
   inStock: boolean | null;
   manufacturer: string | null;
   category: string | null;
@@ -34,6 +36,7 @@ interface ProductRow {
   ean: string | null;
   image: string | null;
   description: string | null;
+  url: string | null;
   inStock: number | null;
   manufacturer: string | null;
   categoryId: number | null;
@@ -61,7 +64,7 @@ export const compareProducts = async (
     await Promise.all([
       queryPool<ProductRow[]>(
         `SELECT p.id, p.storeId, s.name AS storeName, p.sku, p.name, p.ean, p.image, p.description,
-           p.inStock, m.name AS manufacturer, p.categoryId, p.firstSeenDate, p.lastChangeDate, s.lastScanDate
+           p.url, p.inStock, m.name AS manufacturer, p.categoryId, p.firstSeenDate, p.lastChangeDate, s.lastScanDate
          FROM products p JOIN stores s ON s.id = p.storeId LEFT JOIN manufacturers m ON m.id = p.manufacturerId
          WHERE p.id IN (?) AND s.apiEnabled = true`,
         [ids]
@@ -126,6 +129,7 @@ export const compareProducts = async (
       ean: product.ean,
       image: product.image?.startsWith('http') ? product.image : null,
       description: product.description,
+      url: product.url?.startsWith('http') ? product.url : null,
       inStock: product.inStock === null ? null : !!product.inStock,
       manufacturer: product.manufacturer,
       category: product.categoryId

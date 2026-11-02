@@ -1,7 +1,9 @@
 'use client';
 import {
+  CheckOutlined,
   ColumnHeightOutlined,
   FilterOutlined,
+  PlusOutlined,
   LineChartOutlined,
   TableOutlined
 } from '@ant-design/icons';
@@ -36,6 +38,7 @@ import {
   SortKey,
   SORTS
 } from '../../utils/searchFields';
+import ProductDetails from '../ProductDetails/ProductDetails';
 import ConditionEditor from './ConditionEditor';
 import FacetList from './FacetList';
 
@@ -111,6 +114,8 @@ export default function AdvancedSearch({
       .map((id) => ({ id, label: id }))
   );
   const [facetsOpen, setFacetsOpen] = useState(false);
+  // The product shown in the drawer
+  const [productId, setProductId] = useState(params.get('product'));
 
   // Labels for products that were selected in the url
   useEffect(() => {
@@ -170,8 +175,18 @@ export default function AdvancedSearch({
     if (page > 1) next.set('page', String(page));
     if (selected.length)
       next.set('selectedProductIds', selected.map((s) => s.id).join(','));
+    if (productId) next.set('product', productId);
     router.replace(`${pathname}?${next.toString()}`, { scroll: false });
-  }, [debouncedRequest, selected, attributeLabels, router, pathname]); // eslint-disable-line react-hooks/exhaustive-deps
+    // The search is written when the debounced request changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    debouncedRequest,
+    selected,
+    attributeLabels,
+    productId,
+    router,
+    pathname
+  ]);
 
   const { data, error, isLoading } = useSWR<SearchResponse>(
     ['/api/search', JSON.stringify(debouncedRequest)],
@@ -204,11 +219,19 @@ export default function AdvancedSearch({
   );
 
   const selectedIds = selected.map((s) => s.id);
-  const toggleSelected = (product: SearchProduct, checked: boolean) =>
+  const toggleSelected = (
+    product: {
+      id: string;
+      name?: string | null;
+      sku: string;
+      storeName: string;
+    },
+    checked: boolean
+  ) =>
     setSelected((current) =>
       checked
         ? [
-            ...current,
+            ...current.filter((s) => s.id !== product.id),
             {
               id: product.id,
               label: `${product.name ?? product.sku} · ${product.storeName}`
@@ -344,6 +367,18 @@ export default function AdvancedSearch({
               dataSource={data?.products}
               scroll={{ x: true }}
               locale={{ emptyText: 'Engar vörur fundust' }}
+              onRow={(product) => ({
+                style: { cursor: 'pointer' },
+                // The checkbox and the image preview do their own thing
+                onClick: (event) => {
+                  if (
+                    !(event.target as HTMLElement).closest(
+                      '.ant-table-selection-column, .ant-image'
+                    )
+                  )
+                    setProductId(product.id);
+                }
+              })}
               rowSelection={{
                 selectedRowKeys: selectedIds,
                 preserveSelectedRowKeys: true,
@@ -379,9 +414,9 @@ export default function AdvancedSearch({
                   title: 'Vara',
                   render: (_, product) => (
                     <Flex vertical>
-                      <Typography.Text>
+                      <Typography.Link>
                         {product.name ?? product.sku}
-                      </Typography.Text>
+                      </Typography.Link>
                       <Typography.Text
                         type="secondary"
                         style={{ fontSize: 12 }}
@@ -432,6 +467,32 @@ export default function AdvancedSearch({
           {facets}
         </Drawer>
       )}
+
+      <Drawer
+        title="Vara"
+        open={productId !== null}
+        onClose={() => setProductId(null)}
+        size={screens.md ? 760 : '100%'}
+        destroyOnHidden
+      >
+        {productId && (
+          <ProductDetails
+            id={productId}
+            actions={(product) => {
+              const isSelected = selectedIds.includes(product.id);
+              return (
+                <Button
+                  type={isSelected ? 'default' : 'primary'}
+                  icon={isSelected ? <CheckOutlined /> : <PlusOutlined />}
+                  onClick={() => toggleSelected(product, !isSelected)}
+                >
+                  {isSelected ? 'Valin' : 'Velja'}
+                </Button>
+              );
+            }}
+          />
+        )}
+      </Drawer>
 
       {selected.length > 0 && (
         <Affix offsetBottom={0}>

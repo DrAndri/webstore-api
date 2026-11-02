@@ -160,6 +160,7 @@ to `X-Forwarded-For`.
 | `/api/search/attributes`       | GET    | `?q=` attribute name                                     |
 | `/api/search/attribute-values` | GET    | `?id=<attributeId>&q=`                                   |
 | `/api/compare`                 | POST   | `{ productIds }`, at most 6                              |
+| `/api/products/<id>`           | GET    | One product with all its details and price history       |
 
 Search conditions are `{ field, op, value, value2? }` where `field` is `name`,
 `sku`, `ean`, `description`, `price`, `inStock`, `firstSeenDate`,
@@ -181,6 +182,9 @@ value:
   "matches": [{ "field": "sku", "ranges": [[0, 5]] }]
 }
 ```
+
+In the advanced search, clicking a product opens its details and price history
+in a drawer. The product id is kept in the url as `product`.
 
 Exact whole value matching needs the `name_ci`, `sku_ci` and `attrci_*` fields
 in the products core, which the scraper adds when it starts. Until the products
