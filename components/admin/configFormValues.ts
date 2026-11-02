@@ -1,6 +1,7 @@
 // Converts between store configs and the values of StoreConfigForm
 import {
   AttributeSelectors,
+  ProductFeed,
   ProductSanitizer,
   ProductSelectors,
   StructuredDataField,
@@ -27,7 +28,9 @@ export interface ConfigFormValues {
   productPageIdentifier: string;
   urlWhitelist?: string[];
   urlBlacklist?: string[];
+  startUrls?: string[];
   sitemapUrls?: string[];
+  productFeed?: Partial<ProductFeed>;
   scrollPagesToBottom?: boolean;
   menuClicker?: string;
   selectors: Omit<ProductSelectors, 'sku' | 'structuredData' | 'attributes'> & {
@@ -58,7 +61,9 @@ export const toFormValues = (
     productPageIdentifier: config.productPageIdentifier ?? '',
     urlWhitelist: config.urlWhitelist,
     urlBlacklist: config.urlBlacklist,
+    startUrls: config.startUrls,
     sitemapUrls: config.sitemapUrls,
+    productFeed: config.productFeed,
     scrollPagesToBottom: config.scrollPagesToBottom,
     menuClicker: config.menuClicker,
     selectors: { ...selectors, attributes },
@@ -143,7 +148,9 @@ export const fromFormValues = (
     productPageIdentifier: values.productPageIdentifier,
     urlWhitelist: values.urlWhitelist,
     urlBlacklist: values.urlBlacklist,
+    startUrls: values.startUrls,
     sitemapUrls: values.type === 'httpcrawler' ? values.sitemapUrls : undefined,
+    productFeed: values.productFeed as ProductFeed | undefined,
     scrollPagesToBottom:
       values.type === 'crawler' && values.scrollPagesToBottom
         ? true

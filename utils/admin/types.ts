@@ -155,9 +155,17 @@ export interface WebshopCrawlerOptions {
   productPageIdentifier: string;
   urlWhitelist?: string[];
   urlBlacklist?: string[];
+  startUrls?: string[];
   sitemapUrls?: string[];
+  productFeed?: ProductFeed;
   scrollPagesToBottom?: boolean;
   menuClicker?: string;
+}
+
+export interface ProductFeed {
+  url: string;
+  items: string;
+  productUrl: string;
 }
 
 export interface ProductSanitizers {

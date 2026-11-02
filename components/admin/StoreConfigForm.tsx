@@ -186,6 +186,13 @@ export default function StoreConfigForm({
         >
           {tags('/blogg')}
         </Form.Item>
+        <Form.Item
+          name="startUrls"
+          label="More start pages"
+          extra="The crawl starts from these too, e.g. a product listing with a larger page size than the site links to."
+        >
+          {tags('https://example.is/vorur?PageSize=100')}
+        </Form.Item>
         {!browser && (
           <Form.Item
             name="sitemapUrls"
@@ -195,6 +202,33 @@ export default function StoreConfigForm({
             {tags('https://example.is/sitemap.xml')}
           </Form.Item>
         )}
+        <Typography.Text strong>Product feed</Typography.Text>
+        <Typography.Paragraph type="secondary" style={{ fontSize: 12 }}>
+          A JSON endpoint that lists the products, for stores whose category
+          pages load them with JavaScript. The product page of each item is
+          crawled.
+        </Typography.Paragraph>
+        <Form.Item
+          name={['productFeed', 'url']}
+          label="Feed url"
+          extra="Absolute or relative to the start url."
+        >
+          <Input style={mono} allowClear />
+        </Form.Item>
+        <Form.Item
+          name={['productFeed', 'items']}
+          label="Path to the items"
+          extra='Dot path to the list of products, a JSON string on the way is parsed, e.g. "d.data".'
+        >
+          <Input style={mono} allowClear />
+        </Form.Item>
+        <Form.Item
+          name={['productFeed', 'productUrl']}
+          label="Product page url"
+          extra="{field} is replaced with that field of the item, {field:5} pads it with zeros to 5 characters, e.g. /vara?id={ProductID}"
+        >
+          <Input style={mono} allowClear />
+        </Form.Item>
         {browser && (
           <>
             <Form.Item

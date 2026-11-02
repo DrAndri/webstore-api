@@ -172,7 +172,23 @@ const configRule = object({
   },
   urlWhitelist: { rule: arrayOf(str({ nonEmpty: true })) },
   urlBlacklist: { rule: arrayOf(str({ nonEmpty: true })) },
+  startUrls: { rule: arrayOf(str({ url: true })) },
   sitemapUrls: { rule: arrayOf(str({ url: true })) },
+  productFeed: {
+    rule: object({
+      // Absolute or relative to the start url
+      url: { rule: str({ nonEmpty: true }), required: true },
+      items: { rule: str({ nonEmpty: true }), required: true },
+      productUrl: {
+        rule: (value, path, errors) => {
+          str({ nonEmpty: true })(value, path, errors);
+          if (typeof value === 'string' && !/\{\w+(:\d+)?\}/.test(value))
+            errors.push(`${path} must hold a {field} of the items`);
+        },
+        required: true
+      }
+    })
+  },
   scrollPagesToBottom: { rule: bool },
   menuClicker: selector
 });
