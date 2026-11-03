@@ -20,7 +20,13 @@ import {
   Overview
 } from '../../utils/admin/types';
 import { cancelJob } from './ActiveJobs';
-import { fetchJson, formatDuration, formatNumber, formatTime } from './api';
+import {
+  fetchJson,
+  formatDuration,
+  formatNumber,
+  formatTime,
+  sendJson
+} from './api';
 import { FIELD_LABELS } from './charts';
 import { JobStatusTag } from './StatusTags';
 
@@ -105,10 +111,33 @@ export default function JobHistory({ storeId }: { storeId?: number }) {
     refreshInterval: 10000,
     keepPreviousData: true
   });
-  const { data: overview } = useSWR<Overview>(
+  const { data: overview, mutate: mutateOverview } = useSWR<Overview>(
     storeId === undefined ? '/api/admin/overview' : null,
-    fetchJson
+    fetchJson,
+    { refreshInterval: 10000 }
   );
+  const cancellable =
+    overview?.activeJobs.filter(
+      (job) => job.mode !== 'test' && !job.cancelRequested
+    ).length ?? 0;
+
+  const cancelAll = async () => {
+    try {
+      const { cancelled } = await sendJson<{ cancelled: number }>(
+        '/api/admin/jobs/cancel',
+        'POST'
+      );
+      message.success(
+        cancelled === 1
+          ? 'The scan will stop within a few seconds'
+          : `${cancelled} scans will stop within a few seconds`
+      );
+    } catch (e) {
+      message.error((e as Error).message);
+    }
+    void mutate();
+    void mutateOverview();
+  };
 
   const setFilter = (
     key: keyof typeof filters,
@@ -164,6 +193,17 @@ export default function JobHistory({ storeId }: { storeId?: number }) {
             label: status[0].toUpperCase() + status.slice(1)
           }))}
         />
+        {storeId === undefined && (
+          <Popconfirm
+            title={`Cancel all ${cancellable} queued and running scans?`}
+            disabled={cancellable === 0}
+            onConfirm={cancelAll}
+          >
+            <Button danger disabled={cancellable === 0}>
+              Cancel all scans
+            </Button>
+          </Popconfirm>
+        )}
       </Flex>
       {error && <Alert type="error" showIcon title={error.message} />}
       <Table<Job>
