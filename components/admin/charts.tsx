@@ -15,6 +15,7 @@ import {
   YAxis
 } from 'recharts';
 import { FIELD_ERRORS, FieldError, TrendRow } from '../../utils/admin/types';
+import useChartTheme from '../Theme/useChartTheme';
 import { formatNumber } from './api';
 
 // Categorical slots in fixed order, validated for color vision deficiency
@@ -27,9 +28,6 @@ export const SERIES_COLORS = [
   '#008300',
   '#6250d6'
 ];
-const SURFACE = '#ffffff';
-const GRID = '#e8e8e6';
-const AXIS_TEXT = '#52514e';
 
 export const FIELD_LABELS: Record<FieldError, string> = {
   nameError: 'Name',
@@ -41,11 +39,11 @@ export const FIELD_LABELS: Record<FieldError, string> = {
   attributeError: 'Attributes'
 };
 
-const axisProps = {
-  stroke: GRID,
-  tick: { fill: AXIS_TEXT, fontSize: 12 },
+const axisProps = (chart: ReturnType<typeof useChartTheme>) => ({
+  stroke: chart.grid,
+  tick: { fill: chart.axisText, fontSize: 12 },
   tickLine: false
-};
+});
 
 type DayTotals = Record<FieldError, number> & {
   day: string;
@@ -96,6 +94,7 @@ export function FieldErrorsChart({
   markers?: { day: string; label: string }[];
 }) {
   const [view, setView] = useState<'Chart' | 'Table'>('Chart');
+  const chart = useChartTheme();
   const data = totalsByDay(rows);
 
   return (
@@ -139,11 +138,12 @@ export function FieldErrorsChart({
             data={data}
             margin={{ top: 8, right: 8, bottom: 0, left: 0 }}
           >
-            <CartesianGrid vertical={false} stroke={GRID} />
-            <XAxis dataKey="day" {...axisProps} minTickGap={24} />
-            <YAxis {...axisProps} axisLine={false} width={48} />
+            <CartesianGrid vertical={false} stroke={chart.grid} />
+            <XAxis dataKey="day" {...axisProps(chart)} minTickGap={24} />
+            <YAxis {...axisProps(chart)} axisLine={false} width={48} />
             <Tooltip
-              cursor={{ fill: 'rgba(0,0,0,0.04)' }}
+              {...chart.tooltip}
+              cursor={{ fill: chart.cursor }}
               formatter={(value, name) => [formatNumber(Number(value)), name]}
             />
             <Legend iconType="circle" iconSize={8} />
@@ -154,7 +154,7 @@ export function FieldErrorsChart({
                 name={FIELD_LABELS[field]}
                 stackId="errors"
                 fill={SERIES_COLORS[index]}
-                stroke={SURFACE}
+                stroke={chart.surface}
                 strokeWidth={1}
                 maxBarSize={28}
                 radius={index === FIELD_ERRORS.length - 1 ? [4, 4, 0, 0] : 0}
@@ -164,7 +164,7 @@ export function FieldErrorsChart({
               <ReferenceLine
                 key={marker.day + marker.label}
                 x={marker.day}
-                stroke={AXIS_TEXT}
+                stroke={chart.axisText}
                 strokeDasharray="3 3"
               />
             ))}
@@ -191,25 +191,27 @@ export function TrendLineChart({
   markers?: { day: string; label: string }[];
   height?: number;
 }) {
+  const chart = useChartTheme();
   return (
     <ResponsiveContainer width="100%" height={height}>
       <LineChart data={data} margin={{ top: 16, right: 8, bottom: 0, left: 0 }}>
-        <CartesianGrid vertical={false} stroke={GRID} />
-        <XAxis dataKey="day" {...axisProps} minTickGap={24} />
-        <YAxis {...axisProps} axisLine={false} width={48} unit={unit} />
+        <CartesianGrid vertical={false} stroke={chart.grid} />
+        <XAxis dataKey="day" {...axisProps(chart)} minTickGap={24} />
+        <YAxis {...axisProps(chart)} axisLine={false} width={48} unit={unit} />
         <Tooltip
+          {...chart.tooltip}
           formatter={(value) => [`${formatNumber(Number(value))}${unit}`, name]}
         />
         {markers.map((marker) => (
           <ReferenceLine
             key={marker.day + marker.label}
             x={marker.day}
-            stroke={AXIS_TEXT}
+            stroke={chart.axisText}
             strokeDasharray="3 3"
             label={{
               value: '⚙',
               position: 'top',
-              fill: AXIS_TEXT,
+              fill: chart.axisText,
               fontSize: 12
             }}
           />
@@ -223,10 +225,10 @@ export function TrendLineChart({
           dot={{
             r: 3,
             fill: SERIES_COLORS[0],
-            stroke: SURFACE,
+            stroke: chart.surface,
             strokeWidth: 2
           }}
-          activeDot={{ r: 5, stroke: SURFACE, strokeWidth: 2 }}
+          activeDot={{ r: 5, stroke: chart.surface, strokeWidth: 2 }}
           connectNulls
         />
       </LineChart>
@@ -240,6 +242,7 @@ export function Sparkline({
 }: {
   values: { day: string; value: number }[];
 }) {
+  const chart = useChartTheme();
   if (values.length < 2) return null;
   return (
     <div style={{ width: 96, height: 28 }} aria-hidden>
@@ -250,6 +253,7 @@ export function Sparkline({
         >
           <YAxis hide domain={['dataMin', 'dataMax']} />
           <Tooltip
+            {...chart.tooltip}
             cursor={false}
             wrapperStyle={{ zIndex: 10 }}
             labelFormatter={(_, payload) => payload?.[0]?.payload?.day}

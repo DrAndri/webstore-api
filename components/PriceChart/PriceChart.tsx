@@ -22,9 +22,11 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { sendGAEvent } from '@next/third-parties/google';
 import { getCached } from '../../utils/api';
+import useChartTheme from '../Theme/useChartTheme';
 
 export default function PriceChart({ stores }: { stores: StoreConfig[] }) {
   const { cache, mutate } = useSWRConfig();
+  const chart = useChartTheme();
   const [loadedPrices, setPrices] = useState<RechartFormat[]>([]);
   const searchParams = useSearchParams();
   const selectedProductIdsString = searchParams.get('selectedProductIds');
@@ -154,7 +156,7 @@ export default function PriceChart({ stores }: { stores: StoreConfig[] }) {
     '#003ac1',
     '#7800c1',
     '#c100ab',
-    '#000000',
+    chart.text,
     '#525252',
     '#003fff',
     '#ff0000',
@@ -256,15 +258,16 @@ export default function PriceChart({ stores }: { stores: StoreConfig[] }) {
             ]}
           />
           <Tooltip
+            {...chart.tooltip}
             labelFormatter={(label) =>
               dayjs.unix(Number(label)).format('DD-MMM-YYYY')
             }
-            labelStyle={{ fontWeight: 'bold' }}
+            labelStyle={{ ...chart.tooltip.labelStyle, fontWeight: 'bold' }}
             formatter={(value) =>
               value ? formatPriceString(value.toString()) + ' kr.' : ''
             }
           />
-          <CartesianGrid stroke="#c2c2c2" strokeDasharray="3 3" />
+          <CartesianGrid stroke={chart.grid} strokeDasharray="3 3" />
           <Legend
             wrapperStyle={{ paddingBottom: 20 }}
             align="center"

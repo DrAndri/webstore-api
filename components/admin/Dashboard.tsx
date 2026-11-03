@@ -20,6 +20,7 @@ import {
   Statistic,
   Table,
   Tag,
+  theme,
   Typography
 } from 'antd';
 import Link from 'next/link';
@@ -104,6 +105,7 @@ function ScraperCard({ overview }: { overview: Overview }) {
 }
 
 export default function Dashboard() {
+  const { token } = theme.useToken();
   const { message } = App.useApp();
   const { data, error, mutate } = useSWR<Overview>(
     '/api/admin/overview',
@@ -211,14 +213,20 @@ export default function Dashboard() {
                 <Statistic
                   title="Healthy"
                   value={count('ok')}
-                  prefix={<CheckCircleOutlined style={{ color: '#0ca30c' }} />}
+                  prefix={
+                    <CheckCircleOutlined
+                      style={{ color: token.colorSuccess }}
+                    />
+                  }
                 />
               </Col>
               <Col xs={12} sm={8}>
                 <Statistic
                   title="Need attention"
                   value={count('warning') + count('error')}
-                  prefix={<CloseCircleOutlined style={{ color: '#d03b3b' }} />}
+                  prefix={
+                    <CloseCircleOutlined style={{ color: token.colorError }} />
+                  }
                   suffix={`${count('error')} failing`}
                 />
               </Col>

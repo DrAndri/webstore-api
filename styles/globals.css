@@ -2,19 +2,9 @@ html,
 body {
   padding: 0;
   margin: 0;
-  font-family:
-    -apple-system,
-    BlinkMacSystemFont,
-    Segoe UI,
-    Roboto,
-    Oxygen,
-    Ubuntu,
-    Cantarell,
-    Fira Sans,
-    Droid Sans,
-    Helvetica Neue,
-    sans-serif;
 }
+
+/* The colors and font of body come from the antd theme, see utils/theme.ts */
 
 a {
   color: inherit;
@@ -25,17 +15,7 @@ a {
   box-sizing: border-box;
 }
 
-/* @media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
-  }
-  body {
-    color: white;
-    background: black;
-  }
-} */
-
 /* Rows of the comparison view whose values differ between products */
 .compare-differs > td {
-  background: #fffbe6;
+  background: var(--app-highlight-bg);
 }

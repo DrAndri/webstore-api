@@ -36,9 +36,11 @@ import useSWR from 'swr';
 import { ApiToken, ApiUserDetails } from '../../utils/admin/types';
 import { fetchJson, formatNumber, formatTime, fromNow, sendJson } from './api';
 import { TokenModal, UsageCell } from './ApiUsers';
+import useChartTheme from '../Theme/useChartTheme';
 import { SERIES_COLORS } from './charts';
 
 function UsageChart({ usage }: { usage: ApiUserDetails['usage'] }) {
+  const chart = useChartTheme();
   const days = Array.from({ length: 30 }, (_, i) => {
     const day = dayjs
       .utc()
@@ -54,23 +56,24 @@ function UsageChart({ usage }: { usage: ApiUserDetails['usage'] }) {
   return (
     <ResponsiveContainer width="100%" height={240}>
       <BarChart data={days} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
-        <CartesianGrid vertical={false} stroke="#e8e8e6" />
+        <CartesianGrid vertical={false} stroke={chart.grid} />
         <XAxis
           dataKey="day"
-          stroke="#e8e8e6"
-          tick={{ fill: '#52514e', fontSize: 12 }}
+          stroke={chart.grid}
+          tick={{ fill: chart.axisText, fontSize: 12 }}
           tickLine={false}
           minTickGap={24}
         />
         <YAxis
-          stroke="#e8e8e6"
-          tick={{ fill: '#52514e', fontSize: 12 }}
+          stroke={chart.grid}
+          tick={{ fill: chart.axisText, fontSize: 12 }}
           tickLine={false}
           axisLine={false}
           width={56}
         />
         <Tooltip
-          cursor={{ fill: 'rgba(0,0,0,0.04)' }}
+          {...chart.tooltip}
+          cursor={{ fill: chart.cursor }}
           formatter={(value, name) => [formatNumber(Number(value)), name]}
         />
         <Legend iconType="circle" iconSize={8} />
@@ -79,7 +82,7 @@ function UsageChart({ usage }: { usage: ApiUserDetails['usage'] }) {
           name="Served"
           stackId="usage"
           fill={SERIES_COLORS[0]}
-          stroke="#ffffff"
+          stroke={chart.surface}
           maxBarSize={24}
         />
         <Bar
@@ -87,7 +90,7 @@ function UsageChart({ usage }: { usage: ApiUserDetails['usage'] }) {
           name="Rejected"
           stackId="usage"
           fill={SERIES_COLORS[1]}
-          stroke="#ffffff"
+          stroke={chart.surface}
           maxBarSize={24}
           radius={[4, 4, 0, 0]}
         />

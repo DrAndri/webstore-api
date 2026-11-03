@@ -13,6 +13,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { signOutUser } from '../../app/actions/auth';
 import type { AdminUser } from '../../utils/admin/auth';
+import ThemeSwitch from '../Theme/ThemeSwitch';
 
 const ITEMS = [
   { key: '/admin', icon: <DashboardOutlined />, label: 'Dashboard' },
@@ -67,6 +68,7 @@ export default function AdminShell({
               gap={12}
               style={{ height: '100%' }}
             >
+              <ThemeSwitch type="text" />
               {user.image && <Avatar size="small" src={user.image} alt="" />}
               <Typography.Text>{user.name}</Typography.Text>
               <form action={signOutUser}>

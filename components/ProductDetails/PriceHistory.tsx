@@ -13,14 +13,12 @@ import {
   YAxis
 } from 'recharts';
 import { Price } from '../../types';
+import useChartTheme from '../Theme/useChartTheme';
 
 // The first two categorical slots, validated for color vision deficiency.
 // The sale price is also dashed so it is not told apart by color alone.
 const PRICE_COLOR = '#2a78d6';
 const SALE_COLOR = '#eb6834';
-const SURFACE = '#ffffff';
-const GRID = '#e8e8e6';
-const AXIS_TEXT = '#52514e';
 
 const RANGES = {
   '3m': { label: '3 mán.', months: 3 },
@@ -77,7 +75,8 @@ const toDays = (prices: Price[], salePrices: Price[], from?: string) => {
 const isolatedDot = (
   days: DayRow[],
   key: 'price' | 'salePrice',
-  color: string
+  color: string,
+  surface: string
 ) =>
   function Dot({
     cx,
@@ -100,7 +99,7 @@ const isolatedDot = (
         cy={cy}
         r={4}
         fill={color}
-        stroke={SURFACE}
+        stroke={surface}
         strokeWidth={2}
       />
     ) : (
@@ -144,6 +143,7 @@ export default function PriceHistory({
 }) {
   const [view, setView] = useState<'chart' | 'table'>('chart');
   const [range, setRange] = useState<RangeKey>('all');
+  const chart = useChartTheme();
 
   if (prices.length === 0 && salePrices.length === 0)
     return <Typography.Text type="secondary">Engin verð skráð</Typography.Text>;
@@ -222,11 +222,11 @@ export default function PriceHistory({
             data={days}
             margin={{ top: 8, right: 8, bottom: 0, left: 0 }}
           >
-            <CartesianGrid vertical={false} stroke={GRID} />
+            <CartesianGrid vertical={false} stroke={chart.grid} />
             <XAxis
               dataKey="day"
-              stroke={GRID}
-              tick={{ fill: AXIS_TEXT, fontSize: 12 }}
+              stroke={chart.grid}
+              tick={{ fill: chart.axisText, fontSize: 12 }}
               tickLine={false}
               minTickGap={32}
               tickFormatter={(day: string) =>
@@ -234,8 +234,8 @@ export default function PriceHistory({
               }
             />
             <YAxis
-              stroke={GRID}
-              tick={{ fill: AXIS_TEXT, fontSize: 12 }}
+              stroke={chart.grid}
+              tick={{ fill: chart.axisText, fontSize: 12 }}
               tickLine={false}
               axisLine={false}
               width={80}
@@ -249,6 +249,7 @@ export default function PriceHistory({
               tickFormatter={(value: number) => value.toLocaleString('is-IS')}
             />
             <Tooltip
+              {...chart.tooltip}
               labelFormatter={(day) => formatDay(String(day))}
               formatter={(value, name) => [formatPrice(Number(value)), name]}
             />
@@ -259,8 +260,8 @@ export default function PriceHistory({
               name="Verð"
               stroke={PRICE_COLOR}
               strokeWidth={2}
-              dot={isolatedDot(days, 'price', PRICE_COLOR)}
-              activeDot={{ r: 5, stroke: SURFACE, strokeWidth: 2 }}
+              dot={isolatedDot(days, 'price', PRICE_COLOR, chart.surface)}
+              activeDot={{ r: 5, stroke: chart.surface, strokeWidth: 2 }}
               isAnimationActive={false}
             />
             {hasSales && (
@@ -271,8 +272,8 @@ export default function PriceHistory({
                 stroke={SALE_COLOR}
                 strokeWidth={2}
                 strokeDasharray="6 3"
-                dot={isolatedDot(days, 'salePrice', SALE_COLOR)}
-                activeDot={{ r: 5, stroke: SURFACE, strokeWidth: 2 }}
+                dot={isolatedDot(days, 'salePrice', SALE_COLOR, chart.surface)}
+                activeDot={{ r: 5, stroke: chart.surface, strokeWidth: 2 }}
                 isAnimationActive={false}
               />
             )}

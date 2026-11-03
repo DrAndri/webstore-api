@@ -3,8 +3,10 @@ import Text from 'antd/es/typography/Text';
 import Link from 'next/link';
 import { signOutUser } from '../../app/actions/auth';
 import { auth } from '../../auth';
+import ThemeSwitch from '../Theme/ThemeSwitch';
 
-// Sign in and out for the public pages. dark is for the dark page header.
+// Sign in and out and the theme switch for the public pages. dark is for the
+// dark page header.
 export default async function UserMenu({
   returnTo,
   dark = false
@@ -15,12 +17,16 @@ export default async function UserMenu({
   const session = await auth();
   if (!session?.user)
     return (
-      <Link href={`/login?returnTo=${encodeURIComponent(returnTo)}`}>
-        <Button ghost={dark}>Skrá inn</Button>
-      </Link>
+      <Flex gap={8} align="center">
+        <ThemeSwitch dark={dark} />
+        <Link href={`/login?returnTo=${encodeURIComponent(returnTo)}`}>
+          <Button ghost={dark}>Skrá inn</Button>
+        </Link>
+      </Flex>
     );
   return (
     <Flex gap={8} align="center">
+      <ThemeSwitch dark={dark} />
       {session.user.image && (
         <Avatar size="small" src={session.user.image} alt="" />
       )}

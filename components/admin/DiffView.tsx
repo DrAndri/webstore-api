@@ -1,16 +1,17 @@
 'use client';
-import { Empty } from 'antd';
+import { Empty, theme } from 'antd';
 import { DiffLine } from '../../utils/admin/storeConfig';
 
-const STYLES: Record<DiffLine['type'], React.CSSProperties> = {
-  add: { background: '#e6ffec' },
-  remove: { background: '#ffebe9' },
-  context: {},
-  hunk: { background: '#f0f5ff', color: '#52514e' }
-};
 const PREFIX = { add: '+', remove: '-', context: ' ', hunk: '' };
 
 export default function DiffView({ lines }: { lines: DiffLine[] }) {
+  const { token } = theme.useToken();
+  const styles: Record<DiffLine['type'], React.CSSProperties> = {
+    add: { background: token.colorSuccessBg },
+    remove: { background: token.colorErrorBg },
+    context: {},
+    hunk: { background: token.colorPrimaryBg, color: token.colorTextSecondary }
+  };
   if (lines.length === 0)
     return (
       <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No changes" />
@@ -23,14 +24,14 @@ export default function DiffView({ lines }: { lines: DiffLine[] }) {
         margin: 0,
         maxHeight: 480,
         overflow: 'auto',
-        border: '1px solid #e8e8e6',
+        border: `1px solid ${token.colorBorderSecondary}`,
         borderRadius: 6
       }}
     >
       {lines.map((line, index) => (
         <div
           key={index}
-          style={{ ...STYLES[line.type], padding: '0 8px', whiteSpace: 'pre' }}
+          style={{ ...styles[line.type], padding: '0 8px', whiteSpace: 'pre' }}
         >
           {PREFIX[line.type]}
           {line.text}
