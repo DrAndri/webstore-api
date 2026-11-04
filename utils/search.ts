@@ -100,7 +100,9 @@ export const getLookups = () => {
 
 // Whether the products core has the advanced search fields, which the scraper
 // adds when it syncs the Solr schema
-let schema: { at: number; exact: boolean; attrIds: boolean } | undefined;
+let schema:
+  | { at: number; exact: boolean; attrIds: boolean; skuPrefix: boolean }
+  | undefined;
 
 const getSchemaSupport = async () => {
   if (schema && Date.now() - schema.at < 5 * 60 * 1000) return schema;
@@ -116,11 +118,12 @@ const getSchemaSupport = async () => {
         fields.has('name_ci') &&
         fields.has('sku_ci') &&
         body.dynamicFields.some((f) => f.name === 'attrci_*'),
-      attrIds: fields.has('attrIds')
+      attrIds: fields.has('attrIds'),
+      skuPrefix: fields.has('sku_prefix')
     };
   } catch (e) {
     console.error('Reading the Solr schema failed', e);
-    schema = { at: Date.now(), exact: false, attrIds: false };
+    schema = { at: Date.now(), exact: false, attrIds: false, skuPrefix: false };
   }
   return schema;
 };
@@ -308,7 +311,11 @@ export const search = async (
     // Words only, operators in the free text are escaped
     params.set('q', q.split(/\s+/).map(escapeTerm).join(' '));
     params.set('defType', 'edismax');
-    params.set('qf', 'name^3 sku^4 ean^4 description^0.5');
+    // sku matches the whole sku, sku_prefix the start of it
+    params.set(
+      'qf',
+      `name^3 sku^4 ${support.skuPrefix ? 'sku_prefix^2 ' : ''}ean^4 description^0.5`
+    );
     params.set('mm', '100%');
   } else {
     params.set('q', '*:*');

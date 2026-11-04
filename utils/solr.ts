@@ -23,7 +23,15 @@ export type AutocompleteDoc = Omit<AutocompleteResult, 'matches'>;
 
 export type SolrAutocompleteResponse = SolrResponse<AutocompleteDoc> & {
   // The whole field value with the matched parts marked, by document id
-  highlighting?: Record<string, { name?: string[]; sku?: string[] }>;
+  highlighting?: Record<
+    string,
+    {
+      name?: string[];
+      sku?: string[];
+      name_prefix?: string[];
+      sku_prefix?: string[];
+    }
+  >;
 };
 
 // SOLR_URL may end with a slash or not, Solr answers 400 to a double slash
@@ -41,7 +49,9 @@ export const querySolrAutocomplete = async (
     // What the query matched in each result
     hl: 'true',
     'hl.method': 'unified',
-    'hl.fl': 'name,sku',
+    // name and sku match whole words and skus, the _prefix fields their
+    // prefixes
+    'hl.fl': 'name,sku,name_prefix,sku_prefix',
     'hl.requireFieldMatch': 'true',
     // The whole value instead of a fragment
     'hl.fragsize': '0',
