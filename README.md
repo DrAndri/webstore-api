@@ -142,6 +142,11 @@ The admin interface and the scraper only talk through the database:
   log while it ran on its page. It needs the `index` value of
   `scrapeJobs.mode`, see `migrations/2026-11-04-solr-index-jobs.sql` in the
   scraper.
+- **Sync Solr schema** on the dashboard adds a `schema` job, the scraper brings
+  the schemas of the Solr cores in line with its `solr-configsets` and, when
+  asked, queues a reindex if a schema changed. It no longer does this when it
+  starts, so run it after deploying a schema change. It needs
+  `migrations/2026-11-04-solr-schema-jobs.sql` in the scraper.
 - How many stores are scanned at a time is the `concurrency` of
   `scraperSettings`, the scraper reads it every 5 seconds. It needs
   `migrations/2026-11-04-scraper-settings.sql` in the scraper.
@@ -221,6 +226,6 @@ In the advanced search, clicking a product opens its details and price history
 in a drawer. The product id is kept in the url as `product`.
 
 Exact whole value matching needs the `name_ci`, `sku_ci` and `attrci_*` fields
-in the products core, which the scraper adds when it starts. Until the products
-are reindexed, matching is word by word and attribute values are case
+in the products core, which **Sync Solr schema** on the admin dashboard adds.
+Until the products are reindexed, matching is word by word and attribute values are case
 sensitive.

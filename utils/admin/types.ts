@@ -1,8 +1,14 @@
 // Types shared by the admin api routes and pages
 
-// index reindexes everything in the database to Solr, it has no store
-export type JobMode = 'crawler' | 'list' | 'test' | 'index';
-export type ScheduledMode = Exclude<JobMode, 'test' | 'index'>;
+// index reindexes everything in the database to Solr and schema syncs the
+// Solr schemas, they have no store
+export type JobMode = 'crawler' | 'list' | 'test' | 'index' | 'schema';
+export type ScheduledMode = Exclude<JobMode, 'test' | 'index' | 'schema'>;
+export type SolrJobMode = Extract<JobMode, 'index' | 'schema'>;
+
+// The jobs that work on Solr instead of a store, one runs at a time
+export const isSolrJob = (mode: JobMode): mode is SolrJobMode =>
+  mode === 'index' || mode === 'schema';
 export type JobSource = 'cron' | 'manual' | 'startup';
 export type JobStatus =
   'queued' | 'running' | 'succeeded' | 'failed' | 'cancelled';

@@ -18,7 +18,8 @@
     "crawler": "Full crawl",
     "list": "Active products",
     "test": "Test",
-    "index": "Solr reindex"
+    "index": "Solr reindex",
+    "schema": "Solr schema sync"
   },
   "sources": {
     "cron": "cron",
@@ -113,7 +114,9 @@
     "queuedAgo": "Queued {{time}}",
     "confirmRemove": "Remove this scan from the queue?",
     "confirmStopIndex": "Stop the reindex? What is indexed so far stays in Solr.",
-    "confirmStopScan": "Stop this scan? Pages in progress finish first."
+    "confirmStopScan": "Stop this scan? Pages in progress finish first.",
+    "solr": "Solr",
+    "schemaProgress": "Syncing the Solr schemas"
   },
   "runScan": {
     "title": "Run scan",
@@ -179,7 +182,15 @@
     "allScans": "All scans",
     "fullCrawls": "Full crawls",
     "days": "{{days}} d",
-    "errorsHelp": "Products where a field could not be scraped, by field. A jump usually means a store changed its pages."
+    "errorsHelp": "Products where a field could not be scraped, by field. A jump usually means a store changed its pages.",
+    "schemaSync": "Sync Solr schema",
+    "schemaSyncing": "Syncing Solr schema",
+    "schemaConfirm": "Sync the Solr schema?",
+    "schemaDescription": "Adds and updates the fields of every Solr core from solr-configsets in the scraper. Nothing is removed. Documents only get new fields when they are reindexed.",
+    "schemaReindex": "Reindex Solr if a schema changed",
+    "schemaOk": "Sync",
+    "schemaQueued": "Solr schema sync queued",
+    "schemaAlreadyQueued": "A schema sync is already queued or running"
   },
   "charts": {
     "chart": "Chart",
@@ -209,7 +220,8 @@
     "confirmCancelAll_one": "Cancel all {{count}} queued and running scans?",
     "confirmCancelAll_other": "Cancel all {{count}} queued and running scans?",
     "cancelAll": "Cancel all scans",
-    "confirmCancel": "Cancel this scan?"
+    "confirmCancel": "Cancel this scan?",
+    "schemaChanges": "Schema changes"
   },
   "jobLog": {
     "titleIndex": "Reindex #{{id}}",
@@ -219,7 +231,8 @@
     "appLog": "App log during the scan",
     "tested": "Tested",
     "log": "Log",
-    "scanLog": "Scan log"
+    "scanLog": "Scan log",
+    "titleSchema": "Schema sync #{{id}}"
   },
   "logs": {
     "title": "Logs",

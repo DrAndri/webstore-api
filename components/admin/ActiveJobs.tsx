@@ -36,10 +36,14 @@ export const cancelJob = async (
   }
 };
 
-// The store of a job, a reindex covers all of them and a test can be of a
-// store that has not been created yet
+// The store of a job, a reindex covers all of them, a schema sync none and a
+// test can be of a store that has not been created yet
 export function JobStore({ job }: { job: Job }) {
   const { t } = useTranslation('admin');
+  if (job.mode === 'schema')
+    return (
+      <Typography.Text type="secondary">{t('activeJobs.solr')}</Typography.Text>
+    );
   if (job.mode === 'index')
     return (
       <Typography.Text type="secondary">
@@ -121,6 +125,10 @@ export default function ActiveJobs({
                   total: format.number(job.totalRequests)
                 })}
               </Typography.Text>
+            ) : job.status === 'running' && job.mode === 'schema' ? (
+              <Typography.Text>
+                {t('activeJobs.schemaProgress')}
+              </Typography.Text>
             ) : job.status === 'running' ? (
               <Typography.Text>
                 {t(
@@ -160,22 +168,24 @@ export default function ActiveJobs({
                   <Button size="small">{t('log')}</Button>
                 </Link>
               )}
-              {!job.cancelRequested && (
-                <Popconfirm
-                  title={
-                    job.status !== 'running'
-                      ? t('activeJobs.confirmRemove')
-                      : job.mode === 'index'
-                        ? t('activeJobs.confirmStopIndex')
-                        : t('activeJobs.confirmStopScan')
-                  }
-                  onConfirm={() => cancelJob(job.id, message, t, onChange)}
-                >
-                  <Button size="small" danger>
-                    {t('cancel')}
-                  </Button>
-                </Popconfirm>
-              )}
+              {/* A running schema sync is quick and doesn't stop */}
+              {!job.cancelRequested &&
+                !(job.status === 'running' && job.mode === 'schema') && (
+                  <Popconfirm
+                    title={
+                      job.status !== 'running'
+                        ? t('activeJobs.confirmRemove')
+                        : job.mode === 'index'
+                          ? t('activeJobs.confirmStopIndex')
+                          : t('activeJobs.confirmStopScan')
+                    }
+                    onConfirm={() => cancelJob(job.id, message, t, onChange)}
+                  >
+                    <Button size="small" danger>
+                      {t('cancel')}
+                    </Button>
+                  </Popconfirm>
+                )}
             </Flex>
           )
         }

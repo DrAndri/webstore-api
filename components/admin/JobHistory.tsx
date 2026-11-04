@@ -19,6 +19,7 @@ import {
   FIELD_ERRORS,
   Job,
   JobMode,
+  isSolrJob,
   JobStatus,
   Overview
 } from '../../utils/admin/types';
@@ -51,7 +52,7 @@ const scanCounters = (job: Job, t: TFunction<'admin'>, format: Format) => [
   }))
 ];
 
-const MODES: JobMode[] = ['crawler', 'list', 'test', 'index'];
+const MODES: JobMode[] = ['crawler', 'list', 'test', 'index', 'schema'];
 const STATUSES: JobStatus[] = [
   'queued',
   'running',
@@ -92,7 +93,9 @@ export function JobDetails({ job }: { job: Job }) {
                     percentOf(job.totalProcessed, job.totalRequests)
                 }
               ]
-            : scanCounters(job, t, format))
+            : job.mode === 'schema'
+              ? []
+              : scanCounters(job, t, format))
         ]}
       />
       {job.updateResult && (
@@ -100,7 +103,9 @@ export function JobDetails({ job }: { job: Job }) {
           title={
             job.mode === 'index'
               ? t('jobs.indexedDocuments')
-              : t('jobs.databaseChanges')
+              : job.mode === 'schema'
+                ? t('jobs.schemaChanges')
+                : t('jobs.databaseChanges')
           }
           size="small"
           column={{ xs: 1, sm: 2, lg: 4 }}
@@ -286,13 +291,14 @@ export default function JobHistory({ storeId }: { storeId?: number }) {
           {
             title: t('columns.products'),
             align: 'right',
-            render: (_, job) => format.number(job.totalProcessed)
+            render: (_, job) =>
+              job.mode === 'schema' ? '–' : format.number(job.totalProcessed)
           },
           {
             title: t('columns.fieldErrors'),
             align: 'right',
             render: (_, job) =>
-              job.mode === 'index'
+              isSolrJob(job.mode)
                 ? '–'
                 : format.number(
                     FIELD_ERRORS.reduce((sum, field) => sum + job[field], 0)
@@ -302,7 +308,7 @@ export default function JobHistory({ storeId }: { storeId?: number }) {
             title: t('columns.failedPages'),
             align: 'right',
             render: (_, job) =>
-              job.mode === 'index' ? '–' : format.number(job.totalErrored)
+              isSolrJob(job.mode) ? '–' : format.number(job.totalErrored)
           },
           {
             title: t('columns.by'),
@@ -318,7 +324,9 @@ export default function JobHistory({ storeId }: { storeId?: number }) {
                     <Button size="small">{t('log')}</Button>
                   </Link>
                 )}
-                {(job.status === 'queued' || job.status === 'running') &&
+                {/* A running schema sync is quick and doesn't stop */}
+                {(job.status === 'queued' ||
+                  (job.status === 'running' && job.mode !== 'schema')) &&
                   !job.cancelRequested && (
                     <Popconfirm
                       title={t('jobs.confirmCancel')}

@@ -18,7 +18,8 @@
     "crawler": "Heildarskönnun",
     "list": "Virkar vörur",
     "test": "Prófun",
-    "index": "Endurskráning í Solr"
+    "index": "Endurskráning í Solr",
+    "schema": "Samstilling Solr-skema"
   },
   "sources": {
     "cron": "tímaáætlun",
@@ -113,7 +114,9 @@
     "queuedAgo": "Sett í biðröð {{time}}",
     "confirmRemove": "Taka þessa skönnun úr biðröðinni?",
     "confirmStopIndex": "Stöðva endurskráninguna? Það sem þegar er skráð verður áfram í Solr.",
-    "confirmStopScan": "Stöðva þessa skönnun? Síður sem eru í vinnslu klárast fyrst."
+    "confirmStopScan": "Stöðva þessa skönnun? Síður sem eru í vinnslu klárast fyrst.",
+    "solr": "Solr",
+    "schemaProgress": "Samstillir Solr-skemun"
   },
   "runScan": {
     "title": "Keyra skönnun",
@@ -179,7 +182,15 @@
     "allScans": "Allar skannanir",
     "fullCrawls": "Heildarskannanir",
     "days": "{{days}} d.",
-    "errorsHelp": "Vörur þar sem ekki tókst að skrapa reit, eftir reitum. Stökk þýðir yfirleitt að verslun hafi breytt síðunum sínum."
+    "errorsHelp": "Vörur þar sem ekki tókst að skrapa reit, eftir reitum. Stökk þýðir yfirleitt að verslun hafi breytt síðunum sínum.",
+    "schemaSync": "Samstilla Solr-skema",
+    "schemaSyncing": "Samstillir Solr-skema",
+    "schemaConfirm": "Samstilla Solr-skema?",
+    "schemaDescription": "Bætir við og uppfærir reiti allra Solr-kjarna út frá solr-configsets í skraparanum. Engu er eytt. Skjöl fá nýja reiti fyrst þegar þau eru endurskráð.",
+    "schemaReindex": "Endurskrá Solr ef skema breyttist",
+    "schemaOk": "Samstilla",
+    "schemaQueued": "Samstilling Solr-skema komin í biðröð",
+    "schemaAlreadyQueued": "Samstilling skema er þegar í biðröð eða í gangi"
   },
   "charts": {
     "chart": "Graf",
@@ -209,7 +220,8 @@
     "confirmCancelAll_one": "Hætta við {{count}} skönnun í biðröð eða í gangi?",
     "confirmCancelAll_other": "Hætta við allar {{count}} skannanir í biðröð og í gangi?",
     "cancelAll": "Hætta við allar skannanir",
-    "confirmCancel": "Hætta við þessa skönnun?"
+    "confirmCancel": "Hætta við þessa skönnun?",
+    "schemaChanges": "Breytingar á skema"
   },
   "jobLog": {
     "titleIndex": "Endurskráning #{{id}}",
@@ -219,7 +231,8 @@
     "appLog": "Atvikaskrá skrapara meðan á skönnun stóð",
     "tested": "Prófuð slóð",
     "log": "Atvikaskrá",
-    "scanLog": "Atvikaskrá skönnunar"
+    "scanLog": "Atvikaskrá skönnunar",
+    "titleSchema": "Samstilling skema #{{id}}"
   },
   "logs": {
     "title": "Atvikaskrár",

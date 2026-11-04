@@ -5,7 +5,7 @@ import dayjs from 'dayjs';
 import Link from 'next/link';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
-import { Job } from '../../utils/admin/types';
+import { isSolrJob, Job, SolrJobMode } from '../../utils/admin/types';
 import { useFormat } from '../I18n/I18nProvider';
 import { fetchJson } from './api';
 import { JobDetails } from './JobHistory';
@@ -15,8 +15,15 @@ import { JobStatusTag } from './StatusTags';
 const isActive = (job?: Job) =>
   job?.status === 'queued' || job?.status === 'running';
 
-// The modules of the scraper that log a reindex
-const INDEX_LABELS = ['JobRunner', 'SQLStoreUpdater', 'Solr'];
+// The modules of the scraper that log a reindex or a schema sync
+const SOLR_LOG_LABELS: Record<SolrJobMode, string[]> = {
+  index: ['JobRunner', 'SQLStoreUpdater', 'Solr'],
+  schema: ['JobRunner', 'SolrSchema']
+};
+const TITLES = {
+  index: 'jobLog.titleIndex',
+  schema: 'jobLog.titleSchema'
+} as const;
 
 // A scan with its log
 export default function JobLogPage({ jobId }: { jobId: number }) {
@@ -31,7 +38,7 @@ export default function JobLogPage({ jobId }: { jobId: number }) {
   if (error) return <Alert type="error" showIcon title={error.message} />;
   if (!job) return <Spin style={{ display: 'block', marginTop: 64 }} />;
 
-  const isIndex = job.mode === 'index';
+  const solrMode = isSolrJob(job.mode) ? job.mode : undefined;
   const storeName = job.mode === 'test' ? `test-${job.id}` : job.storeName;
   // The time the job ran, in ms, with a margin for lines logged around it
   const logRange = job.startedAt
@@ -45,7 +52,7 @@ export default function JobLogPage({ jobId }: { jobId: number }) {
   // The scraper's own lines about the store and its jobs while the scan ran
   const appLogUrl =
     logRange &&
-    !isIndex &&
+    !solrMode &&
     `/admin/logs?${new URLSearchParams([
       ...(storeName ? [['label', storeName]] : []),
       ['label', 'JobRunner'],
@@ -63,7 +70,7 @@ export default function JobLogPage({ jobId }: { jobId: number }) {
           <Button type="text" icon={<ArrowLeftOutlined />} />
         </Link>
         <Typography.Title level={3} style={{ margin: 0 }}>
-          {t(isIndex ? 'jobLog.titleIndex' : 'jobLog.titleScan', {
+          {t(solrMode ? TITLES[solrMode] : 'jobLog.titleScan', {
             id: job.id
           })}
           {job.storeName ? ` · ${job.storeName}` : ''}
@@ -93,14 +100,14 @@ export default function JobLogPage({ jobId }: { jobId: number }) {
         <JobDetails job={job} />
       )}
       <Typography.Title level={4} style={{ margin: 0 }}>
-        {isIndex ? t('jobLog.log') : t('jobLog.scanLog')}
+        {solrMode ? t('jobLog.log') : t('jobLog.scanLog')}
       </Typography.Title>
-      {isIndex ? (
-        // A reindex has no log of its own, it is in the scraper's log
+      {solrMode ? (
+        // A Solr job has no log of its own, it is in the scraper's log
         <LogViewer
           key={String(isActive(job))}
           source="app"
-          initialLabels={INDEX_LABELS}
+          initialLabels={SOLR_LOG_LABELS[solrMode]}
           // Live while it runs, the time it ran when it is done
           initialRange={isActive(job) ? undefined : logRange}
         />

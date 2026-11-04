@@ -2,6 +2,7 @@
 import {
   CheckCircleOutlined,
   CloseCircleOutlined,
+  DatabaseOutlined,
   DownOutlined,
   PlayCircleOutlined,
   SyncOutlined
@@ -10,6 +11,7 @@ import {
   Alert,
   Button,
   Card,
+  Checkbox,
   Col,
   Dropdown,
   Flex,
@@ -158,6 +160,7 @@ export default function Dashboard() {
     { refreshInterval: 60000 }
   );
   const [runFor, setRunFor] = useState<number[] | undefined>();
+  const [reindexAfterSync, setReindexAfterSync] = useState(false);
 
   const sparklines = useMemo(() => {
     const byStore = new Map<number, { day: string; value: number }[]>();
@@ -219,6 +222,22 @@ export default function Dashboard() {
     }
   };
 
+  const syncing = data.activeJobs.some((job) => job.mode === 'schema');
+  const syncSchema = async () => {
+    try {
+      const { queued } = await sendJson<{ queued: number }>(
+        '/api/admin/jobs/solr-schema',
+        'POST',
+        { reindex: reindexAfterSync }
+      );
+      if (queued) message.success(t('dashboard.schemaQueued'));
+      else message.info(t('dashboard.schemaAlreadyQueued'));
+      void mutate();
+    } catch (e) {
+      message.error((e as Error).message);
+    }
+  };
+
   return (
     <Flex vertical gap={16}>
       <Flex justify="space-between" align="center" wrap gap={8}>
@@ -226,6 +245,33 @@ export default function Dashboard() {
           {t('dashboard.title')}
         </Typography.Title>
         <Space wrap>
+          <Popconfirm
+            title={t('dashboard.schemaConfirm')}
+            description={
+              <Flex vertical gap={8} style={{ maxWidth: 320 }}>
+                {t('dashboard.schemaDescription')}
+                <Checkbox
+                  checked={reindexAfterSync}
+                  onChange={(e) => setReindexAfterSync(e.target.checked)}
+                >
+                  {t('dashboard.schemaReindex')}
+                </Checkbox>
+              </Flex>
+            }
+            okText={t('dashboard.schemaOk')}
+            disabled={syncing}
+            onConfirm={syncSchema}
+          >
+            <Button
+              icon={<DatabaseOutlined />}
+              loading={syncing}
+              disabled={syncing}
+            >
+              {syncing
+                ? t('dashboard.schemaSyncing')
+                : t('dashboard.schemaSync')}
+            </Button>
+          </Popconfirm>
           <Popconfirm
             title={t('dashboard.reindexConfirm')}
             description={t('dashboard.reindexDescription')}
