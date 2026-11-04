@@ -183,9 +183,8 @@ export default function ProductDetails({
           <Typography.Paragraph
             ellipsis={{ rows: 6, expandable: 'collapsible' }}
             style={{ whiteSpace: 'pre-line', margin: 0 }}
-          >
-            {product.description}
-          </Typography.Paragraph>
+            dangerouslySetInnerHTML={{ __html: product.description }}
+          />
         </Card>
       )}
 
