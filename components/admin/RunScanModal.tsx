@@ -1,6 +1,7 @@
 'use client';
 import { App, Checkbox, Form, Modal, Radio, Select } from 'antd';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ScheduledMode, StoreStatus } from '../../utils/admin/types';
 import { sendJson } from './api';
 
@@ -22,6 +23,7 @@ export default function RunScanModal({
   onClose: (queued: boolean) => void;
 }) {
   const { message } = App.useApp();
+  const { t } = useTranslation('admin');
   const [form] = Form.useForm<Values>();
   const all = Form.useWatch('all', form);
   const [saving, setSaving] = useState(false);
@@ -34,9 +36,8 @@ export default function RunScanModal({
         'POST',
         { storeIds: values.all ? 'all' : values.storeIds, mode: values.mode }
       );
-      if (queued > 0)
-        message.success(`Queued ${queued} scan${queued === 1 ? '' : 's'}`);
-      else message.info('Those stores already have a scan queued or running');
+      if (queued > 0) message.success(t('runScan.queued', { count: queued }));
+      else message.info(t('runScan.alreadyQueued'));
       onClose(true);
     } catch (e) {
       message.error((e as Error).message);
@@ -47,9 +48,9 @@ export default function RunScanModal({
 
   return (
     <Modal
-      title="Run scan"
+      title={t('runScan.title')}
       open={open}
-      okText="Queue scan"
+      okText={t('runScan.ok')}
       confirmLoading={saving}
       onOk={() => form.submit()}
       onCancel={() => onClose(false)}
@@ -66,39 +67,39 @@ export default function RunScanModal({
         }}
         onFinish={submit}
       >
-        <Form.Item name="mode" label="Scan">
+        <Form.Item name="mode" label={t('runScan.mode')}>
           <Radio.Group
             options={[
               {
                 value: 'crawler',
-                label: 'Full crawl, finds new products'
+                label: t('runScan.crawler')
               },
               {
                 value: 'list',
-                label: 'Active products, re-scrapes known product pages'
+                label: t('runScan.list')
               }
             ]}
             style={{ display: 'flex', flexDirection: 'column', gap: 8 }}
           />
         </Form.Item>
         <Form.Item name="all" valuePropName="checked">
-          <Checkbox>All stores with scraping enabled</Checkbox>
+          <Checkbox>{t('runScan.all')}</Checkbox>
         </Form.Item>
         {!all && (
           <Form.Item
             name="storeIds"
-            label="Stores"
-            rules={[{ required: true, message: 'Select at least one store' }]}
+            label={t('runScan.stores')}
+            rules={[{ required: true, message: t('runScan.storesRequired') }]}
           >
             <Select
               mode="multiple"
               optionFilterProp="label"
-              placeholder="Select stores"
+              placeholder={t('runScan.storesPlaceholder')}
               options={stores.map((store) => ({
                 value: store.id,
                 label: store.scraperEnabled
                   ? store.name
-                  : `${store.name} (scraping disabled)`
+                  : t('runScan.scrapingDisabled', { name: store.name })
               }))}
             />
           </Form.Item>

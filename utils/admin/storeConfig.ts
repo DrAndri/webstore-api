@@ -1,5 +1,6 @@
 // Parsing, validation and comment preserving edits of the store config files
 // (stores/<storeId>.jsonc in webstore-scraper). Used by both the api and the pages.
+import type { TFunction } from 'i18next';
 import {
   applyEdits,
   getLocation,
@@ -8,9 +9,18 @@ import {
   type ParseError,
   printParseErrorCode
 } from 'jsonc-parser';
+import type { Resources } from '../../i18n/resources';
 import { STRUCTURED_DATA_FIELDS, type WebshopCrawlerOptions } from './types';
 
-type Rule = (value: unknown, path: string, errors: string[]) => void;
+// The messages are in the stores namespace. t comes from useTranslation in the
+// pages and from getTranslation in the api, so they are in the user's language.
+type ValidationKey = keyof Resources['stores']['validation'];
+type Fail = (
+  key: ValidationKey,
+  path: string,
+  values?: Record<string, string | number>
+) => void;
+type Rule = (value: unknown, path: string, fail: Fail) => void;
 type Shape = Record<string, { rule: Rule; required?: boolean }>;
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
@@ -18,86 +28,82 @@ const isObject = (value: unknown): value is Record<string, unknown> =>
 
 const str =
   (options: { nonEmpty?: boolean; url?: boolean } = {}): Rule =>
-  (value, path, errors) => {
-    if (typeof value !== 'string') errors.push(`${path} must be a string`);
-    else if (options.nonEmpty && value.trim() === '')
-      errors.push(`${path} must not be empty`);
-    else if (options.url && !/^https?:\/\/[^/]+/.test(value))
-      errors.push(`${path} must be an absolute http(s) url`);
+  (value, path, fail) => {
+    if (typeof value !== 'string') fail('string', path);
+    else if (options.nonEmpty && value.trim() === '') fail('nonEmpty', path);
+    else if (options.url && !/^https?:\/\/[^/]+/.test(value)) fail('url', path);
   };
 
-const bool: Rule = (value, path, errors) => {
-  if (typeof value !== 'boolean') errors.push(`${path} must be true or false`);
+const bool: Rule = (value, path, fail) => {
+  if (typeof value !== 'boolean') fail('boolean', path);
 };
 
 const oneOf =
   (values: readonly unknown[]): Rule =>
-  (value, path, errors) => {
+  (value, path, fail) => {
     if (!values.includes(value))
-      errors.push(`${path} must be one of ${values.join(', ')}`);
+      fail('oneOf', path, { values: values.join(', ') });
   };
 
 const arrayOf =
   (rule: Rule): Rule =>
-  (value, path, errors) => {
-    if (!Array.isArray(value)) errors.push(`${path} must be a list`);
-    else value.forEach((item, i) => rule(item, `${path}[${i}]`, errors));
+  (value, path, fail) => {
+    if (!Array.isArray(value)) fail('list', path);
+    else value.forEach((item, i) => rule(item, `${path}[${i}]`, fail));
   };
 
 const object =
   (shape: Shape): Rule =>
-  (value, path, errors) => {
+  (value, path, fail) => {
     if (!isObject(value)) {
-      errors.push(`${path} must be an object`);
+      fail('object', path);
       return;
     }
     for (const [key, { rule, required }] of Object.entries(shape)) {
       if (value[key] === undefined) {
-        if (required) errors.push(`${path}.${key} is required`);
-      } else rule(value[key], `${path}.${key}`, errors);
+        if (required) fail('required', `${path}.${key}`);
+      } else rule(value[key], `${path}.${key}`, fail);
     }
     for (const key of Object.keys(value)) {
-      if (!(key in shape)) errors.push(`${path}.${key} is not a known setting`);
+      if (!(key in shape)) fail('unknown', `${path}.${key}`);
     }
   };
 
 const selector = { rule: str({ nonEmpty: true }) };
 const optionalString = { rule: str() };
 
-const skuRule: Rule = (value, path, errors) => {
+const skuRule: Rule = (value, path, fail) => {
   if (typeof value === 'string')
-    return str({ nonEmpty: true })(value, path, errors);
+    return str({ nonEmpty: true })(value, path, fail);
   if (isObject(value) && value.source === 'url')
     return object({
       source: { rule: oneOf(['url']), required: true },
       delimiter: { rule: str({ nonEmpty: true }), required: true },
       index: {
-        rule: (index, indexPath, indexErrors) => {
+        rule: (index, indexPath) => {
           if (
             !(typeof index === 'number' && Number.isInteger(index)) &&
             index !== 'first' &&
             index !== 'last'
           )
-            indexErrors.push(`${indexPath} must be a number, first or last`);
+            fail('skuIndex', indexPath);
         },
         required: true
       }
-    })(value, path, errors);
+    })(value, path, fail);
   if (isObject(value) && value.source === 'attribute')
     return object({
       source: { rule: oneOf(['attribute']), required: true },
       selector: { rule: str({ nonEmpty: true }), required: true },
       attribute: { rule: str({ nonEmpty: true }), required: true }
-    })(value, path, errors);
-  errors.push(
-    `${path} must be a CSS selector or an object with source url or attribute`
-  );
+    })(value, path, fail);
+  fail('sku', path);
 };
 
-const structuredDataFieldRule: Rule = (value, path, errors) => {
+const structuredDataFieldRule: Rule = (value, path, fail) => {
   if (value === false || typeof value === 'string') return;
   if (Array.isArray(value) && value.every((v) => typeof v === 'string')) return;
-  errors.push(`${path} must be a path, a list of paths or false`);
+  fail('structuredDataField', path);
 };
 
 const selectorsRule = object({
@@ -147,9 +153,9 @@ const selectorsRule = object({
 
 const configRule = object({
   storeId: {
-    rule: (value, path, errors) => {
+    rule: (value, path, fail) => {
       if (!Number.isInteger(value) || (value as number) < 0)
-        errors.push(`${path} must be a store id`);
+        fail('storeId', path);
     },
     required: true
   },
@@ -180,10 +186,10 @@ const configRule = object({
       url: { rule: str({ nonEmpty: true }), required: true },
       items: { rule: str({ nonEmpty: true }), required: true },
       productUrl: {
-        rule: (value, path, errors) => {
-          str({ nonEmpty: true })(value, path, errors);
+        rule: (value, path, fail) => {
+          str({ nonEmpty: true })(value, path, fail);
           if (typeof value === 'string' && !/\{\w+(:\d+)?\}/.test(value))
-            errors.push(`${path} must hold a {field} of the items`);
+            fail('productUrlField', path);
         },
         required: true
       }
@@ -193,41 +199,50 @@ const configRule = object({
   menuClicker: selector
 });
 
-// Returns a list of problems, empty when the config is valid
+// Returns a list of problems in the language of t, empty when the config is
+// valid
 export const validateStoreConfig = (
   value: unknown,
+  t: TFunction<'stores'>,
   storeId?: number
 ): string[] => {
   const errors: string[] = [];
-  configRule(value, 'config', errors);
+  // Paths are shown without the config. prefix
+  const fail: Fail = (key, path, values) =>
+    errors.push(
+      t(`validation.${key}`, {
+        ...values,
+        path: path.replace(/^config\./, '')
+      })
+    );
+  configRule(value, 'config', fail);
   if (errors.length === 0 && isObject(value))
-    errors.push(
-      ...crossFieldErrors(value as unknown as WebshopCrawlerOptions, storeId)
-    );
-  return errors.map((error) => error.replace(/^config\./, ''));
-};
-
-const crossFieldErrors = (config: WebshopCrawlerOptions, storeId?: number) => {
-  const errors: string[] = [];
-  if (storeId !== undefined && config.storeId !== storeId)
-    errors.push(`config.storeId must be ${storeId}`);
-  if (config.type === 'crawler') {
-    if (config.selectors.structuredData)
-      errors.push('config.selectors.structuredData needs type httpcrawler');
-    if (config.sitemapUrls?.length)
-      errors.push('config.sitemapUrls needs type httpcrawler');
-    if (!config.selectors.listPrice)
-      errors.push('config.selectors.listPrice is required for type crawler');
-  } else if (!config.selectors.listPrice && !config.selectors.structuredData) {
-    errors.push(
-      'config.selectors.listPrice is required unless the price comes from structured data'
-    );
-  }
+    crossFieldErrors(value as unknown as WebshopCrawlerOptions, fail, storeId);
   return errors;
 };
 
+const crossFieldErrors = (
+  config: WebshopCrawlerOptions,
+  fail: Fail,
+  storeId?: number
+) => {
+  if (storeId !== undefined && config.storeId !== storeId)
+    fail('storeIdMismatch', 'config.storeId', { storeId });
+  if (config.type === 'crawler') {
+    if (config.selectors.structuredData)
+      fail('needsHttpcrawler', 'config.selectors.structuredData');
+    if (config.sitemapUrls?.length)
+      fail('needsHttpcrawler', 'config.sitemapUrls');
+    if (!config.selectors.listPrice)
+      fail('listPriceCrawler', 'config.selectors.listPrice');
+  } else if (!config.selectors.listPrice && !config.selectors.structuredData) {
+    fail('listPriceStructured', 'config.selectors.listPrice');
+  }
+};
+
 export const parseConfigText = (
-  text: string
+  text: string,
+  t: TFunction<'stores'>
 ): { value?: unknown; errors: string[] } => {
   const parseErrors: ParseError[] = [];
   const value: unknown = parse(text, parseErrors, { allowTrailingComma: true });
@@ -235,18 +250,26 @@ export const parseConfigText = (
   return {
     errors: parseErrors.map((e) => {
       const before = text.slice(0, e.offset).split('\n');
-      return `${printParseErrorCode(e.error)} at line ${before.length}, column ${before[before.length - 1].length + 1}`;
+      return t('validation.syntax', {
+        error: printParseErrorCode(e.error),
+        line: before.length,
+        column: before[before.length - 1].length + 1
+      });
     })
   };
 };
 
 // Parses and validates the text of a config file
-export const checkConfigText = (text: string, storeId?: number) => {
-  const { value, errors } = parseConfigText(text);
+export const checkConfigText = (
+  text: string,
+  t: TFunction<'stores'>,
+  storeId?: number
+) => {
+  const { value, errors } = parseConfigText(text, t);
   if (errors.length > 0) return { errors };
   return {
     value: value as WebshopCrawlerOptions,
-    errors: validateStoreConfig(value, storeId)
+    errors: validateStoreConfig(value, t, storeId)
   };
 };
 

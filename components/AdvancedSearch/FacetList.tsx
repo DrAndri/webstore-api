@@ -1,6 +1,8 @@
 'use client';
 import { Checkbox, Collapse, Flex, Input, Typography } from 'antd';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useFormat } from '../I18n/I18nProvider';
 import { Facet } from '../../utils/searchFields';
 
 const COLLAPSED_COUNT = 8;
@@ -14,6 +16,8 @@ function FacetValues({
   selected: string[];
   onChange: (values: string[]) => void;
 }) {
+  const { t } = useTranslation('site');
+  const format = useFormat();
   const [expanded, setExpanded] = useState(false);
   const [filter, setFilter] = useState('');
   const needle = filter.toLocaleLowerCase('is');
@@ -33,7 +37,7 @@ function FacetValues({
       {facet.values.length > 15 && (
         <Input
           size="small"
-          placeholder="Sía"
+          placeholder={t('facetList.filter')}
           allowClear
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
@@ -54,7 +58,7 @@ function FacetValues({
           <Flex justify="space-between" gap={8} style={{ width: '100%' }}>
             <span>{value.label}</span>
             <Typography.Text type="secondary">
-              {value.count.toLocaleString('is-IS')}
+              {format.number(value.count)}
             </Typography.Text>
           </Flex>
         </Checkbox>
@@ -62,8 +66,10 @@ function FacetValues({
       {values.length > COLLAPSED_COUNT && (
         <Typography.Link onClick={() => setExpanded(!expanded)}>
           {expanded
-            ? 'Sýna færri'
-            : `Sýna fleiri (${values.length - COLLAPSED_COUNT})`}
+            ? t('facetList.showFewer')
+            : t('facetList.showMore', {
+                hidden: values.length - COLLAPSED_COUNT
+              })}
         </Typography.Link>
       )}
     </Flex>

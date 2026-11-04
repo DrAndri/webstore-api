@@ -1,6 +1,7 @@
 import { Button, Flex, Layout } from 'antd';
 import Link from 'next/link';
 import { Header, Content } from 'antd/es/layout/layout';
+import { getTranslation } from '../i18n/server';
 import { getPublicStores } from '../utils/stores';
 import PriceChart from '../components/PriceChart/PriceChart';
 import Search from '../components/Search/Search';
@@ -12,6 +13,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function Page() {
   const stores = await getPublicStores();
+  const { t } = await getTranslation('site');
 
   return (
     <div>
@@ -28,7 +30,7 @@ export default async function Page() {
           >
             <Search stores={stores} />
             <Link href="/search">
-              <Button ghost>Ítarleg leit</Button>
+              <Button ghost>{t('home.advancedSearch')}</Button>
             </Link>
             <UserMenu returnTo="/" dark />
           </Flex>

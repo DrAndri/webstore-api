@@ -1,3 +1,4 @@
+import { getTranslation } from '../../../../i18n/server';
 import { HttpError, readJson, withAdmin } from '../../../../utils/admin/api';
 import { adminQuery } from '../../../../utils/admin/db';
 import { saveConfigFile } from '../../../../utils/admin/github';
@@ -20,17 +21,25 @@ export const POST = withAdmin(async (request, { user }) => {
   }>(request);
   const name = body.name?.trim() ?? '';
   if (name.length < 2 || name.length > 255)
-    throw new HttpError(400, 'The name must be 2 to 255 characters');
-  const errors = validateStoreConfig({ ...body.config, storeId: 0 });
+    throw new HttpError(400, { key: 'nameLength' });
+  // The problems are in the language of the request
+  const { t } = await getTranslation('stores');
+  const errors = validateStoreConfig({ ...body.config, storeId: 0 }, t);
   if (errors.length > 0)
-    throw new HttpError(400, `Invalid config: ${errors.join(', ')}`);
+    throw new HttpError(400, {
+      key: 'invalidConfig',
+      values: { errors: errors.join(', ') }
+    });
 
   const [existing] = await adminQuery<{ id: number }[]>(
     'SELECT id FROM stores WHERE name = ?',
     [name]
   );
   if (existing)
-    throw new HttpError(409, `A store named ${name} already exists`);
+    throw new HttpError(409, {
+      key: 'stores.nameExists',
+      values: { name }
+    });
   const result = await adminQuery<UpsertResult>(
     'INSERT INTO stores (name, createdDate, scraperEnabled, apiEnabled) VALUES (?, CURRENT_DATE, ?, ?)',
     [name, !!body.scraperEnabled, !!body.apiEnabled]

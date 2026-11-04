@@ -3,9 +3,11 @@ import { ArrowLeftOutlined, FileTextOutlined } from '@ant-design/icons';
 import { Alert, Button, Flex, Spin, Typography } from 'antd';
 import dayjs from 'dayjs';
 import Link from 'next/link';
+import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
-import { Job, MODE_LABELS } from '../../utils/admin/types';
-import { fetchJson, formatDuration, formatTime } from './api';
+import { Job } from '../../utils/admin/types';
+import { useFormat } from '../I18n/I18nProvider';
+import { fetchJson } from './api';
 import { JobDetails } from './JobHistory';
 import LogViewer from './LogViewer';
 import { JobStatusTag } from './StatusTags';
@@ -18,6 +20,8 @@ const INDEX_LABELS = ['JobRunner', 'SQLStoreUpdater', 'Solr'];
 
 // A scan with its log
 export default function JobLogPage({ jobId }: { jobId: number }) {
+  const { t } = useTranslation('admin');
+  const format = useFormat();
   const { data: job, error } = useSWR<Job>(
     `/api/admin/jobs/${jobId}`,
     fetchJson,
@@ -59,33 +63,37 @@ export default function JobLogPage({ jobId }: { jobId: number }) {
           <Button type="text" icon={<ArrowLeftOutlined />} />
         </Link>
         <Typography.Title level={3} style={{ margin: 0 }}>
-          {isIndex ? 'Reindex' : 'Scan'} #{job.id}
+          {t(isIndex ? 'jobLog.titleIndex' : 'jobLog.titleScan', {
+            id: job.id
+          })}
           {job.storeName ? ` · ${job.storeName}` : ''}
         </Typography.Title>
         <JobStatusTag job={job} />
         <Typography.Text type="secondary">
-          {MODE_LABELS[job.mode]} · started {formatTime(job.startedAt)} ·{' '}
+          {t(`modes.${job.mode}`)} ·{' '}
+          {t('jobLog.started', { time: format.time(job.startedAt) })} ·{' '}
           {job.status === 'queued'
-            ? 'queued'
-            : formatDuration(job.startedAt, job.finishedAt)}
+            ? t('jobLog.queued')
+            : format.duration(job.startedAt, job.finishedAt)}
         </Typography.Text>
         {appLogUrl && (
           <Link href={appLogUrl} style={{ marginInlineStart: 'auto' }}>
-            <Button icon={<FileTextOutlined />}>App log during the scan</Button>
+            <Button icon={<FileTextOutlined />}>{t('jobLog.appLog')}</Button>
           </Link>
         )}
       </Flex>
       {job.mode === 'test' ? (
         job.testUrl && (
           <Typography.Text>
-            Tested <Typography.Text code>{job.testUrl}</Typography.Text>
+            {t('jobLog.tested')}{' '}
+            <Typography.Text code>{job.testUrl}</Typography.Text>
           </Typography.Text>
         )
       ) : (
         <JobDetails job={job} />
       )}
       <Typography.Title level={4} style={{ margin: 0 }}>
-        {isIndex ? 'Log' : 'Scan log'}
+        {isIndex ? t('jobLog.log') : t('jobLog.scanLog')}
       </Typography.Title>
       {isIndex ? (
         // A reindex has no log of its own, it is in the scraper's log

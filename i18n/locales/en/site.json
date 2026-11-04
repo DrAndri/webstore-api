@@ -1,0 +1,197 @@
+{
+  "yes": "Yes",
+  "no": "No",
+  "searching": "Searching…",
+  "dates": {
+    "day": "D MMM YYYY",
+    "dayMonth": "D MMM",
+    "month": "MMM YYYY"
+  },
+  "requests": {
+    "tooMany": "Too many requests, please try again in a moment.",
+    "searchFailed": "The search failed",
+    "compareFailed": "The comparison failed",
+    "productFailed": "Could not load the product"
+  },
+  "home": {
+    "advancedSearch": "Advanced search"
+  },
+  "login": {
+    "title": "Sign in",
+    "failed": "Signing in failed. The email address must be verified by Google.",
+    "limits": "If your email address is registered as a user of the web service, your own request limits apply, otherwise the same limits as for other visitors.",
+    "withGoogle": "Sign in with Google",
+    "back": "Back"
+  },
+  "search": {
+    "start": "Start",
+    "end": "End",
+    "stores": "Select stores"
+  },
+  "autocompleteOption": {
+    "sku": "SKU"
+  },
+  "skuSelector": {
+    "placeholder": "Search for a SKU...",
+    "noResults": "No results",
+    "count_one": "{{total}} result",
+    "count_other": "{{total}} results",
+    "countOf_one": "{{shown}} of {{total}} results",
+    "countOf_other": "{{shown}} of {{total}} results"
+  },
+  "priceChart": {
+    "price": "price",
+    "salePrice": "sale price"
+  },
+  "searchFields": {
+    "fields": {
+      "name": "Name",
+      "sku": "SKU",
+      "ean": "Barcode",
+      "description": "Description",
+      "price": "Price",
+      "inStock": "In stock",
+      "firstSeenDate": "First seen",
+      "lastChangeDate": "Last changed"
+    },
+    "ops": {
+      "contains": "contains",
+      "startsWith": "starts with",
+      "endsWith": "ends with",
+      "exact": "is exactly",
+      "between": "between",
+      "is": "is"
+    },
+    "sorts": {
+      "relevance": "Relevance",
+      "priceAsc": "Lowest price",
+      "priceDesc": "Highest price",
+      "changed": "Recently changed",
+      "newest": "Newest products"
+    }
+  },
+  "facets": {
+    "storeId": "Store",
+    "manufacturerId": "Manufacturer",
+    "categoryId": "Category",
+    "inStock": "Availability",
+    "price": "Price",
+    "inStockValue": "In stock",
+    "outOfStockValue": "Out of stock",
+    "priceUnder": "Under {{price}}",
+    "priceOver": "Over {{price}}",
+    "priceBetween": "{{from}} – {{to}}",
+    "attribute": "Attribute {{id}}"
+  },
+  "advancedSearch": {
+    "title": "Advanced search",
+    "backToPriceHistory": "Back to price history",
+    "placeholder": "Search names, SKUs, barcodes and descriptions",
+    "inexactMatching": "The search engine has not been updated yet: conditions on the name and SKU are matched word by word, and attributes are case sensitive.",
+    "found_one": "{{total}} product found",
+    "found_other": "{{total}} products found",
+    "filters": "Filters",
+    "filtersCount": "Filters ({{active}})",
+    "clearFilters": "Clear all filters",
+    "empty": "No products found",
+    "columns": {
+      "product": "Product",
+      "store": "Store",
+      "sku": "SKU",
+      "price": "Price",
+      "inStock": "In stock",
+      "lastChange": "Last changed"
+    },
+    "product": "Product",
+    "selected": "Selected",
+    "select": "Select",
+    "selectedProducts": "Selected products:",
+    "clearSelection": "Clear selection",
+    "compare": "Compare",
+    "compareFirst": "Compare (first {{max}})",
+    "showPriceHistory": "Show price history"
+  },
+  "conditionEditor": {
+    "attributePlaceholder": "Search for an attribute, e.g. Litur (colour)",
+    "minTwoChars": "Type at least two characters",
+    "noAttribute": "No attribute found",
+    "value": "Value",
+    "numberFrom": "from",
+    "numberTo": "to",
+    "dateFrom": "From",
+    "dateTo": "To",
+    "attribute": "Attribute…",
+    "remove": "Remove condition",
+    "add": "Add condition"
+  },
+  "facetList": {
+    "filter": "Filter",
+    "showFewer": "Show fewer",
+    "showMore": "Show more ({{hidden}})"
+  },
+  "productDetails": {
+    "notInLastScan": "Not in the store's last scan",
+    "noPrice": "No price recorded",
+    "sale": "On sale",
+    "inStock": "In stock",
+    "outOfStock": "Out of stock",
+    "viewInStore": "View in store",
+    "openPriceHistory": "Open in price history",
+    "lowestPrice": "Lowest price",
+    "highestPrice": "Highest price",
+    "sku": "SKU",
+    "ean": "Barcode",
+    "manufacturer": "Manufacturer",
+    "category": "Category",
+    "firstSeen": "First seen",
+    "lastSeen": "Last seen",
+    "lastChange": "Last changed",
+    "priceHistory": "Price history",
+    "description": "Description",
+    "attributes": "Attributes"
+  },
+  "priceHistory": {
+    "chart": "Chart",
+    "table": "Table",
+    "ranges": {
+      "3m": "3 mo.",
+      "1y": "1 yr",
+      "all": "All"
+    },
+    "noPrices": "No prices recorded",
+    "noPricesInRange": "No prices in this period",
+    "columns": {
+      "from": "From",
+      "to": "To",
+      "type": "Type",
+      "price": "Price",
+      "change": "Change"
+    },
+    "types": {
+      "price": "Price",
+      "sale": "Sale"
+    },
+    "salePrice": "Sale price"
+  },
+  "compare": {
+    "title": "Compare",
+    "backToSearch": "Back to search",
+    "empty": "Select products in the advanced search to compare them.",
+    "onlyDifferences": "Show only differences",
+    "openPriceHistory": "Open in price history",
+    "priceHistory": "Price history",
+    "lowest": "Lowest",
+    "rows": {
+      "storeName": "Store",
+      "price": "Price",
+      "lowestPrice": "Lowest price ever",
+      "inStock": "In stock",
+      "sku": "SKU",
+      "ean": "Barcode",
+      "manufacturer": "Manufacturer",
+      "category": "Category",
+      "firstSeenDate": "First seen",
+      "lastChangeDate": "Last changed"
+    }
+  }
+}

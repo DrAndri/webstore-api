@@ -4,9 +4,10 @@ import Title from 'antd/es/typography/Title';
 import Link from 'next/link';
 import { signOutUser } from '../../app/actions/auth';
 import { auth } from '../../auth';
+import { getTranslation } from '../../i18n/server';
 
 export default async function NoAdminAccess() {
-  const session = await auth();
+  const [session, { t }] = await Promise.all([auth(), getTranslation('admin')]);
   return (
     <Flex
       justify="center"
@@ -16,11 +17,10 @@ export default async function NoAdminAccess() {
       <Card style={{ width: 420, maxWidth: '100%' }}>
         <Flex vertical gap={16}>
           <Title level={4} style={{ margin: 0 }}>
-            No access
+            {t('noAccess.title')}
           </Title>
           <Text>
-            {session?.user?.email} is not an admin. An admin can give you access
-            under API users.
+            {t('noAccess.text', { email: session?.user?.email ?? '' })}
           </Text>
           <Flex gap={8}>
             <form action={signOutUser}>
@@ -29,10 +29,10 @@ export default async function NoAdminAccess() {
                 name="returnTo"
                 value="/login?returnTo=/admin"
               />
-              <Button htmlType="submit">Sign in with another account</Button>
+              <Button htmlType="submit">{t('noAccess.switchAccount')}</Button>
             </form>
             <Link href="/">
-              <Button type="link">To the website</Button>
+              <Button type="link">{t('noAccess.toWebsite')}</Button>
             </Link>
           </Flex>
         </Flex>

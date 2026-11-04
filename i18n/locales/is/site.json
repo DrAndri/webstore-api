@@ -1,0 +1,197 @@
+{
+  "yes": "Já",
+  "no": "Nei",
+  "searching": "Leita…",
+  "dates": {
+    "day": "D. MMM YYYY",
+    "dayMonth": "D. MMM",
+    "month": "MMM YYYY"
+  },
+  "requests": {
+    "tooMany": "Of margar fyrirspurnir, reyndu aftur eftir smá stund.",
+    "searchFailed": "Leitin mistókst",
+    "compareFailed": "Samanburðurinn mistókst",
+    "productFailed": "Ekki tókst að sækja vöruna"
+  },
+  "home": {
+    "advancedSearch": "Ítarleg leit"
+  },
+  "login": {
+    "title": "Innskráning",
+    "failed": "Innskráning tókst ekki. Netfangið þarf að vera staðfest hjá Google.",
+    "limits": "Ef netfangið þitt er skráð sem notandi vefþjónustunnar gilda þín mörk á fjölda fyrirspurna, annars sömu mörk og fyrir aðra gesti.",
+    "withGoogle": "Skrá inn með Google",
+    "back": "Til baka"
+  },
+  "search": {
+    "start": "Byrjun",
+    "end": "Endir",
+    "stores": "Veldu búð"
+  },
+  "autocompleteOption": {
+    "sku": "Vörunúmer"
+  },
+  "skuSelector": {
+    "placeholder": "Leitaðu að vörunúmeri...",
+    "noResults": "Engar niðurstöður",
+    "count_one": "{{total}} niðurstaða",
+    "count_other": "{{total}} niðurstöður",
+    "countOf_one": "{{shown}} af {{total}} niðurstöðu",
+    "countOf_other": "{{shown}} af {{total}} niðurstöðum"
+  },
+  "priceChart": {
+    "price": "verð",
+    "salePrice": "tilboðsverð"
+  },
+  "searchFields": {
+    "fields": {
+      "name": "Heiti",
+      "sku": "Vörunúmer",
+      "ean": "Strikamerki",
+      "description": "Lýsing",
+      "price": "Verð",
+      "inStock": "Á lager",
+      "firstSeenDate": "Fyrst skráð",
+      "lastChangeDate": "Síðast breytt"
+    },
+    "ops": {
+      "contains": "inniheldur",
+      "startsWith": "byrjar á",
+      "endsWith": "endar á",
+      "exact": "er nákvæmlega",
+      "between": "á bilinu",
+      "is": "er"
+    },
+    "sorts": {
+      "relevance": "Mikilvægi",
+      "priceAsc": "Lægsta verð",
+      "priceDesc": "Hæsta verð",
+      "changed": "Nýjast breytt",
+      "newest": "Nýjustu vörur"
+    }
+  },
+  "facets": {
+    "storeId": "Verslun",
+    "manufacturerId": "Framleiðandi",
+    "categoryId": "Flokkur",
+    "inStock": "Lagerstaða",
+    "price": "Verð",
+    "inStockValue": "Á lager",
+    "outOfStockValue": "Ekki á lager",
+    "priceUnder": "Undir {{price}}",
+    "priceOver": "Yfir {{price}}",
+    "priceBetween": "{{from}} – {{to}}",
+    "attribute": "Eiginleiki {{id}}"
+  },
+  "advancedSearch": {
+    "title": "Ítarleg leit",
+    "backToPriceHistory": "Til baka í verðsögu",
+    "placeholder": "Leitaðu í heiti, vörunúmeri, strikamerki og lýsingu",
+    "inexactMatching": "Leitarvélin hefur ekki verið uppfærð enn, skilyrði á heiti og vörunúmeri eru borin saman orð fyrir orð og eiginleikar eru hástafanæmir.",
+    "found_one": "{{total}} vara fannst",
+    "found_other": "{{total}} vörur fundust",
+    "filters": "Síur",
+    "filtersCount": "Síur ({{active}})",
+    "clearFilters": "Hreinsa allar síur",
+    "empty": "Engar vörur fundust",
+    "columns": {
+      "product": "Vara",
+      "store": "Verslun",
+      "sku": "Vörunúmer",
+      "price": "Verð",
+      "inStock": "Á lager",
+      "lastChange": "Síðast breytt"
+    },
+    "product": "Vara",
+    "selected": "Valin",
+    "select": "Velja",
+    "selectedProducts": "Valdar vörur:",
+    "clearSelection": "Hreinsa val",
+    "compare": "Bera saman",
+    "compareFirst": "Bera saman (fyrstu {{max}})",
+    "showPriceHistory": "Sýna verðsögu"
+  },
+  "conditionEditor": {
+    "attributePlaceholder": "Leitaðu að eiginleika, t.d. Litur",
+    "minTwoChars": "Skrifaðu að minnsta kosti tvo stafi",
+    "noAttribute": "Enginn eiginleiki fannst",
+    "value": "Gildi",
+    "numberFrom": "frá",
+    "numberTo": "til",
+    "dateFrom": "Frá",
+    "dateTo": "Til",
+    "attribute": "Eiginleiki…",
+    "remove": "Fjarlægja skilyrði",
+    "add": "Bæta við skilyrði"
+  },
+  "facetList": {
+    "filter": "Sía",
+    "showFewer": "Sýna færri",
+    "showMore": "Sýna fleiri ({{hidden}})"
+  },
+  "productDetails": {
+    "notInLastScan": "Ekki í síðustu skönnun verslunarinnar",
+    "noPrice": "Ekkert verð skráð",
+    "sale": "Tilboð",
+    "inStock": "Á lager",
+    "outOfStock": "Ekki á lager",
+    "viewInStore": "Skoða í verslun",
+    "openPriceHistory": "Opna í verðsögu",
+    "lowestPrice": "Lægsta verð",
+    "highestPrice": "Hæsta verð",
+    "sku": "Vörunúmer",
+    "ean": "Strikamerki",
+    "manufacturer": "Framleiðandi",
+    "category": "Flokkur",
+    "firstSeen": "Fyrst skráð",
+    "lastSeen": "Síðast séð",
+    "lastChange": "Síðast breytt",
+    "priceHistory": "Verðsaga",
+    "description": "Lýsing",
+    "attributes": "Eiginleikar"
+  },
+  "priceHistory": {
+    "chart": "Graf",
+    "table": "Tafla",
+    "ranges": {
+      "3m": "3 mán.",
+      "1y": "1 ár",
+      "all": "Allt"
+    },
+    "noPrices": "Engin verð skráð",
+    "noPricesInRange": "Engin verð á þessu tímabili",
+    "columns": {
+      "from": "Frá",
+      "to": "Til",
+      "type": "Tegund",
+      "price": "Verð",
+      "change": "Breyting"
+    },
+    "types": {
+      "price": "Verð",
+      "sale": "Tilboð"
+    },
+    "salePrice": "Tilboðsverð"
+  },
+  "compare": {
+    "title": "Samanburður",
+    "backToSearch": "Til baka í leit",
+    "empty": "Veldu vörur í ítarlegu leitinni til að bera þær saman.",
+    "onlyDifferences": "Sýna aðeins það sem er ólíkt",
+    "openPriceHistory": "Opna í verðsögu",
+    "priceHistory": "Verðsaga",
+    "lowest": "Lægst",
+    "rows": {
+      "storeName": "Verslun",
+      "price": "Verð",
+      "lowestPrice": "Lægsta verð frá upphafi",
+      "inStock": "Á lager",
+      "sku": "Vörunúmer",
+      "ean": "Strikamerki",
+      "manufacturer": "Framleiðandi",
+      "category": "Flokkur",
+      "firstSeenDate": "Fyrst skráð",
+      "lastChangeDate": "Síðast breytt"
+    }
+  }
+}

@@ -1,5 +1,6 @@
 'use client';
 import { Typography } from 'antd';
+import { useTranslation } from 'react-i18next';
 import { AutocompleteMatch, AutocompleteResult } from '../../types';
 
 const { Text } = Typography;
@@ -42,6 +43,7 @@ export default function AutocompleteOption({
   result: AutocompleteResult;
   storeName?: string;
 }) {
+  const { t } = useTranslation('site');
   const matchOf = (field: AutocompleteMatch['field']) =>
     result.matches.find((match) => match.field === field);
   return (
@@ -53,7 +55,8 @@ export default function AutocompleteOption({
         type="secondary"
         style={{ ...ellipsis, display: 'block', fontSize: 12 }}
       >
-        Vörunúmer <Highlighted value={result.sku} match={matchOf('sku')} />
+        {t('autocompleteOption.sku')}{' '}
+        <Highlighted value={result.sku} match={matchOf('sku')} />
         {storeName && ` · ${storeName}`}
       </Text>
     </div>

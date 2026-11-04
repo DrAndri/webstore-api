@@ -14,21 +14,21 @@ import {
 import dayjs from 'dayjs';
 import Link from 'next/link';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import type { ProductDetails as Product } from '../../utils/product';
+import { useFormat } from '../I18n/I18nProvider';
 import PriceHistory from './PriceHistory';
 
-const formatPrice = (price: number | null) =>
-  price === null ? '–' : `${price.toLocaleString('is-IS')} kr.`;
-const formatDay = (day: string | null) =>
-  day ? dayjs(day).format('D. MMM YYYY') : '–';
-
-const fetchProduct = async (url: string): Promise<Product> => {
+// messages are shown when the api gives no error of its own
+const fetchProduct = async (
+  url: string,
+  messages: { tooMany: string; failed: string }
+): Promise<Product> => {
   const response = await fetch(url);
-  if (response.status === 429)
-    throw new Error('Of margar fyrirspurnir, reyndu aftur eftir smá stund.');
+  if (response.status === 429) throw new Error(messages.tooMany);
   const json = await response.json();
-  if (!response.ok) throw new Error(json.error ?? 'Ekki tókst að sækja vöruna');
+  if (!response.ok) throw new Error(json.error ?? messages.failed);
   return json as Product;
 };
 
@@ -45,25 +45,27 @@ const byGroup = (attributes: Product['attributes']) => {
 };
 
 function CurrentPrice({ product }: { product: Product }) {
+  const { t } = useTranslation('site');
+  const format = useFormat();
   if (product.price === null && product.salePrice === null)
     return (
       <Typography.Text type="secondary">
         {product.prices.length
-          ? 'Ekki í síðustu skönnun verslunarinnar'
-          : 'Ekkert verð skráð'}
+          ? t('productDetails.notInLastScan')
+          : t('productDetails.noPrice')}
       </Typography.Text>
     );
   return (
     <Flex gap={8} align="baseline" wrap>
       <Typography.Text strong style={{ fontSize: 24 }}>
-        {formatPrice(product.salePrice ?? product.price)}
+        {format.price(product.salePrice ?? product.price)}
       </Typography.Text>
       {product.salePrice !== null && product.price !== null && (
         <>
           <Typography.Text delete type="secondary">
-            {formatPrice(product.price)}
+            {format.price(product.price)}
           </Typography.Text>
-          <Tag color="volcano">Tilboð</Tag>
+          <Tag color="volcano">{t('productDetails.sale')}</Tag>
         </>
       )}
     </Flex>
@@ -79,7 +81,16 @@ export default function ProductDetails({
   id: string;
   actions?: (product: Product) => React.ReactNode;
 }) {
-  const { data: product, error } = useSWR(`/api/products/${id}`, fetchProduct);
+  const { t } = useTranslation('site');
+  const format = useFormat();
+  const formatDay = (day: string | null) =>
+    day ? dayjs(day).locale(format.language).format(t('dates.day')) : '–';
+  const { data: product, error } = useSWR(`/api/products/${id}`, (url) =>
+    fetchProduct(url, {
+      tooMany: t('requests.tooMany'),
+      failed: t('requests.productFailed')
+    })
+  );
   // Images of products that are gone from the store often are too
   const [brokenImage, setBrokenImage] = useState<string>();
 
@@ -107,7 +118,9 @@ export default function ProductDetails({
             <Tag>{product.storeName}</Tag>
             {product.inStock !== null && (
               <Tag color={product.inStock ? 'success' : 'default'}>
-                {product.inStock ? 'Á lager' : 'Ekki á lager'}
+                {product.inStock
+                  ? t('productDetails.inStock')
+                  : t('productDetails.outOfStock')}
               </Tag>
             )}
           </Flex>
@@ -115,11 +128,15 @@ export default function ProductDetails({
           <Flex gap={8} wrap>
             {product.url && (
               <a href={product.url} target="_blank" rel="noreferrer">
-                <Button icon={<ExportOutlined />}>Skoða í verslun</Button>
+                <Button icon={<ExportOutlined />}>
+                  {t('productDetails.viewInStore')}
+                </Button>
               </a>
             )}
             <Link href={`/?selectedProductIds=${product.id}`}>
-              <Button icon={<LineChartOutlined />}>Opna í verðsögu</Button>
+              <Button icon={<LineChartOutlined />}>
+                {t('productDetails.openPriceHistory')}
+              </Button>
             </Link>
             {actions?.(product)}
           </Flex>
@@ -133,53 +150,57 @@ export default function ProductDetails({
         items={[
           {
             key: 'lowest',
-            label: 'Lægsta verð',
+            label: t('productDetails.lowestPrice'),
             children:
               product.lowestPrice !== null
-                ? `${formatPrice(product.lowestPrice)} (${formatDay(product.lowestPriceDate)})`
+                ? `${format.price(product.lowestPrice)} (${formatDay(product.lowestPriceDate)})`
                 : '–'
           },
           {
             key: 'highest',
-            label: 'Hæsta verð',
-            children: formatPrice(product.highestPrice)
+            label: t('productDetails.highestPrice'),
+            children: format.price(product.highestPrice)
           },
-          { key: 'sku', label: 'Vörunúmer', children: product.sku },
-          { key: 'ean', label: 'Strikamerki', children: product.ean ?? '–' },
+          { key: 'sku', label: t('productDetails.sku'), children: product.sku },
+          {
+            key: 'ean',
+            label: t('productDetails.ean'),
+            children: product.ean ?? '–'
+          },
           {
             key: 'manufacturer',
-            label: 'Framleiðandi',
+            label: t('productDetails.manufacturer'),
             children: product.manufacturer ?? '–'
           },
           {
             key: 'category',
-            label: 'Flokkur',
+            label: t('productDetails.category'),
             children: product.category ?? '–'
           },
           {
             key: 'firstSeen',
-            label: 'Fyrst skráð',
+            label: t('productDetails.firstSeen'),
             children: formatDay(product.firstSeenDate)
           },
           {
             key: 'lastSeen',
-            label: 'Síðast séð',
+            label: t('productDetails.lastSeen'),
             children: formatDay(product.lastSeenDate)
           },
           {
             key: 'lastChange',
-            label: 'Síðast breytt',
+            label: t('productDetails.lastChange'),
             children: formatDay(product.lastChangeDate)
           }
         ]}
       />
 
-      <Card size="small" title="Verðsaga">
+      <Card size="small" title={t('productDetails.priceHistory')}>
         <PriceHistory prices={product.prices} salePrices={product.salePrices} />
       </Card>
 
       {product.description && (
-        <Card size="small" title="Lýsing">
+        <Card size="small" title={t('productDetails.description')}>
           <Typography.Paragraph
             ellipsis={{ rows: 6, expandable: 'collapsible' }}
             style={{ whiteSpace: 'pre-line', margin: 0 }}
@@ -189,7 +210,7 @@ export default function ProductDetails({
       )}
 
       {product.attributes.length > 0 && (
-        <Card size="small" title="Eiginleikar">
+        <Card size="small" title={t('productDetails.attributes')}>
           <Flex vertical gap={12}>
             {byGroup(product.attributes).map(([group, attributes]) => (
               <Descriptions

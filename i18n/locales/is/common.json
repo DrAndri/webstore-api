@@ -1,0 +1,18 @@
+{
+  "language": {
+    "label": "Tungumál",
+    "switchTo": "Skipta yfir á {{language}}"
+  },
+  "theme": {
+    "light": "Ljóst útlit",
+    "dark": "Dökkt útlit"
+  },
+  "signIn": "Skrá inn",
+  "signOut": "Skrá út",
+  "never": "aldrei",
+  "duration": {
+    "lessThanMinute": "< 1 mín",
+    "minutes": "{{minutes}} mín",
+    "hoursMinutes": "{{hours}} klst {{minutes}} mín"
+  }
+}

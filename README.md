@@ -24,6 +24,29 @@ yarn dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
+## Languages
+
+The website, the admin interface and the messages of the api are in Icelandic
+and English, with [react-i18next](https://react.i18next.com). The language
+switch next to the theme switch sets the `lang` cookie. Without it the
+language comes from `Accept-Language`, and Icelandic is the default, so api
+clients get Icelandic unless they ask for English.
+
+- Translations are in `i18n/locales/<language>/<namespace>.json`, one
+  namespace for each part of the app (see `i18n/resources.ts`). Both languages
+  must have the same keys, a missing key is a type error, and keys passed to
+  `t` are checked too.
+- Client components use `useTranslation('<namespace>')` and `useFormat()` from
+  `components/I18n/I18nProvider` for numbers, prices, times and durations.
+  Server components, server actions and route handlers use
+  `getTranslation('<namespace>')` from `i18n/server`.
+- Store, product and attribute names and other scraped data are not
+  translated.
+
+To add a language, add it to `i18n/settings.ts`, add its JSON files and
+resources, its antd locale in `components/I18n/I18nProvider.tsx` and its
+dayjs locale in `i18n/format.ts`.
+
 ## Environment variables
 
 | Variable                                       | Used for                                                                              |

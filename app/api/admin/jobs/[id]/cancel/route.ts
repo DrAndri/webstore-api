@@ -15,7 +15,7 @@ export const POST = withAdmin<{ params: Promise<{ id: string }> }>(
       [id]
     );
     if (result.affectedRows === 0)
-      throw new HttpError(409, 'The job has already finished');
+      throw new HttpError(409, { key: 'jobs.alreadyFinished' });
     return { ok: true };
   }
 );

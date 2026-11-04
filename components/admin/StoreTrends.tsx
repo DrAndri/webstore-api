@@ -2,6 +2,7 @@
 import { Card, Col, Row, Segmented, Spin, Typography } from 'antd';
 import dayjs from 'dayjs';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import { ConfigCommit, FIELD_ERRORS, TrendRow } from '../../utils/admin/types';
 import { fetchJson } from './api';
@@ -17,6 +18,7 @@ const allDays = (days: number) =>
   );
 
 export default function StoreTrends({ storeId }: { storeId: number }) {
+  const { t } = useTranslation('stores');
   const [days, setDays] = useState(90);
   const { data: rows } = useSWR<TrendRow[]>(
     `/api/admin/trends?days=${days}&storeId=${storeId}`,
@@ -81,41 +83,41 @@ export default function StoreTrends({ storeId }: { storeId: number }) {
     <Row gutter={[16, 16]}>
       <Col xs={24}>
         <Typography.Text type="secondary">
-          Dashed lines mark config changes.{' '}
+          {t('trends.configMarkers')}{' '}
         </Typography.Text>
         <Segmented
           size="small"
           value={days}
           onChange={(value) => setDays(value as number)}
           options={[
-            { value: 30, label: '30 d' },
-            { value: 90, label: '90 d' },
-            { value: 365, label: '1 y' }
+            { value: 30, label: t('trends.days', { days: 30 }) },
+            { value: 90, label: t('trends.days', { days: 90 }) },
+            { value: 365, label: t('trends.year') }
           ]}
         />
       </Col>
       <Col xs={24} lg={12}>
-        <Card size="small" title="Products found per full crawl">
+        <Card size="small" title={t('trends.productsPerCrawl')}>
           <TrendLineChart
             data={products}
             dataKey="products"
-            name="Products"
+            name={t('trends.products')}
             markers={markers}
           />
         </Card>
       </Col>
       <Col xs={24} lg={12}>
-        <Card size="small" title="Field errors per 100 products">
+        <Card size="small" title={t('trends.errorRate')}>
           <TrendLineChart
             data={errorRate}
             dataKey="rate"
-            name="Errors per 100 products"
+            name={t('trends.errorRateSeries')}
             markers={markers}
           />
         </Card>
       </Col>
       <Col xs={24}>
-        <Card size="small" title="Field errors per day">
+        <Card size="small" title={t('trends.errorsPerDay')}>
           <FieldErrorsChart rows={filledRows} markers={markers} />
         </Card>
       </Col>

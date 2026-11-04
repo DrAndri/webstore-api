@@ -5,7 +5,7 @@ import { ConfigCommit } from './types';
 
 const repo = () => {
   const value = process.env.GITHUB_CONFIG_REPO;
-  if (!value) throw new HttpError(503, 'GITHUB_CONFIG_REPO is not set');
+  if (!value) throw new HttpError(503, { key: 'github.repoNotSet' });
   return value;
 };
 const branch = () => process.env.GITHUB_CONFIG_BRANCH ?? 'master';
@@ -51,7 +51,7 @@ const github = async <T>(
 };
 
 const githubError = (status: number) =>
-  new HttpError(502, `GitHub returned ${status}`);
+  new HttpError(502, { key: 'github.failed', values: { status } });
 
 const decode = (content: string) =>
   Buffer.from(content, 'base64').toString('utf8');
@@ -118,10 +118,7 @@ export const saveConfigFile = async (
     }
   });
   if (status === 409 || status === 422)
-    throw new HttpError(
-      409,
-      'The config was changed by someone else. Reload it and apply your changes again.'
-    );
+    throw new HttpError(409, { key: 'github.conflict' });
   if (!data) throw githubError(status);
   listCache = undefined;
   return {
@@ -160,14 +157,14 @@ export const getConfigHistory = async (
 
 export const getConfigCommit = async (storeId: number, sha: string) => {
   if (!/^[0-9a-f]{7,40}$/i.test(sha))
-    throw new HttpError(400, 'Invalid commit');
+    throw new HttpError(400, { key: 'github.invalidCommit' });
   const [{ status, data }, file] = await Promise.all([
     github<GithubCommit>(`commits/${sha}`),
     getConfigFile(storeId, sha)
   ]);
   if (!data)
     throw status === 404
-      ? new HttpError(404, 'Commit not found')
+      ? new HttpError(404, { key: 'github.commitNotFound' })
       : githubError(status);
   const change = data.files?.find((f) => f.filename === configPath(storeId));
   return {

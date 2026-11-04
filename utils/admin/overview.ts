@@ -1,3 +1,4 @@
+import { TFunction } from 'i18next';
 import { adminQuery, parseJsonColumn } from './db';
 import { describeCron } from './cron';
 import { listConfigIds } from './github';
@@ -61,19 +62,11 @@ const median = (values: number[]) => {
 
 const percent = (value: number) => `${Math.round(value * 100)}%`;
 
-const FIELD_NAMES: Record<string, string> = {
-  nameError: 'Name',
-  brandError: 'Brand',
-  imageError: 'Image',
-  descriptionError: 'Description',
-  inStockError: 'Stock',
-  categoriesError: 'Categories',
-  attributeError: 'Attributes'
-};
-
 // Compares the last scan of a store to its earlier scans, so a store that never
-// has a brand is not flagged but one whose brand selector broke is
+// has a brand is not flagged but one whose brand selector broke is. The reasons
+// are in the language of t.
 export const computeHealth = (
+  t: TFunction<'admin'>,
   store: StoreRow,
   finishedJobs: Job[],
   hasConfig: boolean | undefined,
@@ -84,17 +77,22 @@ export const computeHealth = (
   const errors: string[] = [];
   const warnings: string[] = [];
 
-  if (hasConfig === false) errors.push('No config file in the repository');
-  if (configError) errors.push(`The config does not load: ${configError}`);
+  if (hasConfig === false) errors.push(t('healthReasons.noConfig'));
+  if (configError)
+    errors.push(t('healthReasons.configError', { error: configError }));
 
   const last = finishedJobs[0];
   if (!last)
     return {
       level: errors.length ? 'error' : 'unknown',
-      reasons: [...errors, 'Never scanned']
+      reasons: [...errors, t('healthReasons.neverScanned')]
     };
   if (last.status === 'failed')
-    errors.push(`Last scan failed: ${last.errorMessage ?? 'unknown error'}`);
+    errors.push(
+      t('healthReasons.lastFailed', {
+        error: last.errorMessage ?? t('healthReasons.unknownError')
+      })
+    );
 
   const crawls = finishedJobs.filter(
     (job) => job.mode === 'crawler' && job.status === 'succeeded'
@@ -103,12 +101,15 @@ export const computeHealth = (
   const earlierCrawls = crawls.slice(1, 6);
   if (lastCrawl) {
     if (lastCrawl.totalProcessed === 0)
-      errors.push('The last full crawl found no products');
+      errors.push(t('healthReasons.noProducts'));
     else if (earlierCrawls.length > 0) {
       const usual = median(earlierCrawls.map((job) => job.totalProcessed));
       if (lastCrawl.totalProcessed < usual * 0.5)
         warnings.push(
-          `Products found dropped from about ${Math.round(usual)} to ${lastCrawl.totalProcessed}`
+          t('healthReasons.productsDropped', {
+            usual: Math.round(usual),
+            found: lastCrawl.totalProcessed
+          })
         );
     }
   }
@@ -131,14 +132,25 @@ export const computeHealth = (
         : 0;
       if (rate - usual > 0.2)
         warnings.push(
-          `${FIELD_NAMES[field]} errors rose to ${percent(rate)} of products${sameMode.length ? ` from ${percent(usual)}` : ''}`
+          sameMode.length
+            ? t('healthReasons.fieldErrorsRoseFrom', {
+                errors: t(`fieldErrors.${field}`),
+                rate: percent(rate),
+                usual: percent(usual)
+              })
+            : t('healthReasons.fieldErrorsRose', {
+                errors: t(`fieldErrors.${field}`),
+                rate: percent(rate)
+              })
         );
     }
     if (lastSucceeded.totalRequests > 0) {
       const failedRate =
         lastSucceeded.totalErrored / lastSucceeded.totalRequests;
       if (failedRate > 0.1)
-        warnings.push(`${percent(failedRate)} of product pages failed`);
+        warnings.push(
+          t('healthReasons.pagesFailed', { rate: percent(failedRate) })
+        );
     }
   }
 
@@ -151,8 +163,10 @@ export const computeHealth = (
   if (Date.now() - lastCrawlAt > staleAfterMs)
     warnings.push(
       lastCrawl
-        ? `No full crawl since ${lastCrawl.finishedAt?.slice(0, 10)}`
-        : 'No successful full crawl yet'
+        ? t('healthReasons.noCrawlSince', {
+            date: lastCrawl.finishedAt?.slice(0, 10)
+          })
+        : t('healthReasons.noCrawlYet')
     );
 
   return {
@@ -161,7 +175,10 @@ export const computeHealth = (
   };
 };
 
-export const getSchedules = async (): Promise<Schedule[]> => {
+// t is for the errors of invalid cron expressions
+export const getSchedules = async (
+  t: TFunction<'admin'>
+): Promise<Schedule[]> => {
   const rows = await adminQuery<Record<string, unknown>[]>(
     "SELECT mode, cron, enabled, updatedAt, updatedBy, lastRunAt, lastError FROM scraperSchedules ORDER BY FIELD(mode, 'crawler', 'list')"
   );
@@ -173,11 +190,12 @@ export const getSchedules = async (): Promise<Schedule[]> => {
     updatedBy: row.updatedBy as string | null,
     lastRunAt: toIso(row.lastRunAt as Date | null),
     lastError: row.lastError as string | null,
-    ...describeCron(row.cron as string)
+    ...describeCron(row.cron as string, t)
   }));
 };
 
-export const getOverview = async (): Promise<Overview> => {
+// The health reasons and cron errors are in the language of t
+export const getOverview = async (t: TFunction<'admin'>): Promise<Overview> => {
   const [stores, recentJobs, activeJobs, statusRows, schedules, configIds] =
     await Promise.all([
       adminQuery<StoreRow[]>(
@@ -198,7 +216,7 @@ export const getOverview = async (): Promise<Overview> => {
       adminQuery<Record<string, unknown>[]>(
         'SELECT startedAt, lastSeenAt, hostname, concurrency, configSource, configCommit, configErrors FROM scraperStatus WHERE id = 1'
       ),
-      getSchedules(),
+      getSchedules(t),
       listConfigIds()
     ]);
 
@@ -247,6 +265,7 @@ export const getOverview = async (): Promise<Overview> => {
       lastScanDate: toDay(store.lastScanDate),
       hasConfig: hasConfig ?? true,
       health: computeHealth(
+        t,
         store,
         finished,
         hasConfig,

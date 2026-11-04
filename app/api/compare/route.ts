@@ -1,4 +1,4 @@
-import { withApiAccess } from '../../../utils/apiAccess';
+import { apiError, withApiAccess } from '../../../utils/apiAccess';
 import { compareProducts, MAX_COMPARED } from '../../../utils/compare';
 
 export const POST = withApiAccess(async (request: Request) => {
@@ -14,6 +14,6 @@ export const POST = withApiAccess(async (request: Request) => {
     );
   } catch (e) {
     console.error('Compare failed', e);
-    return Response.json({ error: 'Samanburðurinn mistókst' }, { status: 500 });
+    return apiError(500, 'compare.failed');
   }
 });

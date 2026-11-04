@@ -15,10 +15,7 @@ export const POST = withAdmin<{ params: Promise<{ id: string }> }>(
     const id = parseId((await params).id);
     const { user: apiUser } = await getApiUser(id);
     if (apiUser.anonymous)
-      throw new HttpError(
-        400,
-        'Website visitors get their tokens automatically'
-      );
+      throw new HttpError(400, { key: 'apiUsers.visitorTokens' });
     const { name } = await readJson<{ name?: string }>(request);
     return { token: await createToken(id, name ?? null, user) };
   }

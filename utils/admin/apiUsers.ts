@@ -123,7 +123,7 @@ export const getApiUser = async (id: number): Promise<ApiUserDetails> => {
       [id]
     )
   ]);
-  if (!row) throw new HttpError(404, 'API user not found');
+  if (!row) throw new HttpError(404, { key: 'apiUsers.notFound' });
   const live = liveUsage();
   return {
     user: toUser(
@@ -160,14 +160,14 @@ export const validateApiUser = (input: ApiUserInput, anonymous: boolean) => {
   if (input.name !== undefined && !anonymous) {
     const name = String(input.name).trim();
     if (name.length < 2 || name.length > 255)
-      throw new HttpError(400, 'The name must be 2 to 255 characters');
+      throw new HttpError(400, { key: 'nameLength' });
     values.name = name;
   }
   if (input.email !== undefined && !anonymous) {
     // Matched to the address of users who sign in on the website
     const email = input.email ? String(input.email).trim().toLowerCase() : null;
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
-      throw new HttpError(400, 'Invalid email');
+      throw new HttpError(400, { key: 'apiUsers.invalidEmail' });
     values.email = email;
   }
   if (input.note !== undefined)
@@ -175,17 +175,20 @@ export const validateApiUser = (input: ApiUserInput, anonymous: boolean) => {
   for (const flag of ['enabled', 'admin'] as const) {
     if (input[flag] === undefined || (flag === 'admin' && anonymous)) continue;
     if (typeof input[flag] !== 'boolean')
-      throw new HttpError(400, `${flag} must be true or false`);
+      throw new HttpError(400, {
+        key: 'mustBeBoolean',
+        values: { name: flag }
+      });
     values[flag] = input[flag];
   }
   for (const limit of ['requestsPerMinute', 'requestsPerDay'] as const) {
     if (input[limit] !== undefined) {
       const value = Number(input[limit]);
       if (!Number.isInteger(value) || value < 1 || value > 10_000_000)
-        throw new HttpError(
-          400,
-          `${limit} must be a whole number from 1 to 10000000`
-        );
+        throw new HttpError(400, {
+          key: 'apiUsers.limitRange',
+          values: { name: limit }
+        });
       values[limit] = value;
     }
   }
@@ -195,7 +198,7 @@ export const validateApiUser = (input: ApiUserInput, anonymous: boolean) => {
 // Email addresses are unique, they decide the limits of signed in users
 export const rethrowDuplicateEmail = (e: unknown): never => {
   if ((e as { code?: string }).code === 'ER_DUP_ENTRY')
-    throw new HttpError(409, 'Another user has that email address');
+    throw new HttpError(409, { key: 'apiUsers.emailTaken' });
   throw e;
 };
 

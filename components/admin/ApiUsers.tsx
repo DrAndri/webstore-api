@@ -16,9 +16,11 @@ import {
 } from 'antd';
 import Link from 'next/link';
 import { useState } from 'react';
+import { Trans, useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import { ApiUser } from '../../utils/admin/types';
-import { fetchJson, formatNumber, fromNow, sendJson } from './api';
+import { useFormat } from '../I18n/I18nProvider';
+import { fetchJson, sendJson } from './api';
 
 // Shows a new token, it can not be shown again
 export function TokenModal({
@@ -28,41 +30,49 @@ export function TokenModal({
   token?: string;
   onClose: () => void;
 }) {
+  const { t } = useTranslation('apiUsers');
   return (
     <Modal
       open={!!token}
-      title="New API token"
+      title={t('tokenModal.title')}
       onOk={onClose}
       onCancel={onClose}
       cancelButtonProps={{ style: { display: 'none' } }}
-      okText="I have copied it"
+      okText={t('tokenModal.copied')}
     >
       <Flex vertical gap={12}>
-        <Alert
-          type="warning"
-          showIcon
-          title="Copy the token now, it is only shown once."
-        />
+        <Alert type="warning" showIcon title={t('tokenModal.copyNow')} />
         <Typography.Paragraph copyable code style={{ wordBreak: 'break-all' }}>
           {token}
         </Typography.Paragraph>
         <Typography.Text type="secondary">
-          Send it in the <code>Authorization: Bearer &lt;token&gt;</code>{' '}
-          header, or in <code>X-API-Key</code>.
+          <Trans
+            t={t}
+            i18nKey="tokenModal.howToSend"
+            components={{ code: <code /> }}
+            shouldUnescape
+          />
         </Typography.Text>
       </Flex>
     </Modal>
   );
 }
 
-export const UsageCell = ({ used, limit }: { used: number; limit: number }) => (
-  <Typography.Text type={used >= limit ? 'danger' : undefined}>
-    {formatNumber(used)}{' '}
-    <Typography.Text type="secondary">/ {formatNumber(limit)}</Typography.Text>
-  </Typography.Text>
-);
+export const UsageCell = ({ used, limit }: { used: number; limit: number }) => {
+  const format = useFormat();
+  return (
+    <Typography.Text type={used >= limit ? 'danger' : undefined}>
+      {format.number(used)}{' '}
+      <Typography.Text type="secondary">
+        / {format.number(limit)}
+      </Typography.Text>
+    </Typography.Text>
+  );
+};
 
 export default function ApiUsers() {
+  const { t } = useTranslation('apiUsers');
+  const format = useFormat();
   const { message } = App.useApp();
   const { data, error, mutate } = useSWR<ApiUser[]>(
     '/api/admin/api-users',
@@ -98,20 +108,18 @@ export default function ApiUsers() {
     <Flex vertical gap={16}>
       <Flex justify="space-between" align="center" wrap gap={8}>
         <Typography.Title level={3} style={{ margin: 0 }}>
-          API users
+          {t('title')}
         </Typography.Title>
         <Button
           type="primary"
           icon={<PlusOutlined />}
           onClick={() => setCreating(true)}
         >
-          Add user
+          {t('addUser')}
         </Button>
       </Flex>
       <Typography.Paragraph type="secondary" style={{ margin: 0 }}>
-        Every request to the public api needs a token. Limits apply to each
-        token of a user. Website visitors get a token automatically, with the
-        limits of the Website visitors row.
+        {t('intro')}
       </Typography.Paragraph>
       {error && <Alert type="error" showIcon title={error.message} />}
       <Table<ApiUser>
@@ -123,34 +131,34 @@ export default function ApiUsers() {
         scroll={{ x: true }}
         columns={[
           {
-            title: 'User',
+            title: t('columns.user'),
             render: (_, user) => (
               <Flex vertical>
                 <Link href={`/admin/api-users/${user.id}`}>{user.name}</Link>
                 <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                  {user.anonymous ? 'Automatic token per visitor' : user.email}
+                  {user.anonymous ? t('automaticToken') : user.email}
                 </Typography.Text>
               </Flex>
             )
           },
           {
-            title: 'Status',
+            title: t('columns.status'),
             render: (_, user) => (
               <Flex gap={4} wrap>
                 {user.enabled ? (
-                  <Tag color="success">Active</Tag>
+                  <Tag color="success">{t('active')}</Tag>
                 ) : (
-                  <Tag>Disabled</Tag>
+                  <Tag>{t('disabled')}</Tag>
                 )}
-                {user.admin && <Tag color="purple">Admin</Tag>}
+                {user.admin && <Tag color="purple">{t('admin')}</Tag>}
               </Flex>
             )
           },
           {
-            title: 'This minute',
+            title: t('columns.thisMinute'),
             render: (_, user) =>
               user.anonymous ? (
-                formatNumber(user.requestsThisMinute)
+                format.number(user.requestsThisMinute)
               ) : (
                 <UsageCell
                   used={user.requestsThisMinute}
@@ -161,11 +169,11 @@ export default function ApiUsers() {
               )
           },
           {
-            title: 'Today',
+            title: t('columns.today'),
             render: (_, user) => (
               <Flex vertical>
                 {user.anonymous ? (
-                  formatNumber(user.requestsToday)
+                  format.number(user.requestsToday)
                 ) : (
                   <UsageCell
                     used={user.requestsToday}
@@ -174,37 +182,42 @@ export default function ApiUsers() {
                 )}
                 {user.rejectedToday > 0 && (
                   <Typography.Text type="danger" style={{ fontSize: 12 }}>
-                    {formatNumber(user.rejectedToday)} rejected
+                    {t('rejectedCount', {
+                      number: format.number(user.rejectedToday)
+                    })}
                   </Typography.Text>
                 )}
               </Flex>
             )
           },
           {
-            title: 'Last 30 days',
+            title: t('columns.last30Days'),
             align: 'right',
-            render: (_, user) => formatNumber(user.requests30Days)
+            render: (_, user) => format.number(user.requests30Days)
           },
           {
-            title: 'Limits per token',
+            title: t('columns.limitsPerToken'),
             render: (_, user) =>
-              `${formatNumber(user.requestsPerMinute)}/min, ${formatNumber(user.requestsPerDay)}/day`
+              t('limits', {
+                perMinute: format.number(user.requestsPerMinute),
+                perDay: format.number(user.requestsPerDay)
+              })
           },
           {
-            title: 'Tokens',
+            title: t('columns.tokens'),
             render: (_, user) => (user.anonymous ? '–' : user.activeTokens)
           },
           {
-            title: 'Last used',
+            title: t('columns.lastUsed'),
             render: (_, user) =>
-              user.anonymous ? '–' : fromNow(user.lastUsedAt)
+              user.anonymous ? '–' : format.fromNow(user.lastUsedAt)
           }
         ]}
       />
       <Modal
         open={creating}
-        title="Add API user"
-        okText="Create and show token"
+        title={t('form.addTitle')}
+        okText={t('form.create')}
         confirmLoading={saving}
         onOk={() => form.submit()}
         onCancel={() => setCreating(false)}
@@ -219,30 +232,30 @@ export default function ApiUsers() {
         >
           <Form.Item
             name="name"
-            label="Name"
+            label={t('form.name')}
             rules={[{ required: true, min: 2 }]}
           >
-            <Input placeholder="Company or app" />
+            <Input placeholder={t('form.namePlaceholder')} />
           </Form.Item>
           <Form.Item
             name="email"
-            label="Email"
+            label={t('form.email')}
             rules={[{ type: 'email' }]}
-            extra="Signing in on the website with this Google address gives these limits"
+            extra={t('form.emailHelp')}
           >
             <Input />
           </Form.Item>
           <Flex gap={16}>
             <Form.Item
               name="requestsPerMinute"
-              label="Requests per minute"
+              label={t('form.requestsPerMinute')}
               rules={[{ required: true }]}
             >
               <InputNumber min={1} />
             </Form.Item>
             <Form.Item
               name="requestsPerDay"
-              label="Requests per day"
+              label={t('form.requestsPerDay')}
               rules={[{ required: true }]}
             >
               <InputNumber min={1} />
@@ -250,13 +263,13 @@ export default function ApiUsers() {
           </Flex>
           <Form.Item
             name="admin"
-            label="Admin"
+            label={t('form.admin')}
             valuePropName="checked"
-            extra="Can sign in to the admin interface with the email address"
+            extra={t('form.adminHelp')}
           >
             <Switch />
           </Form.Item>
-          <Form.Item name="note" label="Note">
+          <Form.Item name="note" label={t('form.note')}>
             <Input.TextArea autoSize={{ minRows: 2 }} />
           </Form.Item>
         </Form>

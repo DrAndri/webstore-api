@@ -1,3 +1,4 @@
+import { getTranslation } from '../../../../../../i18n/server';
 import {
   HttpError,
   parseId,
@@ -19,13 +20,18 @@ export const PUT = withAdmin<{ params: Promise<{ id: string }> }>(
       message?: string;
     }>(request);
     if (typeof body.text !== 'string' || body.text.length > MAX_CONFIG_LENGTH)
-      throw new HttpError(400, 'text is required');
+      throw new HttpError(400, { key: 'stores.textRequired' });
     const message = body.message?.trim() ?? '';
     if (message.length < 3)
-      throw new HttpError(400, 'Describe the change in the commit message');
-    const { errors } = checkConfigText(body.text, id);
+      throw new HttpError(400, { key: 'stores.commitMessage' });
+    // The problems are in the language of the request
+    const { t } = await getTranslation('stores');
+    const { errors } = checkConfigText(body.text, t, id);
     if (errors.length > 0)
-      throw new HttpError(400, `Invalid config: ${errors.join(', ')}`);
+      throw new HttpError(400, {
+        key: 'invalidConfig',
+        values: { errors: errors.join(', ') }
+      });
     return saveConfigFile(
       id,
       body.text.endsWith('\n') ? body.text : body.text + '\n',

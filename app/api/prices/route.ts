@@ -1,4 +1,4 @@
-import { withApiAccess } from '../../../utils/apiAccess';
+import { apiError, withApiAccess } from '../../../utils/apiAccess';
 import { PricesResponse, DbId, ProductMap, Price } from '../../../types';
 import { queryPool } from '../../../utils/mariadb';
 
@@ -127,16 +127,10 @@ export const POST = withApiAccess(async (request: Request) => {
     return Response.json([]);
   } else {
     if (start && !dateRegex.test(start)) {
-      return Response.json(
-        { error: 'Invalid start date format' },
-        { status: 400 }
-      );
+      return apiError(400, 'prices.invalidStart');
     }
     if (end && !dateRegex.test(end)) {
-      return Response.json(
-        { error: 'Invalid end date format' },
-        { status: 400 }
-      );
+      return apiError(400, 'prices.invalidEnd');
     }
     //TODO: config for max products?
     return getPriceChanges(productIds.slice(0, 20), start, end)

@@ -13,26 +13,42 @@ import {
   Tag,
   Typography
 } from 'antd';
+import { TFunction } from 'i18next';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import { Job, WebshopCrawlerOptions } from '../../utils/admin/types';
 import { fetchJson, sendJson } from './api';
 
-const FIELDS: { key: string; label: string; error?: string }[] = [
-  { key: 'sku', label: 'SKU' },
-  { key: 'title', label: 'Name', error: 'name' },
-  { key: 'brand', label: 'Brand', error: 'brand' },
-  { key: 'price', label: 'Price' },
-  { key: 'salePrice', label: 'Sale price' },
-  { key: 'gtin', label: 'GTIN' },
-  { key: 'inStock', label: 'In stock', error: 'inStock' },
-  { key: 'image', label: 'Image', error: 'image' },
-  { key: 'categories', label: 'Categories', error: 'categories' },
-  { key: 'description', label: 'Description', error: 'description' },
-  { key: 'attributes', label: 'Specifications', error: 'attributes' }
+type TestedField =
+  | 'sku'
+  | 'title'
+  | 'brand'
+  | 'price'
+  | 'salePrice'
+  | 'gtin'
+  | 'inStock'
+  | 'image'
+  | 'categories'
+  | 'description'
+  | 'attributes';
+
+// The labels are tester.fields.<key>
+const FIELDS: { key: TestedField; error?: string }[] = [
+  { key: 'sku' },
+  { key: 'title', error: 'name' },
+  { key: 'brand', error: 'brand' },
+  { key: 'price' },
+  { key: 'salePrice' },
+  { key: 'gtin' },
+  { key: 'inStock', error: 'inStock' },
+  { key: 'image', error: 'image' },
+  { key: 'categories', error: 'categories' },
+  { key: 'description', error: 'description' },
+  { key: 'attributes', error: 'attributes' }
 ];
 
-const renderValue = (key: string, value: unknown) => {
+const renderValue = (key: string, value: unknown, t: TFunction<'stores'>) => {
   if (value === undefined || value === null || value === '')
     return <Typography.Text type="secondary">–</Typography.Text>;
   if (key === 'image' && typeof value === 'string')
@@ -66,7 +82,10 @@ const renderValue = (key: string, value: unknown) => {
     return (
       <details>
         <summary>
-          {count} in {groups.length} group{groups.length === 1 ? '' : 's'}
+          {t('tester.attributeGroups', {
+            attributes: count,
+            count: groups.length
+          })}
         </summary>
         {groups.map((group, i) => (
           <div key={i} style={{ marginTop: 4 }}>
@@ -92,18 +111,20 @@ const renderValue = (key: string, value: unknown) => {
         {value.replace(/<[^>]+>/g, ' ')}
       </Typography.Paragraph>
     );
-  if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+  if (typeof value === 'boolean')
+    return value ? t('tester.yes') : t('tester.no');
   return String(value);
 };
 
 function TestResultView({ job }: { job: Job }) {
+  const { t } = useTranslation('stores');
   const result = job.testResult;
   if (job.status === 'failed' || !result)
     return (
       <Alert
         type="error"
         showIcon
-        title={job.errorMessage ?? 'The test failed'}
+        title={job.errorMessage ?? t('tester.failed')}
       />
     );
   if (result.isProductPage === false)
@@ -111,8 +132,8 @@ function TestResultView({ job }: { job: Job }) {
       <Alert
         type="warning"
         showIcon
-        title="Not recognised as a product page"
-        description="The product container was not found or the product page identifier is not in the page source."
+        title={t('tester.notProductPage')}
+        description={t('tester.notProductPageHelp')}
       />
     );
   if (!result.product)
@@ -120,7 +141,7 @@ function TestResultView({ job }: { job: Job }) {
       <Alert
         type="error"
         showIcon
-        title={result.error ?? 'Nothing was scraped'}
+        title={result.error ?? t('tester.nothingScraped')}
       />
     );
   const product = result.product;
@@ -134,12 +155,16 @@ function TestResultView({ job }: { job: Job }) {
         rowKey="key"
         dataSource={FIELDS}
         columns={[
-          { title: 'Field', dataIndex: 'label', width: 130 },
           {
-            title: 'Scraped',
+            title: t('tester.field'),
+            width: 130,
+            render: (_, field) => t(`tester.fields.${field.key}`)
+          },
+          {
+            title: t('tester.scraped'),
             render: (_, field) => (
               <Flex vertical gap={2}>
-                {renderValue(field.key, product[field.key])}
+                {renderValue(field.key, product[field.key], t)}
                 {field.error && errors[field.error] && (
                   <Typography.Text type="danger" style={{ fontSize: 12 }}>
                     {errors[field.error]}
@@ -165,6 +190,7 @@ export default function ConfigTester({
   startUrl?: string;
 }) {
   const { message } = App.useApp();
+  const { t } = useTranslation('stores');
   const [url, setUrl] = useState('');
   const [jobId, setJobId] = useState<number>();
   const [starting, setStarting] = useState(false);
@@ -210,12 +236,9 @@ export default function ConfigTester({
 
   const busy = job && ['queued', 'running'].includes(job.status);
   return (
-    <Card size="small" title="Test on a product page">
+    <Card size="small" title={t('tester.title')}>
       <Flex vertical gap={12}>
-        <Typography.Text type="secondary">
-          The scraper loads the page with the config as it is now, saved or not,
-          and shows what it finds. Nothing is written to the database.
-        </Typography.Text>
+        <Typography.Text type="secondary">{t('tester.help')}</Typography.Text>
         <Flex gap={8}>
           <Input
             value={url}
@@ -232,7 +255,7 @@ export default function ConfigTester({
             disabled={!url}
             onClick={run}
           >
-            Test
+            {t('tester.test')}
           </Button>
         </Flex>
         {busy && (
@@ -240,17 +263,13 @@ export default function ConfigTester({
             <Spin size="small" />
             <Typography.Text type="secondary">
               {job.status === 'queued'
-                ? 'Waiting for the scraper…'
-                : 'Scraping the page, the browser type can take up to a minute…'}
+                ? t('tester.waiting')
+                : t('tester.scraping')}
             </Typography.Text>
           </Flex>
         )}
         {notPickedUp && (
-          <Alert
-            type="warning"
-            showIcon
-            title="The scraper has not picked up the test. Check that it is online on the dashboard."
-          />
+          <Alert type="warning" showIcon title={t('tester.notPickedUp')} />
         )}
         {job && !busy && <TestResultView job={job} />}
       </Flex>

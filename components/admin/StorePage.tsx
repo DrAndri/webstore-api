@@ -13,9 +13,11 @@ import {
   Typography
 } from 'antd';
 import Link from 'next/link';
+import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import { Overview, ScheduledMode, StoreDetails } from '../../utils/admin/types';
-import { fetchJson, formatNumber, fromNow, sendJson } from './api';
+import { useFormat } from '../I18n/I18nProvider';
+import { fetchJson, sendJson } from './api';
 import ConfigHistory from './ConfigHistory';
 import JobHistory from './JobHistory';
 import { HealthTag, JobStatusTag } from './StatusTags';
@@ -24,6 +26,8 @@ import StoreTrends from './StoreTrends';
 
 export default function StorePage({ storeId }: { storeId: number }) {
   const { message } = App.useApp();
+  const { t } = useTranslation('stores');
+  const format = useFormat();
   const { data, error, mutate } = useSWR<StoreDetails>(
     `/api/admin/stores/${storeId}`,
     fetchJson,
@@ -64,8 +68,8 @@ export default function StorePage({ storeId }: { storeId: number }) {
           mode
         }
       );
-      if (queued) message.success('Scan queued');
-      else message.info('A scan of this store is already queued or running');
+      if (queued) message.success(t('page.scanQueued'));
+      else message.info(t('page.alreadyQueued'));
       void mutateOverview();
     } catch (e) {
       message.error((e as Error).message);
@@ -75,7 +79,7 @@ export default function StorePage({ storeId }: { storeId: number }) {
   return (
     <Flex vertical gap={16}>
       <Link href="/admin/stores">
-        <ArrowLeftOutlined /> Stores
+        <ArrowLeftOutlined /> {t('page.back')}
       </Link>
       <Flex justify="space-between" align="start" wrap gap={12}>
         <Flex vertical gap={4}>
@@ -84,7 +88,7 @@ export default function StorePage({ storeId }: { storeId: number }) {
             style={{ margin: 0 }}
             editable={{
               onChange: (name) => name !== store.name && void update({ name }),
-              tooltip: 'Rename'
+              tooltip: t('page.rename')
             }}
           >
             {store.name}
@@ -93,9 +97,11 @@ export default function StorePage({ storeId }: { storeId: number }) {
             {status && <HealthTag health={status.health} />}
             {status?.activeJob && <JobStatusTag job={status.activeJob} />}
             <Typography.Text type="secondary">
-              Last scan {fromNow(status?.lastJob?.finishedAt)} ·{' '}
-              {formatNumber(status?.lastCrawl?.totalProcessed)} products in the
-              last full crawl
+              {t('page.summary', {
+                lastScan: format.fromNow(status?.lastJob?.finishedAt),
+                products: format.number(status?.lastCrawl?.totalProcessed),
+                count: status?.lastCrawl?.totalProcessed ?? 0
+              })}
             </Typography.Text>
           </Flex>
         </Flex>
@@ -105,14 +111,14 @@ export default function StorePage({ storeId }: { storeId: number }) {
               checked={store.scraperEnabled}
               onChange={(scraperEnabled) => update({ scraperEnabled })}
             />
-            Scheduled scans
+            {t('page.scheduledScans')}
           </Space>
           <Space>
             <Switch
               checked={store.apiEnabled}
               onChange={(apiEnabled) => update({ apiEnabled })}
             />
-            Public search
+            {t('page.publicSearch')}
           </Space>
           <Space.Compact>
             <Button
@@ -120,19 +126,19 @@ export default function StorePage({ storeId }: { storeId: number }) {
               disabled={!data.config}
               onClick={() => run('crawler')}
             >
-              Run full crawl
+              {t('page.runFullCrawl')}
             </Button>
             <Dropdown
               disabled={!data.config}
               menu={{
-                items: [{ key: 'list', label: 'Re-scrape active products' }],
+                items: [{ key: 'list', label: t('page.rescrapeActive') }],
                 onClick: () => run('list')
               }}
             >
               <Button
                 type="primary"
                 icon={<DownOutlined />}
-                aria-label="More scans"
+                aria-label={t('page.moreScans')}
               />
             </Dropdown>
           </Space.Compact>
@@ -156,12 +162,12 @@ export default function StorePage({ storeId }: { storeId: number }) {
         items={[
           {
             key: 'trends',
-            label: 'Trends',
+            label: t('page.tabs.trends'),
             children: <StoreTrends storeId={storeId} />
           },
           {
             key: 'config',
-            label: 'Config',
+            label: t('page.tabs.config'),
             children: (
               <StoreConfigEditor
                 key={data.config?.sha ?? 'new'}
@@ -175,7 +181,7 @@ export default function StorePage({ storeId }: { storeId: number }) {
           },
           {
             key: 'history',
-            label: 'Change history',
+            label: t('page.tabs.history'),
             children: (
               <ConfigHistory
                 storeId={storeId}
@@ -187,7 +193,7 @@ export default function StorePage({ storeId }: { storeId: number }) {
           },
           {
             key: 'scans',
-            label: 'Scans',
+            label: t('page.tabs.scans'),
             children: <JobHistory storeId={storeId} />
           }
         ]}

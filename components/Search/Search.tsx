@@ -16,8 +16,10 @@ import callApi, { getCached } from '../../utils/api';
 import { sendGAEvent } from '@next/third-parties/google';
 import { DefaultOptionType } from 'antd/es/select';
 import { useSearchParams, usePathname, useRouter } from 'next/navigation';
+import { useTranslation } from 'react-i18next';
 
 export default function Search({ stores }: { stores: StoreConfig[] }) {
+  const { t } = useTranslation('site');
   const { replace } = useRouter();
   const { cache, mutate } = useSWRConfig();
   const searchParams = useSearchParams();
@@ -128,7 +130,7 @@ export default function Search({ stores }: { stores: StoreConfig[] }) {
       <RangePicker
         style={{ width: 250 }}
         format={'DD-MMM-YYYY'}
-        placeholder={['Byrjun', 'Endir']}
+        placeholder={[t('search.start'), t('search.end')]}
         onChange={(dates) => {
           setSelectedRange(dates);
         }}
@@ -139,7 +141,7 @@ export default function Search({ stores }: { stores: StoreConfig[] }) {
         maxTagCount="responsive"
         allowClear
         style={{ width: 200 }}
-        placeholder="Veldu búð"
+        placeholder={t('search.stores')}
         value={selectedStores}
         maxTagPlaceholder={(omittedValues) => (
           <Tooltip

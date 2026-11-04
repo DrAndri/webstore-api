@@ -1,5 +1,6 @@
 import { Flex } from 'antd';
 import Title from 'antd/es/typography/Title';
+import { getTranslation } from '../../../../i18n/server';
 import LogViewer from '../../../../components/admin/LogViewer';
 
 const toList = (value: string | string[] | undefined) =>
@@ -12,13 +13,16 @@ export default async function LogsPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const params = await searchParams;
+  const [params, { t }] = await Promise.all([
+    searchParams,
+    getTranslation('admin')
+  ]);
   const start = Number(params.start);
   const end = Number(params.end);
   return (
     <Flex vertical gap={16}>
       <Title level={3} style={{ margin: 0 }}>
-        Logs
+        {t('logs.title')}
       </Title>
       <LogViewer
         source="app"

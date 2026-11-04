@@ -20,13 +20,17 @@ import {
 } from '../../types';
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { useTranslation } from 'react-i18next';
 import { sendGAEvent } from '@next/third-parties/google';
 import { getCached } from '../../utils/api';
 import useChartTheme from '../Theme/useChartTheme';
+import { useFormat } from '../I18n/I18nProvider';
 
 export default function PriceChart({ stores }: { stores: StoreConfig[] }) {
   const { cache, mutate } = useSWRConfig();
   const chart = useChartTheme();
+  const { t } = useTranslation('site');
+  const format = useFormat();
   const [loadedPrices, setPrices] = useState<RechartFormat[]>([]);
   const searchParams = useSearchParams();
   const selectedProductIdsString = searchParams.get('selectedProductIds');
@@ -193,12 +197,16 @@ export default function PriceChart({ stores }: { stores: StoreConfig[] }) {
     const uniqueKeys = [...new Set(filtered)];
     return uniqueKeys.map((key) => {
       const isSalePrice = key.includes('salePrice');
+      // The key ends in price or salePrice, the name in the legend and tooltip
+      // in the language of the page
+      const series = key.substring(0, key.lastIndexOf(' - '));
       return (
         <Line
           key={key}
+          name={`${series} - ${isSalePrice ? t('priceChart.salePrice') : t('priceChart.price')}`}
           type="stepAfter"
           dot={false}
-          stroke={nameToColor(key.substring(0, key.lastIndexOf(' - ')))}
+          stroke={nameToColor(series)}
           strokeWidth={2}
           strokeDasharray={isSalePrice ? '4 2' : '0'}
           dataKey={key}
@@ -229,9 +237,6 @@ export default function PriceChart({ stores }: { stores: StoreConfig[] }) {
     return timestamps;
   };
 
-  const formatPrice = (number: number) => formatPriceString(number.toString());
-  const formatPriceString = (number: string) =>
-    number.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
   if (prices.length > 0) {
     return (
       <ResponsiveContainer height={'99%'} width={'100%'}>
@@ -244,14 +249,13 @@ export default function PriceChart({ stores }: { stores: StoreConfig[] }) {
             type="number"
             domain={['dataMin - 500000', 'dataMax']}
             ticks={everyMonthInRange()}
-            tickFormatter={(value: number) => {
-              const date = dayjs.unix(value);
-              return date.format('MMM-YYYY');
-            }}
+            tickFormatter={(value: number) =>
+              dayjs.unix(value).locale(format.language).format(t('dates.month'))
+            }
           />
           <YAxis
             width={90}
-            tickFormatter={(value: number) => formatPrice(value)}
+            tickFormatter={(value: number) => format.number(value)}
             domain={[
               (dataMin: number) => Math.floor(dataMin / 10000) * 10000,
               (dataMax: number) => Math.ceil(dataMax / 10000) * 10000
@@ -260,12 +264,13 @@ export default function PriceChart({ stores }: { stores: StoreConfig[] }) {
           <Tooltip
             {...chart.tooltip}
             labelFormatter={(label) =>
-              dayjs.unix(Number(label)).format('DD-MMM-YYYY')
+              dayjs
+                .unix(Number(label))
+                .locale(format.language)
+                .format(t('dates.day'))
             }
             labelStyle={{ ...chart.tooltip.labelStyle, fontWeight: 'bold' }}
-            formatter={(value) =>
-              value ? formatPriceString(value.toString()) + ' kr.' : ''
-            }
+            formatter={(value) => (value ? format.price(Number(value)) : '')}
           />
           <CartesianGrid stroke={chart.grid} strokeDasharray="3 3" />
           <Legend

@@ -1,0 +1,99 @@
+{
+  "somethingWentWrong": "Eitthvað fór úrskeiðis",
+  "requestFailed": "Beiðnin mistókst ({{status}})",
+  "invalidOrigin": "Ógildur uppruni",
+  "notSignedIn": "Innskráningar er krafist",
+  "notAdmin": "Þú ert ekki stjórnandi",
+  "invalidJson": "Ógilt JSON í beiðninni",
+  "invalidParam": "Ógilt gildi á {{name}}",
+  "mustBeBoolean": "{{name}} verður að vera true eða false",
+  "modeCrawlerOrList": "mode verður að vera crawler eða list",
+  "nothingToUpdate": "Engu var breytt",
+  "nameLength": "Nafnið verður að vera 2 til 255 stafir",
+  "invalidConfig": "Ógildar stillingar: {{errors}}",
+  "api": {
+    "tokenInvalid": "API-lykillinn er ekki gildur",
+    "tokenRequired": "API-lykils er krafist",
+    "tooManyVisitors": "Of margir nýir gestir frá þessu vistfangi, reyndu aftur síðar",
+    "unavailable": "API-ið er ekki tiltækt",
+    "tooManyRequests": "Of margar fyrirspurnir"
+  },
+  "apiUsers": {
+    "notFound": "API-notandinn fannst ekki",
+    "enterName": "Sláðu inn nafn",
+    "adminNeedsEmail": "Stjórnandi þarf netfang til að geta skráð sig inn",
+    "ownAdminAccess": "Þú getur ekki fjarlægt eigin stjórnandaaðgang, biddu annan stjórnanda um það",
+    "invalidEmail": "Ógilt netfang",
+    "limitRange": "{{name}} verður að vera heiltala frá 1 til 10000000",
+    "emailTaken": "Annar notandi er með þetta netfang",
+    "visitorTokens": "Gestir vefsins fá lykla sjálfkrafa",
+    "tokenNotFound": "Lykillinn er ekki til eða hefur þegar verið afturkallaður"
+  },
+  "jobs": {
+    "notFound": "Verkið fannst ekki",
+    "selectStore": "Veldu að minnsta kosti eina verslun",
+    "alreadyFinished": "Verkinu er þegar lokið"
+  },
+  "logs": {
+    "invalidLevel": "Ógilt stig",
+    "tooManyLabels": "Of mörg merki",
+    "searchTooLong": "Leitin er of löng",
+    "startBeforeEnd": "start verður að vera á undan end",
+    "rangeTooLong": "Tímabilið má mest vera 30 dagar",
+    "invalidSource": "Ógild uppspretta",
+    "storeGone": "Verslun verksins er ekki lengur til"
+  },
+  "schedules": {
+    "expressionTooLong": "Segðin er of löng",
+    "invalid": "Ógild tímaáætlun: {{errors}}",
+    "notFound": "Tímaáætlunin er ekki til enn, hún verður til þegar skannarinn ræsist"
+  },
+  "stores": {
+    "notFound": "Verslunin fannst ekki",
+    "nameExists": "Verslun með nafnið {{name}} er þegar til",
+    "nameTaken": "Önnur verslun er með þetta nafn",
+    "enterProductUrl": "Sláðu inn slóð á vörusíðu",
+    "urlNotOnSite": "Slóðin verður að vera á {{site}}",
+    "textRequired": "text vantar",
+    "commitMessage": "Skrifaðu lýsingu á breytingunni"
+  },
+  "github": {
+    "repoNotSet": "GITHUB_CONFIG_REPO er ekki stillt",
+    "failed": "GitHub svaraði {{status}}",
+    "conflict": "Einhver annar breytti stillingunum. Hlaðdu þeim aftur og gerðu breytingarnar þínar upp á nýtt.",
+    "invalidCommit": "Ógild útgáfa",
+    "commitNotFound": "Útgáfan fannst ekki"
+  },
+  "loki": {
+    "notConfigured": "Loki er ekki stillt, stilltu LOKI_URL",
+    "unreachable": "Ekki næst samband við Loki",
+    "failed": "Loki svaraði {{status}}: {{text}}"
+  },
+  "products": {
+    "invalidId": "Ógilt vörunúmer",
+    "notFound": "Varan fannst ekki",
+    "loadFailed": "Ekki tókst að sækja vöruna"
+  },
+  "search": {
+    "failed": "Leitin mistókst",
+    "invalidRequest": "Ógild fyrirspurn",
+    "invalidAttribute": "Ógildur eiginleiki",
+    "notANumber": "{{value}} er ekki tala",
+    "notADate": "{{value}} er ekki dagsetning",
+    "invalidCondition": "Ógilt skilyrði",
+    "invalidConditions": "Ógild skilyrði",
+    "tooShort": "Skrifaðu að minnsta kosti tvo stafi",
+    "invalidFilter": "Ógild sía",
+    "invalidFilters": "Ógildar síur",
+    "invalidPriceRange": "Ógilt verðbil",
+    "unknownFilter": "Óþekkt sía {{key}}",
+    "invalidSearch": "Ógild leit"
+  },
+  "compare": {
+    "failed": "Samanburðurinn mistókst"
+  },
+  "prices": {
+    "invalidStart": "Ógilt snið á upphafsdagsetningu",
+    "invalidEnd": "Ógilt snið á lokadagsetningu"
+  }
+}

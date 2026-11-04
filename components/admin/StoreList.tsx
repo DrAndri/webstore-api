@@ -2,22 +2,26 @@
 import { PlusOutlined } from '@ant-design/icons';
 import { Alert, Button, Flex, Spin, Table, Tag, Typography } from 'antd';
 import Link from 'next/link';
+import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import { Overview, StoreStatus } from '../../utils/admin/types';
-import { fetchJson, formatNumber, fromNow } from './api';
+import { useFormat } from '../I18n/I18nProvider';
+import { fetchJson } from './api';
 import { HealthTag } from './StatusTags';
 
 export default function StoreList() {
+  const { t } = useTranslation('stores');
+  const format = useFormat();
   const { data, error } = useSWR<Overview>('/api/admin/overview', fetchJson);
   return (
     <Flex vertical gap={16}>
       <Flex justify="space-between" align="center" wrap gap={8}>
         <Typography.Title level={3} style={{ margin: 0 }}>
-          Stores
+          {t('list.title')}
         </Typography.Title>
         <Link href="/admin/stores/new">
           <Button type="primary" icon={<PlusOutlined />}>
-            Add store
+            {t('list.add')}
           </Button>
         </Link>
       </Flex>
@@ -32,68 +36,72 @@ export default function StoreList() {
           scroll={{ x: true }}
           columns={[
             {
-              title: 'Id',
+              title: t('list.columns.id'),
               sorter: (a, b) => a.id - b.id,
               dataIndex: 'id',
               width: 60
             },
             {
-              title: 'Store',
+              title: t('list.columns.store'),
               sorter: (a, b) => a.name.localeCompare(b.name),
               render: (_, store) => (
                 <Link href={`/admin/stores/${store.id}`}>{store.name}</Link>
               )
             },
             {
-              title: 'Health',
+              title: t('list.columns.health'),
               render: (_, store) => <HealthTag health={store.health} />
             },
             {
-              title: 'Config',
+              title: t('list.columns.config'),
               render: (_, store) =>
                 store.hasConfig ? (
                   <Tag>stores/{store.id}.jsonc</Tag>
                 ) : (
-                  <Tag color="error">Missing</Tag>
+                  <Tag color="error">{t('list.missing')}</Tag>
                 )
             },
             {
-              title: 'Scheduled scans',
+              title: t('list.columns.scheduledScans'),
               render: (_, store) =>
                 store.scraperEnabled ? (
-                  'On'
+                  t('list.on')
                 ) : (
-                  <Typography.Text type="secondary">Off</Typography.Text>
+                  <Typography.Text type="secondary">
+                    {t('list.off')}
+                  </Typography.Text>
                 )
             },
             {
-              title: 'Public search',
+              title: t('list.columns.publicSearch'),
               render: (_, store) =>
                 store.apiEnabled ? (
-                  'On'
+                  t('list.on')
                 ) : (
-                  <Typography.Text type="secondary">Off</Typography.Text>
+                  <Typography.Text type="secondary">
+                    {t('list.off')}
+                  </Typography.Text>
                 )
             },
             {
-              title: 'Products',
+              title: t('list.columns.products'),
               sorter: (a, b) =>
                 (a.lastCrawl?.totalProcessed ?? 0) -
                 (b.lastCrawl?.totalProcessed ?? 0),
               align: 'right',
               render: (_, store) =>
-                formatNumber(store.lastCrawl?.totalProcessed)
+                format.number(store.lastCrawl?.totalProcessed)
             },
             {
-              title: 'Last scan',
+              title: t('list.columns.lastScan'),
               sorter: (a, b) =>
                 (a.lastJob?.finishedAt ?? '').localeCompare(
                   b.lastJob?.finishedAt ?? ''
                 ),
-              render: (_, store) => fromNow(store.lastJob?.finishedAt)
+              render: (_, store) => format.fromNow(store.lastJob?.finishedAt)
             },
             {
-              title: 'Added',
+              title: t('list.columns.added'),
               sorter: (a, b) =>
                 (a.createdDate ?? '').localeCompare(b.createdDate ?? ''),
               dataIndex: 'createdDate'

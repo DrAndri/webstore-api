@@ -21,7 +21,7 @@ const lokiFetch = async <T>(
   params: Record<string, string>
 ): Promise<T> => {
   const base = process.env.LOKI_URL?.replace(/\/+$/, '');
-  if (!base) throw new HttpError(503, 'Loki is not configured, set LOKI_URL');
+  if (!base) throw new HttpError(503, { key: 'loki.notConfigured' });
   const headers: Record<string, string> = {};
   if (process.env.LOKI_USERNAME)
     headers.Authorization = `Basic ${Buffer.from(
@@ -35,12 +35,15 @@ const lokiFetch = async <T>(
     );
   } catch (e) {
     console.error('Loki request failed', e);
-    throw new HttpError(502, 'Loki is not reachable');
+    throw new HttpError(502, { key: 'loki.unreachable' });
   }
   if (!response.ok) {
     // Loki explains rejected queries, e.g. a time range over its limit
     const text = (await response.text()).trim().slice(0, 300);
-    throw new HttpError(502, `Loki answered ${response.status}: ${text}`);
+    throw new HttpError(502, {
+      key: 'loki.failed',
+      values: { status: response.status, text }
+    });
   }
   return ((await response.json()) as { data: T }).data;
 };

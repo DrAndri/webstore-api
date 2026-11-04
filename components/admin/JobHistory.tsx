@@ -9,51 +9,60 @@ import {
   Select,
   Table
 } from 'antd';
+import { TFunction } from 'i18next';
 import Link from 'next/link';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
+import { Format } from '../../i18n/format';
 import {
   FIELD_ERRORS,
   Job,
-  MODE_LABELS,
+  JobMode,
+  JobStatus,
   Overview
 } from '../../utils/admin/types';
+import { useFormat } from '../I18n/I18nProvider';
 import { cancelJob, JobStore } from './ActiveJobs';
-import {
-  fetchJson,
-  formatDuration,
-  formatNumber,
-  formatTime,
-  sendJson
-} from './api';
-import { FIELD_LABELS } from './charts';
+import { fetchJson, sendJson } from './api';
 import { JobStatusTag } from './StatusTags';
 
 const percentOf = (value: number, total: number) =>
   total > 0 ? ` (${Math.round((value / total) * 100)}%)` : '';
 
 // What a scan of a store found
-const scanCounters = (job: Job) => [
+const scanCounters = (job: Job, t: TFunction<'admin'>, format: Format) => [
   {
-    label: 'Config commit',
+    label: t('jobs.configCommit'),
     children: job.configCommit?.slice(0, 7) ?? '–'
   },
-  { label: 'Pages', children: formatNumber(job.totalRequests) },
-  { label: 'Products', children: formatNumber(job.totalProcessed) },
+  { label: t('jobs.pages'), children: format.number(job.totalRequests) },
+  { label: t('jobs.products'), children: format.number(job.totalProcessed) },
   {
-    label: 'Failed pages',
+    label: t('jobs.failedPages'),
     children:
-      formatNumber(job.totalErrored) +
+      format.number(job.totalErrored) +
       percentOf(job.totalErrored, job.totalRequests)
   },
   ...FIELD_ERRORS.map((field) => ({
-    label: `${FIELD_LABELS[field]} errors`,
+    label: t(`fieldErrors.${field}`),
     children:
-      formatNumber(job[field]) + percentOf(job[field], job.totalProcessed)
+      format.number(job[field]) + percentOf(job[field], job.totalProcessed)
   }))
 ];
 
+const MODES: JobMode[] = ['crawler', 'list', 'test', 'index'];
+const STATUSES: JobStatus[] = [
+  'queued',
+  'running',
+  'succeeded',
+  'failed',
+  'cancelled'
+];
+
 export function JobDetails({ job }: { job: Job }) {
+  const { t } = useTranslation('admin');
+  const format = useFormat();
   return (
     <Flex vertical gap={12}>
       {job.errorMessage && (
@@ -67,35 +76,37 @@ export function JobDetails({ job }: { job: Job }) {
         size="small"
         column={{ xs: 1, sm: 2, lg: 4 }}
         items={[
-          { label: 'Queued', children: formatTime(job.queuedAt) },
-          { label: 'Started', children: formatTime(job.startedAt) },
-          { label: 'Finished', children: formatTime(job.finishedAt) },
+          { label: t('jobs.queued'), children: format.time(job.queuedAt) },
+          { label: t('jobs.started'), children: format.time(job.startedAt) },
+          { label: t('jobs.finished'), children: format.time(job.finishedAt) },
           ...(job.mode === 'index'
             ? [
                 {
-                  label: 'Documents',
-                  children: formatNumber(job.totalRequests)
+                  label: t('jobs.documents'),
+                  children: format.number(job.totalRequests)
                 },
                 {
-                  label: 'Indexed',
+                  label: t('jobs.indexed'),
                   children:
-                    formatNumber(job.totalProcessed) +
+                    format.number(job.totalProcessed) +
                     percentOf(job.totalProcessed, job.totalRequests)
                 }
               ]
-            : scanCounters(job))
+            : scanCounters(job, t, format))
         ]}
       />
       {job.updateResult && (
         <Descriptions
           title={
-            job.mode === 'index' ? 'Indexed documents' : 'Database changes'
+            job.mode === 'index'
+              ? t('jobs.indexedDocuments')
+              : t('jobs.databaseChanges')
           }
           size="small"
           column={{ xs: 1, sm: 2, lg: 4 }}
           items={Object.entries(job.updateResult).map(([key, value]) => ({
             label: key.replace(/([A-Z])/g, ' $1').toLowerCase(),
-            children: formatNumber(value)
+            children: format.number(value)
           }))}
         />
       )}
@@ -106,6 +117,8 @@ export function JobDetails({ job }: { job: Job }) {
 // Scan history, filtered to one store when storeId is given
 export default function JobHistory({ storeId }: { storeId?: number }) {
   const { message } = App.useApp();
+  const { t } = useTranslation('admin');
+  const format = useFormat();
   const [filters, setFilters] = useState<{
     storeId?: number;
     mode?: string;
@@ -147,8 +160,8 @@ export default function JobHistory({ storeId }: { storeId?: number }) {
       );
       message.success(
         cancelled === 1
-          ? 'The scan will stop within a few seconds'
-          : `${cancelled} scans will stop within a few seconds`
+          ? t('activeJobs.cancelled')
+          : t('jobs.cancelledAll', { count: cancelled })
       );
     } catch (e) {
       message.error((e as Error).message);
@@ -173,7 +186,7 @@ export default function JobHistory({ storeId }: { storeId?: number }) {
             allowClear
             showSearch
             optionFilterProp="label"
-            placeholder="All stores"
+            placeholder={t('jobs.allStores')}
             style={{ minWidth: 180 }}
             value={filters.storeId}
             onChange={(value) => setFilter('storeId', value)}
@@ -185,42 +198,34 @@ export default function JobHistory({ storeId }: { storeId?: number }) {
         )}
         <Select
           allowClear
-          placeholder="All scans"
+          placeholder={t('jobs.allScans')}
           style={{ minWidth: 160 }}
           value={filters.mode}
           onChange={(value) => setFilter('mode', value)}
-          options={(['crawler', 'list', 'test', 'index'] as const).map(
-            (mode) => ({
-              value: mode,
-              label: MODE_LABELS[mode]
-            })
-          )}
+          options={MODES.map((mode) => ({
+            value: mode,
+            label: t(`modes.${mode}`)
+          }))}
         />
         <Select
           allowClear
-          placeholder="All statuses"
+          placeholder={t('jobs.allStatuses')}
           style={{ minWidth: 160 }}
           value={filters.status}
           onChange={(value) => setFilter('status', value)}
-          options={[
-            'queued',
-            'running',
-            'succeeded',
-            'failed',
-            'cancelled'
-          ].map((status) => ({
+          options={STATUSES.map((status) => ({
             value: status,
-            label: status[0].toUpperCase() + status.slice(1)
+            label: t(`status.${status}`)
           }))}
         />
         {storeId === undefined && (
           <Popconfirm
-            title={`Cancel all ${cancellable} queued and running scans?`}
+            title={t('jobs.confirmCancelAll', { count: cancellable })}
             disabled={cancellable === 0}
             onConfirm={cancelAll}
           >
             <Button danger disabled={cancellable === 0}>
-              Cancel all scans
+              {t('jobs.cancelAll')}
             </Button>
           </Popconfirm>
         )}
@@ -254,46 +259,55 @@ export default function JobHistory({ storeId }: { storeId?: number }) {
           ...(storeId === undefined
             ? [
                 {
-                  title: 'Store',
+                  title: t('columns.store'),
                   render: (_: unknown, job: Job) => <JobStore job={job} />
                 }
               ]
             : []),
-          { title: 'Scan', render: (_, job) => MODE_LABELS[job.mode] },
-          { title: 'Status', render: (_, job) => <JobStatusTag job={job} /> },
           {
-            title: 'Started',
-            render: (_, job) => formatTime(job.startedAt ?? job.queuedAt)
+            title: t('columns.scan'),
+            render: (_, job) => t(`modes.${job.mode}`)
           },
           {
-            title: 'Duration',
+            title: t('columns.status'),
+            render: (_, job) => <JobStatusTag job={job} />
+          },
+          {
+            title: t('columns.started'),
+            render: (_, job) => format.time(job.startedAt ?? job.queuedAt)
+          },
+          {
+            title: t('columns.duration'),
             render: (_, job) =>
               job.status === 'queued'
                 ? '–'
-                : formatDuration(job.startedAt, job.finishedAt)
+                : format.duration(job.startedAt, job.finishedAt)
           },
           {
-            title: 'Products',
+            title: t('columns.products'),
             align: 'right',
-            render: (_, job) => formatNumber(job.totalProcessed)
+            render: (_, job) => format.number(job.totalProcessed)
           },
           {
-            title: 'Field errors',
+            title: t('columns.fieldErrors'),
             align: 'right',
             render: (_, job) =>
               job.mode === 'index'
                 ? '–'
-                : formatNumber(
+                : format.number(
                     FIELD_ERRORS.reduce((sum, field) => sum + job[field], 0)
                   )
           },
           {
-            title: 'Failed pages',
+            title: t('columns.failedPages'),
             align: 'right',
             render: (_, job) =>
-              job.mode === 'index' ? '–' : formatNumber(job.totalErrored)
+              job.mode === 'index' ? '–' : format.number(job.totalErrored)
           },
-          { title: 'By', render: (_, job) => job.requestedBy ?? job.source },
+          {
+            title: t('columns.by'),
+            render: (_, job) => job.requestedBy ?? t(`sources.${job.source}`)
+          },
           {
             title: '',
             align: 'right',
@@ -301,19 +315,19 @@ export default function JobHistory({ storeId }: { storeId?: number }) {
               <Flex gap={8} justify="end">
                 {job.status !== 'queued' && (
                   <Link href={`/admin/jobs/${job.id}`}>
-                    <Button size="small">Log</Button>
+                    <Button size="small">{t('log')}</Button>
                   </Link>
                 )}
                 {(job.status === 'queued' || job.status === 'running') &&
                   !job.cancelRequested && (
                     <Popconfirm
-                      title="Cancel this scan?"
+                      title={t('jobs.confirmCancel')}
                       onConfirm={() =>
-                        cancelJob(job.id, message, () => void mutate())
+                        cancelJob(job.id, message, t, () => void mutate())
                       }
                     >
                       <Button size="small" danger>
-                        Cancel
+                        {t('cancel')}
                       </Button>
                     </Popconfirm>
                   )}

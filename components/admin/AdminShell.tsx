@@ -11,18 +11,24 @@ import {
 import { App, Avatar, Button, Flex, Layout, Menu, Typography } from 'antd';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useTranslation } from 'react-i18next';
 import { signOutUser } from '../../app/actions/auth';
 import type { AdminUser } from '../../utils/admin/auth';
+import LanguageSwitch from '../I18n/LanguageSwitch';
 import ThemeSwitch from '../Theme/ThemeSwitch';
 
 const ITEMS = [
-  { key: '/admin', icon: <DashboardOutlined />, label: 'Dashboard' },
-  { key: '/admin/jobs', icon: <HistoryOutlined />, label: 'Scan history' },
-  { key: '/admin/logs', icon: <FileTextOutlined />, label: 'Logs' },
-  { key: '/admin/stores', icon: <ShopOutlined />, label: 'Stores' },
-  { key: '/admin/schedules', icon: <CalendarOutlined />, label: 'Schedules' },
-  { key: '/admin/api-users', icon: <KeyOutlined />, label: 'API users' }
-];
+  { key: '/admin', icon: <DashboardOutlined />, label: 'nav.dashboard' },
+  { key: '/admin/jobs', icon: <HistoryOutlined />, label: 'nav.jobs' },
+  { key: '/admin/logs', icon: <FileTextOutlined />, label: 'nav.logs' },
+  { key: '/admin/stores', icon: <ShopOutlined />, label: 'nav.stores' },
+  {
+    key: '/admin/schedules',
+    icon: <CalendarOutlined />,
+    label: 'nav.schedules'
+  },
+  { key: '/admin/api-users', icon: <KeyOutlined />, label: 'nav.apiUsers' }
+] as const;
 
 export default function AdminShell({
   user,
@@ -31,6 +37,8 @@ export default function AdminShell({
   user: AdminUser;
   children: React.ReactNode;
 }) {
+  const { t } = useTranslation('common');
+  const { t: tAdmin } = useTranslation('admin');
   const pathname = usePathname();
   const selected =
     [...ITEMS]
@@ -47,14 +55,14 @@ export default function AdminShell({
             level={5}
             style={{ padding: '16px 24px', margin: 0 }}
           >
-            Scraper admin
+            {tAdmin('title')}
           </Typography.Title>
           <Menu
             mode="inline"
             selectedKeys={[selected]}
             items={ITEMS.map((item) => ({
               ...item,
-              label: <Link href={item.key}>{item.label}</Link>
+              label: <Link href={item.key}>{tAdmin(item.label)}</Link>
             }))}
           />
         </Layout.Sider>
@@ -68,13 +76,14 @@ export default function AdminShell({
               gap={12}
               style={{ height: '100%' }}
             >
+              <LanguageSwitch type="text" />
               <ThemeSwitch type="text" />
               {user.image && <Avatar size="small" src={user.image} alt="" />}
               <Typography.Text>{user.name}</Typography.Text>
               <form action={signOutUser}>
                 <input type="hidden" name="returnTo" value="/" />
                 <Button htmlType="submit" icon={<LogoutOutlined />} type="text">
-                  Sign out
+                  {t('signOut')}
                 </Button>
               </form>
             </Flex>

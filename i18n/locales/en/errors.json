@@ -1,0 +1,99 @@
+{
+  "somethingWentWrong": "Something went wrong",
+  "requestFailed": "Request failed ({{status}})",
+  "invalidOrigin": "Invalid origin",
+  "notSignedIn": "Not signed in",
+  "notAdmin": "You are not an admin",
+  "invalidJson": "Invalid JSON body",
+  "invalidParam": "Invalid {{name}}",
+  "mustBeBoolean": "{{name}} must be true or false",
+  "modeCrawlerOrList": "mode must be crawler or list",
+  "nothingToUpdate": "Nothing to update",
+  "nameLength": "The name must be 2 to 255 characters",
+  "invalidConfig": "Invalid config: {{errors}}",
+  "api": {
+    "tokenInvalid": "The API token is not valid",
+    "tokenRequired": "An API token is required",
+    "tooManyVisitors": "Too many new visitors from this address, try again later",
+    "unavailable": "The API is not available",
+    "tooManyRequests": "Too many requests"
+  },
+  "apiUsers": {
+    "notFound": "API user not found",
+    "enterName": "Enter a name",
+    "adminNeedsEmail": "An admin needs an email address to sign in",
+    "ownAdminAccess": "You can not remove your own admin access, ask another admin",
+    "invalidEmail": "Invalid email",
+    "limitRange": "{{name}} must be a whole number from 1 to 10000000",
+    "emailTaken": "Another user has that email address",
+    "visitorTokens": "Website visitors get their tokens automatically",
+    "tokenNotFound": "The token does not exist or is already revoked"
+  },
+  "jobs": {
+    "notFound": "Job not found",
+    "selectStore": "Select at least one store",
+    "alreadyFinished": "The job has already finished"
+  },
+  "logs": {
+    "invalidLevel": "Invalid level",
+    "tooManyLabels": "Too many labels",
+    "searchTooLong": "The search is too long",
+    "startBeforeEnd": "start must be before end",
+    "rangeTooLong": "The time range can be 30 days at most",
+    "invalidSource": "Invalid source",
+    "storeGone": "The store of the job no longer exists"
+  },
+  "schedules": {
+    "expressionTooLong": "The expression is too long",
+    "invalid": "Invalid schedule: {{errors}}",
+    "notFound": "The schedule does not exist yet, it is created when the scraper starts"
+  },
+  "stores": {
+    "notFound": "Store not found",
+    "nameExists": "A store named {{name}} already exists",
+    "nameTaken": "Another store has that name",
+    "enterProductUrl": "Enter the url of a product page",
+    "urlNotOnSite": "The url must be on {{site}}",
+    "textRequired": "text is required",
+    "commitMessage": "Describe the change in the commit message"
+  },
+  "github": {
+    "repoNotSet": "GITHUB_CONFIG_REPO is not set",
+    "failed": "GitHub returned {{status}}",
+    "conflict": "The config was changed by someone else. Reload it and apply your changes again.",
+    "invalidCommit": "Invalid commit",
+    "commitNotFound": "Commit not found"
+  },
+  "loki": {
+    "notConfigured": "Loki is not configured, set LOKI_URL",
+    "unreachable": "Loki is not reachable",
+    "failed": "Loki answered {{status}}: {{text}}"
+  },
+  "products": {
+    "invalidId": "Invalid product id",
+    "notFound": "Product not found",
+    "loadFailed": "Could not load the product"
+  },
+  "search": {
+    "failed": "The search failed",
+    "invalidRequest": "Invalid request",
+    "invalidAttribute": "Invalid attribute",
+    "notANumber": "{{value}} is not a number",
+    "notADate": "{{value}} is not a date",
+    "invalidCondition": "Invalid condition",
+    "invalidConditions": "Invalid conditions",
+    "tooShort": "Type at least two characters",
+    "invalidFilter": "Invalid filter",
+    "invalidFilters": "Invalid filters",
+    "invalidPriceRange": "Invalid price range",
+    "unknownFilter": "Unknown filter {{key}}",
+    "invalidSearch": "Invalid search"
+  },
+  "compare": {
+    "failed": "The comparison failed"
+  },
+  "prices": {
+    "invalidStart": "Invalid start date format",
+    "invalidEnd": "Invalid end date format"
+  }
+}

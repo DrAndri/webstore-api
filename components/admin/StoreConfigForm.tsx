@@ -14,6 +14,7 @@ import {
   Switch,
   Typography
 } from 'antd';
+import { Trans, useTranslation } from 'react-i18next';
 import { STRUCTURED_DATA_FIELDS } from '../../utils/admin/types';
 import { ConfigSection } from './configFormValues';
 
@@ -42,6 +43,7 @@ function SelectorItem({
   help?: React.ReactNode;
   required?: boolean;
 }) {
+  const { t } = useTranslation('stores');
   return (
     <Form.Item
       name={name}
@@ -49,7 +51,7 @@ function SelectorItem({
       extra={help}
       rules={
         required
-          ? [{ required: true, message: `${label} is required` }]
+          ? [{ required: true, message: t('configForm.required', { label }) }]
           : undefined
       }
     >
@@ -67,6 +69,7 @@ export default function StoreConfigForm({
   form: FormInstance;
   sections?: ConfigSection[];
 }) {
+  const { t } = useTranslation('stores');
   const type = Form.useWatch('type', form);
   const skuSource = Form.useWatch('skuSource', form);
   const useStructuredData = Form.useWatch('useStructuredData', form);
@@ -79,24 +82,24 @@ export default function StoreConfigForm({
     <Flex vertical gap={16}>
       <Card
         size="small"
-        title="Store website"
+        title={t('configForm.website')}
         style={{ display: show('basics') ? undefined : 'none' }}
       >
         <Form.Item
           name="startUrl"
-          label="Start url"
-          extra="The crawl starts here and only follows links on this site."
+          label={t('configForm.startUrl')}
+          extra={t('configForm.startUrlHelp')}
           rules={[
-            { required: true, message: 'Enter the url of the store' },
+            { required: true, message: t('configForm.startUrlRequired') },
             {
               type: 'url',
-              message: 'Enter a full url, e.g. https://example.is'
+              message: t('configForm.startUrlInvalid')
             }
           ]}
         >
           <Input placeholder="https://example.is" />
         </Form.Item>
-        <Form.Item name="type" label="How pages are loaded">
+        <Form.Item name="type" label={t('configForm.type')}>
           <Radio.Group
             style={{ display: 'flex', flexDirection: 'column', gap: 8 }}
             options={[
@@ -104,9 +107,9 @@ export default function StoreConfigForm({
                 value: 'httpcrawler',
                 label: (
                   <span>
-                    Plain HTML{' '}
+                    {t('configForm.plainHtml')}{' '}
                     <Typography.Text type="secondary">
-                      fast, use this when the product data is in the page source
+                      {t('configForm.plainHtmlHelp')}
                     </Typography.Text>
                   </span>
                 )
@@ -115,9 +118,9 @@ export default function StoreConfigForm({
                 value: 'crawler',
                 label: (
                   <span>
-                    Browser{' '}
+                    {t('configForm.browser')}{' '}
                     <Typography.Text type="secondary">
-                      slow, for stores that render products with JavaScript
+                      {t('configForm.browserHelp')}
                     </Typography.Text>
                   </span>
                 )
@@ -127,39 +130,43 @@ export default function StoreConfigForm({
         </Form.Item>
         <Form.Item
           name="productPageIdentifier"
-          label="Product page identifier"
+          label={t('configForm.identifier')}
           extra={
-            <>
-              Text that is only in the source of product pages. Most stores have
-              JSON-LD, try{' '}
-              <Typography.Link
-                onClick={() =>
-                  form.setFieldValue(
-                    'productPageIdentifier',
-                    '"@type":"Product"'
-                  )
-                }
-              >
-                <code>&quot;@type&quot;:&quot;Product&quot;</code>
-              </Typography.Link>{' '}
-              or{' '}
-              <Typography.Link
-                onClick={() =>
-                  form.setFieldValue(
-                    'productPageIdentifier',
-                    '"@type": "Product"'
-                  )
-                }
-              >
-                <code>&quot;@type&quot;: &quot;Product&quot;</code>
-              </Typography.Link>
-              .
-            </>
+            <Trans
+              t={t}
+              i18nKey="configForm.identifierHelp"
+              components={{
+                compact: (
+                  <Typography.Link
+                    onClick={() =>
+                      form.setFieldValue(
+                        'productPageIdentifier',
+                        '"@type":"Product"'
+                      )
+                    }
+                  >
+                    <code>&quot;@type&quot;:&quot;Product&quot;</code>
+                  </Typography.Link>
+                ),
+                spaced: (
+                  <Typography.Link
+                    onClick={() =>
+                      form.setFieldValue(
+                        'productPageIdentifier',
+                        '"@type": "Product"'
+                      )
+                    }
+                  >
+                    <code>&quot;@type&quot;: &quot;Product&quot;</code>
+                  </Typography.Link>
+                )
+              }}
+            />
           }
           rules={[
             {
               required: true,
-              message: 'Enter text that identifies product pages'
+              message: t('configForm.identifierRequired')
             }
           ]}
         >
@@ -169,63 +176,61 @@ export default function StoreConfigForm({
 
       <Card
         size="small"
-        title="Which pages are crawled"
+        title={t('configForm.crawling')}
         style={{ display: show('crawling') ? undefined : 'none' }}
       >
         <Form.Item
           name="urlWhitelist"
-          label="Only follow paths starting with"
-          extra="Leave empty to follow every link on the site. Type a path and press enter, e.g. /vorur"
+          label={t('configForm.whitelist')}
+          extra={t('configForm.whitelistHelp')}
         >
           {tags('/vorur')}
         </Form.Item>
         <Form.Item
           name="urlBlacklist"
-          label="Never follow paths starting with"
-          extra="Pages that are not products, e.g. /blogg, /um-okkur, /karfa"
+          label={t('configForm.blacklist')}
+          extra={t('configForm.blacklistHelp')}
         >
           {tags('/blogg')}
         </Form.Item>
         <Form.Item
           name="startUrls"
-          label="More start pages"
-          extra="The crawl starts from these too, e.g. a product listing with a larger page size than the site links to."
+          label={t('configForm.startUrls')}
+          extra={t('configForm.startUrlsHelp')}
         >
           {tags('https://example.is/vorur?PageSize=100')}
         </Form.Item>
         {!browser && (
           <Form.Item
             name="sitemapUrls"
-            label="Sitemaps"
-            extra="Product urls in these sitemaps are crawled too. Useful when category pages do not link to every product."
+            label={t('configForm.sitemaps')}
+            extra={t('configForm.sitemapsHelp')}
           >
             {tags('https://example.is/sitemap.xml')}
           </Form.Item>
         )}
-        <Typography.Text strong>Product feed</Typography.Text>
+        <Typography.Text strong>{t('configForm.productFeed')}</Typography.Text>
         <Typography.Paragraph type="secondary" style={{ fontSize: 12 }}>
-          A JSON endpoint that lists the products, for stores whose category
-          pages load them with JavaScript. The product page of each item is
-          crawled.
+          {t('configForm.productFeedHelp')}
         </Typography.Paragraph>
         <Form.Item
           name={['productFeed', 'url']}
-          label="Feed url"
-          extra="Absolute or relative to the start url."
+          label={t('configForm.feedUrl')}
+          extra={t('configForm.feedUrlHelp')}
         >
           <Input style={mono} allowClear />
         </Form.Item>
         <Form.Item
           name={['productFeed', 'items']}
-          label="Path to the items"
-          extra='Dot path to the list of products, a JSON string on the way is parsed, e.g. "d.data".'
+          label={t('configForm.feedItems')}
+          extra={t('configForm.feedItemsHelp')}
         >
           <Input style={mono} allowClear />
         </Form.Item>
         <Form.Item
           name={['productFeed', 'productUrl']}
-          label="Product page url"
-          extra="{field} is replaced with that field of the item, {field:5} pads it with zeros to 5 characters, e.g. /vara?id={ProductID}"
+          label={t('configForm.feedProductUrl')}
+          extra={t('configForm.feedProductUrlHelp')}
         >
           <Input style={mono} allowClear />
         </Form.Item>
@@ -233,16 +238,16 @@ export default function StoreConfigForm({
           <>
             <Form.Item
               name="scrollPagesToBottom"
-              label="Scroll to the bottom of pages"
+              label={t('configForm.scroll')}
               valuePropName="checked"
-              extra="For stores that load more products while scrolling."
+              extra={t('configForm.scrollHelp')}
             >
               <Switch />
             </Form.Item>
             <SelectorItem
               name={['menuClicker']}
-              label="Menu button"
-              help="Clicked on the start page to open a menu that holds the category links."
+              label={t('configForm.menuButton')}
+              help={t('configForm.menuButtonHelp')}
             />
           </>
         )}
@@ -251,7 +256,7 @@ export default function StoreConfigForm({
       {!browser && (
         <Card
           size="small"
-          title="Structured data"
+          title={t('configForm.structuredData')}
           extra={
             <Form.Item name="useStructuredData" valuePropName="checked" noStyle>
               <Switch />
@@ -260,32 +265,30 @@ export default function StoreConfigForm({
           style={{ display: show('structured') ? undefined : 'none' }}
         >
           <Typography.Paragraph type="secondary">
-            Reads the product from data embedded in the page, which changes less
-            often than the page layout. CSS selectors below fill in what is
-            missing.
+            {t('configForm.structuredDataHelp')}
           </Typography.Paragraph>
           {useStructuredData && (
             <>
               <Form.Item
                 name={['structuredData', 'source']}
-                label="Source"
+                label={t('configForm.source')}
                 initialValue="jsonld"
               >
                 <Radio.Group
                   options={[
-                    { value: 'jsonld', label: 'JSON-LD (schema.org Product)' },
+                    { value: 'jsonld', label: t('configForm.jsonLd') },
                     {
                       value: 'nextdata',
-                      label: 'Next.js page data (__NEXT_DATA__)'
+                      label: t('configForm.nextData')
                     }
                   ]}
                 />
               </Form.Item>
-              <Typography.Text strong>Field overrides</Typography.Text>
+              <Typography.Text strong>
+                {t('configForm.fieldOverrides')}
+              </Typography.Text>
               <Typography.Paragraph type="secondary" style={{ fontSize: 12 }}>
-                Read a field from other dot paths (relative to the Product for
-                JSON-LD, to the root for Next.js data), or skip it to use the
-                CSS selector instead.
+                {t('configForm.fieldOverridesHelp')}
               </Typography.Paragraph>
               <Form.List name={['structuredData', 'fields']}>
                 {(fields, { add, remove }) => (
@@ -295,7 +298,7 @@ export default function StoreConfigForm({
                         <Form.Item name={[field.name, 'field']} noStyle>
                           <Select
                             style={{ width: 140 }}
-                            placeholder="Field"
+                            placeholder={t('configForm.field')}
                             options={STRUCTURED_DATA_FIELDS.map((f) => ({
                               value: f,
                               label: f
@@ -310,8 +313,14 @@ export default function StoreConfigForm({
                           <Select
                             style={{ width: 150 }}
                             options={[
-                              { value: 'skip', label: 'Skip, use CSS' },
-                              { value: 'paths', label: 'Read from' }
+                              {
+                                value: 'skip',
+                                label: t('configForm.skipUseCss')
+                              },
+                              {
+                                value: 'paths',
+                                label: t('configForm.readFrom')
+                              }
                             ]}
                           />
                         </Form.Item>
@@ -338,7 +347,7 @@ export default function StoreConfigForm({
                         <Button
                           icon={<DeleteOutlined />}
                           onClick={() => remove(field.name)}
-                          aria-label="Remove override"
+                          aria-label={t('configForm.removeOverride')}
                         />
                       </Flex>
                     ))}
@@ -347,15 +356,15 @@ export default function StoreConfigForm({
                       onClick={() => add({ mode: 'skip' })}
                       style={{ alignSelf: 'start' }}
                     >
-                      Add override
+                      {t('configForm.addOverride')}
                     </Button>
                   </Flex>
                 )}
               </Form.List>
               <Form.Item
                 name={['structuredData', 'categorySplitter']}
-                label="Category separator"
-                extra='When categories are one string, e.g. "|" for Snyrtivara|Förðun|Varir'
+                label={t('configForm.categorySeparator')}
+                extra={t('configForm.categorySeparatorHelp')}
                 style={{ marginTop: 16 }}
               >
                 <Input style={{ ...mono, width: 120 }} />
@@ -367,54 +376,64 @@ export default function StoreConfigForm({
 
       <Card
         size="small"
-        title="Product page selectors"
+        title={t('configForm.selectors')}
         style={{ display: show('selectors') ? undefined : 'none' }}
       >
         <Typography.Paragraph type="secondary">
-          CSS selectors relative to the product container.
+          {t('configForm.selectorsHelp')}{' '}
           {browser
-            ? ' Playwright selectors such as :has-text("kr.") work too.'
-            : ' Cheerio selectors such as :contains("kr.") work too.'}{' '}
-          Leave a field empty to skip it.
+            ? t('configForm.selectorsHelpBrowser')
+            : t('configForm.selectorsHelpHtml')}{' '}
+          {t('configForm.selectorsHelpSkip')}
         </Typography.Paragraph>
         <SelectorItem
           name={['selectors', 'productPage']}
-          label="Product container"
-          help="The element holding the product, e.g. main or #product"
+          label={t('configForm.productContainer')}
+          help={t('configForm.productContainerHelp')}
           required
         />
         <Row gutter={16}>
           <Col xs={24} md={12}>
-            <SelectorItem name={['selectors', 'name']} label="Name" />
+            <SelectorItem
+              name={['selectors', 'name']}
+              label={t('configForm.name')}
+            />
           </Col>
           <Col xs={24} md={12}>
-            <SelectorItem name={['selectors', 'brand']} label="Brand" />
+            <SelectorItem
+              name={['selectors', 'brand']}
+              label={t('configForm.brand')}
+            />
           </Col>
           <Col xs={24} md={12}>
             <SelectorItem
               name={['selectors', 'listPrice']}
-              label="Price"
+              label={t('configForm.price')}
               help={
                 useStructuredData && !browser
-                  ? 'Optional when structured data has the price'
-                  : 'The current price'
+                  ? t('configForm.priceOptional')
+                  : t('configForm.priceHelp')
               }
             />
           </Col>
           <Col xs={24} md={12}>
             <SelectorItem
               name={['selectors', 'oldPrice']}
-              label="Price before sale"
-              help="Only shown when the product is on sale"
+              label={t('configForm.oldPrice')}
+              help={t('configForm.oldPriceHelp')}
             />
           </Col>
         </Row>
-        <Form.Item name="skuSource" label="SKU" initialValue="css">
+        <Form.Item
+          name="skuSource"
+          label={t('configForm.sku')}
+          initialValue="css"
+        >
           <Radio.Group
             options={[
-              { value: 'css', label: 'CSS selector' },
-              { value: 'url', label: 'Part of the url' },
-              { value: 'attribute', label: 'Element attribute' }
+              { value: 'css', label: t('configForm.skuCss') },
+              { value: 'url', label: t('configForm.skuUrl') },
+              { value: 'attribute', label: t('configForm.skuAttribute') }
             ]}
           />
         </Form.Item>
@@ -422,16 +441,16 @@ export default function StoreConfigForm({
           <Flex gap={8} wrap>
             <Form.Item
               name={['skuUrl', 'delimiter']}
-              label="Split the url at"
+              label={t('configForm.splitUrlAt')}
               rules={[{ required: true }]}
             >
               <Input style={{ ...mono, width: 120 }} placeholder="/" />
             </Form.Item>
             <Form.Item
               name={['skuUrl', 'index']}
-              label="Take part"
+              label={t('configForm.takePart')}
               initialValue="last"
-              extra="first, last or a number"
+              extra={t('configForm.takePartHelp')}
             >
               <Input style={{ ...mono, width: 120 }} />
             </Form.Item>
@@ -440,7 +459,7 @@ export default function StoreConfigForm({
           <Flex gap={8} wrap>
             <Form.Item
               name={['skuAttribute', 'selector']}
-              label="Element"
+              label={t('configForm.element')}
               rules={[{ required: true }]}
             >
               <Input
@@ -450,7 +469,7 @@ export default function StoreConfigForm({
             </Form.Item>
             <Form.Item
               name={['skuAttribute', 'attribute']}
-              label="Attribute"
+              label={t('configForm.attribute')}
               rules={[{ required: true }]}
             >
               <Input style={{ ...mono, width: 160 }} placeholder="data-sku" />
@@ -461,7 +480,7 @@ export default function StoreConfigForm({
             name="skuCss"
             extra={
               useStructuredData && !browser
-                ? 'Optional when structured data has the sku'
+                ? t('configForm.skuOptional')
                 : undefined
             }
           >
@@ -470,32 +489,35 @@ export default function StoreConfigForm({
         )}
         <Row gutter={16}>
           <Col xs={24} md={12}>
-            <SelectorItem name={['selectors', 'image']} label="Image" />
+            <SelectorItem
+              name={['selectors', 'image']}
+              label={t('configForm.image')}
+            />
           </Col>
           <Col xs={24} md={12}>
             <SelectorItem
               name={['selectors', 'imageAttribute']}
-              label="Image url attribute"
-              help="Defaults to src, e.g. data-src for lazy loaded images"
+              label={t('configForm.imageAttribute')}
+              help={t('configForm.imageAttributeHelp')}
             />
           </Col>
           <Col xs={24}>
             <SelectorItem
               name={['selectors', 'description']}
-              label="Description"
+              label={t('configForm.description')}
             />
           </Col>
           <Col xs={24} md={12}>
             <SelectorItem
               name={['selectors', 'inStock']}
-              label="Stock status"
+              label={t('configForm.inStock')}
             />
           </Col>
           <Col xs={24} md={12}>
             <Form.Item
               name={['selectors', 'inStockText']}
-              label="In stock when it contains"
-              extra="Text of the stock status that means the product is in stock"
+              label={t('configForm.inStockText')}
+              extra={t('configForm.inStockTextHelp')}
             >
               <Input allowClear />
             </Form.Item>
@@ -503,21 +525,21 @@ export default function StoreConfigForm({
           <Col xs={24} md={12}>
             <SelectorItem
               name={['selectors', 'categories']}
-              label="Categories"
-              help="Usually the breadcrumb"
+              label={t('configForm.categories')}
+              help={t('configForm.categoriesHelp')}
             />
           </Col>
           <Col xs={24} md={6}>
             <SelectorItem
               name={['selectors', 'categoryItemLocator']}
-              label="Category item"
-              help="Each item in it, e.g. li"
+              label={t('configForm.categoryItem')}
+              help={t('configForm.categoryItemHelp')}
             />
           </Col>
           <Col xs={24} md={6}>
             <Form.Item
               name={['selectors', 'categorySplitter']}
-              label="Category separator"
+              label={t('configForm.categorySeparator')}
             >
               <Input style={mono} allowClear />
             </Form.Item>
@@ -526,8 +548,8 @@ export default function StoreConfigForm({
         {browser && (
           <Form.Item
             name={['selectors', 'clickers']}
-            label="Click before scraping"
-            extra="Selectors of tabs or buttons that reveal the description or specifications"
+            label={t('configForm.clickers')}
+            extra={t('configForm.clickersHelp')}
           >
             {tags('button:has-text("Tæknilýsing")')}
           </Form.Item>
@@ -536,7 +558,7 @@ export default function StoreConfigForm({
 
       <Card
         size="small"
-        title="Specifications"
+        title={t('configForm.specifications')}
         extra={
           <Form.Item name="useAttributes" valuePropName="checked" noStyle>
             <Switch />
@@ -545,51 +567,51 @@ export default function StoreConfigForm({
         style={{ display: show('attributes') ? undefined : 'none' }}
       >
         <Typography.Paragraph type="secondary">
-          The table of product attributes, e.g. size, weight and color.
+          {t('configForm.specificationsHelp')}
         </Typography.Paragraph>
         {useAttributes && (
           <Row gutter={16}>
             <Col xs={24}>
               <SelectorItem
                 name={['selectors', 'attributes', 'attributesTable']}
-                label="Table"
+                label={t('configForm.table')}
                 required
               />
             </Col>
             <Col xs={24} md={12}>
               <SelectorItem
                 name={['selectors', 'attributes', 'attributeGroup']}
-                label="Group"
-                help="Optional, when the table has sections"
+                label={t('configForm.group')}
+                help={t('configForm.groupHelp')}
               />
             </Col>
             <Col xs={24} md={12}>
               <SelectorItem
                 name={['selectors', 'attributes', 'attributeGroupName']}
-                label="Group name"
+                label={t('configForm.groupName')}
               />
             </Col>
             <Col xs={24} md={8}>
               <SelectorItem
                 name={['selectors', 'attributes', 'attribute']}
-                label="Row"
-                help="e.g. tr"
+                label={t('configForm.row')}
+                help={t('configForm.rowHelp')}
                 required
               />
             </Col>
             <Col xs={24} md={8}>
               <SelectorItem
                 name={['selectors', 'attributes', 'attributeLabel']}
-                label="Name in row"
-                help="e.g. td:nth-child(1)"
+                label={t('configForm.rowName')}
+                help={t('configForm.rowNameHelp')}
                 required
               />
             </Col>
             <Col xs={24} md={8}>
               <SelectorItem
                 name={['selectors', 'attributes', 'attributeValue']}
-                label="Value in row"
-                help="e.g. td:nth-child(2)"
+                label={t('configForm.rowValue')}
+                help={t('configForm.rowValueHelp')}
                 required
               />
             </Col>
@@ -599,12 +621,11 @@ export default function StoreConfigForm({
 
       <Card
         size="small"
-        title="Clean up the SKU"
+        title={t('configForm.sanitizers')}
         style={{ display: show('sanitizers') ? undefined : 'none' }}
       >
         <Typography.Paragraph type="secondary">
-          Replacements applied to the SKU in order, e.g. remove a
-          &quot;Vörunúmer:&quot; prefix.
+          {t('configForm.sanitizersHelp')}
         </Typography.Paragraph>
         <Form.List name="skuSanitizers">
           {(fields, { add, remove }) => (
@@ -616,7 +637,10 @@ export default function StoreConfigForm({
                     noStyle
                     rules={[{ required: true }]}
                   >
-                    <Input style={{ ...mono, width: 220 }} placeholder="Find" />
+                    <Input
+                      style={{ ...mono, width: 220 }}
+                      placeholder={t('configForm.find')}
+                    />
                   </Form.Item>
                   →
                   <Form.Item
@@ -626,13 +650,13 @@ export default function StoreConfigForm({
                   >
                     <Input
                       style={{ ...mono, width: 220 }}
-                      placeholder="Replace with (empty removes)"
+                      placeholder={t('configForm.replaceWith')}
                     />
                   </Form.Item>
                   <Button
                     icon={<DeleteOutlined />}
                     onClick={() => remove(field.name)}
-                    aria-label="Remove replacement"
+                    aria-label={t('configForm.removeReplacement')}
                   />
                 </Flex>
               ))}
@@ -641,7 +665,7 @@ export default function StoreConfigForm({
                 onClick={() => add({ match: '', replace: '' })}
                 style={{ alignSelf: 'start' }}
               >
-                Add replacement
+                {t('configForm.addReplacement')}
               </Button>
             </Flex>
           )}

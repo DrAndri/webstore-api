@@ -2,26 +2,16 @@
 import { useEffect, useState } from 'react';
 import { Select, Spin, Typography } from 'antd';
 import type { SelectProps } from 'antd';
+import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import { DefaultOptionType } from 'antd/es/select';
+import { useFormat } from '../I18n/I18nProvider';
 
 export interface SkuOptions {
   options: DefaultOptionType[];
   // How many matched, options has the first few of them
   total: number;
 }
-
-const countFormat = new Intl.NumberFormat('is-IS');
-// Numbers ending in 1, except 11, take the singular in Icelandic
-const isSingular = (n: number) => n % 10 === 1 && n % 100 !== 11;
-
-const countText = (shown: number, total: number) => {
-  const singular = isSingular(total);
-  const totalText = countFormat.format(total);
-  return shown < total
-    ? `${shown} af ${totalText} ${singular ? 'niðurstöðu' : 'niðurstöðum'}`
-    : `${totalText} ${singular ? 'niðurstaða' : 'niðurstöður'}`;
-};
 
 export interface DebounceSelectProps<ValueType> extends Omit<
   SelectProps<ValueType>,
@@ -36,6 +26,18 @@ export default function SkuSelector({
   debounceTimeout = 500,
   ...props
 }: DebounceSelectProps<DefaultOptionType | DefaultOptionType[]>) {
+  const { t } = useTranslation('site');
+  const format = useFormat();
+  // The plural follows the total, in Icelandic numbers ending in 1, except
+  // 11, take the singular
+  const countText = (shown: number, total: number) =>
+    shown < total
+      ? t('skuSelector.countOf', {
+          count: total,
+          shown,
+          total: format.number(total)
+        })
+      : t('skuSelector.count', { count: total, total: format.number(total) });
   const [term, setTerm] = useState('');
   const [debouncedTerm, setDebouncedTerm] = useState('');
   useEffect(() => {
@@ -63,7 +65,7 @@ export default function SkuSelector({
         fetching && term ? (
           <Spin size="small" />
         ) : debouncedTerm && data ? (
-          'Engar niðurstöður'
+          t('skuSelector.noResults')
         ) : null
       }
       popupRender={(menu) => (
@@ -81,7 +83,7 @@ export default function SkuSelector({
       )}
       mode="multiple"
       allowClear
-      placeholder="Leitaðu að vörunúmeri..."
+      placeholder={t('skuSelector.placeholder')}
       style={{ minWidth: 300, flex: 1 }}
       {...props}
       options={data?.options ?? []}

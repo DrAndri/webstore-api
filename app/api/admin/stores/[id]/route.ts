@@ -31,7 +31,7 @@ const getStore = async (id: number) => {
     'SELECT id, name, scraperEnabled, apiEnabled, createdDate, lastScanDate FROM stores WHERE id = ?',
     [id]
   );
-  if (!store) throw new HttpError(404, 'Store not found');
+  if (!store) throw new HttpError(404, { key: 'stores.notFound' });
   return {
     ...store,
     scraperEnabled: !!store.scraperEnabled,
@@ -71,28 +71,33 @@ export const PATCH = withAdmin<Context>(async (request, { params }) => {
   if (body.name !== undefined) {
     const name = body.name.trim();
     if (name.length < 2 || name.length > 255)
-      throw new HttpError(400, 'The name must be 2 to 255 characters');
+      throw new HttpError(400, { key: 'nameLength' });
     updates.push('name = ?');
     values.push(name);
   }
   for (const flag of ['scraperEnabled', 'apiEnabled'] as const) {
     if (body[flag] !== undefined) {
       if (typeof body[flag] !== 'boolean')
-        throw new HttpError(400, `${flag} must be true or false`);
+        throw new HttpError(400, {
+          key: 'mustBeBoolean',
+          values: { name: flag }
+        });
       updates.push(`${flag} = ?`);
       values.push(body[flag]);
     }
   }
-  if (updates.length === 0) throw new HttpError(400, 'Nothing to update');
+  if (updates.length === 0)
+    throw new HttpError(400, { key: 'nothingToUpdate' });
   try {
     const result = await adminQuery<UpsertResult>(
       `UPDATE stores SET ${updates.join(', ')} WHERE id = ?`,
       [...values, id]
     );
-    if (result.affectedRows === 0) throw new HttpError(404, 'Store not found');
+    if (result.affectedRows === 0)
+      throw new HttpError(404, { key: 'stores.notFound' });
   } catch (e) {
     if ((e as { code?: string }).code === 'ER_DUP_ENTRY')
-      throw new HttpError(409, 'Another store has that name');
+      throw new HttpError(409, { key: 'stores.nameTaken' });
     throw e;
   }
   // The website lists the names of the stores in the public search

@@ -17,8 +17,10 @@ import {
 } from 'antd';
 import dayjs, { Dayjs } from 'dayjs';
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import { LOG_LEVELS, LogEntry, LogsResponse } from '../../utils/admin/types';
+import { useFormat } from '../I18n/I18nProvider';
 import { fetchJson } from './api';
 
 const POLL_INTERVAL_MS = 3000;
@@ -101,6 +103,8 @@ function LogLine({
   onLabel: (label: string) => void;
 }) {
   const { token } = theme.useToken();
+  const { t } = useTranslation('admin');
+  const format = useFormat();
   const [open, setOpen] = useState(false);
   const { stack, ...fields } = entry.fields;
   const hasDetails = stack !== undefined || Object.keys(fields).length > 0;
@@ -119,7 +123,9 @@ function LogLine({
           style={{ whiteSpace: 'nowrap', fontFamily: 'monospace' }}
           title={entry.time}
         >
-          {dayjs(entry.time).format('MMM D HH:mm:ss.SSS')}
+          {dayjs(entry.time)
+            .locale(format.language)
+            .format(t('logs.timeFormat'))}
         </Typography.Text>
         <Tag
           color={LEVEL_COLORS[entry.level]}
@@ -137,7 +143,7 @@ function LogLine({
               textOverflow: 'ellipsis',
               flexShrink: 0
             }}
-            title={`Filter by ${entry.label ?? entry.page}`}
+            title={t('logs.filterBy', { label: entry.label ?? entry.page })}
             onClick={(event) => {
               event.stopPropagation();
               onLabel((entry.label ?? entry.page)!);
@@ -182,6 +188,8 @@ function LogLine({
 // The scraper's log in Loki, filtered by level, label and text, following new
 // lines live
 export default function LogViewer(props: LogViewerProps) {
+  const { t } = useTranslation('admin');
+  const format = useFormat();
   const isApp = props.source === 'app';
   const [levels, setLevels] = useState<string[]>([]);
   const [labels, setLabels] = useState<string[]>(
@@ -253,8 +261,7 @@ export default function LogViewer(props: LogViewerProps) {
         const body = (await response.json()) as LogsResponse & {
           error?: string;
         };
-        if (!response.ok)
-          throw new Error(body.error ?? 'Loading the log failed');
+        if (!response.ok) throw new Error(body.error ?? t('logs.loadFailed'));
         setView({ key, ...body, range: loadedRange });
         setOlderError(undefined);
       })
@@ -383,7 +390,7 @@ export default function LogViewer(props: LogViewerProps) {
         <Select
           mode="multiple"
           allowClear
-          placeholder="All levels"
+          placeholder={t('logs.allLevels')}
           style={{ minWidth: 160 }}
           value={levels}
           onChange={setLevels}
@@ -397,7 +404,7 @@ export default function LogViewer(props: LogViewerProps) {
               ? { optionFilterProp: 'value' }
               : { filterOption: false, onSearch: setPageSearch }
           }
-          placeholder={isApp ? 'All labels' : 'All pages'}
+          placeholder={isApp ? t('logs.allLabels') : t('logs.allPages')}
           style={{ minWidth: 220, maxWidth: 480 }}
           value={labels}
           onChange={(value) => {
@@ -419,7 +426,7 @@ export default function LogViewer(props: LogViewerProps) {
             value: option.value,
             label:
               option.count !== undefined
-                ? `${option.value} (${option.count.toLocaleString('is-IS')})`
+                ? `${option.value} (${format.number(option.count)})`
                 : isApp
                   ? option.value
                   : shortPage(option.value),
@@ -428,7 +435,7 @@ export default function LogViewer(props: LogViewerProps) {
         />
         <Input.Search
           allowClear
-          placeholder="Search the lines"
+          placeholder={t('logs.search')}
           style={{ width: 240 }}
           value={searchInput}
           onChange={(event) => {
@@ -447,7 +454,10 @@ export default function LogViewer(props: LogViewerProps) {
               options={[
                 ...(Object.keys(PRESETS) as Preset[]),
                 ...('preset' in range ? [] : ['custom' as const])
-              ]}
+              ].map((value) => ({
+                value,
+                label: t(`logs.presets.${value}`)
+              }))}
             />
             <DatePicker.RangePicker
               showTime
@@ -475,13 +485,13 @@ export default function LogViewer(props: LogViewerProps) {
             onChange={setLive}
           />
           <Typography.Text type={canFollow ? undefined : 'secondary'}>
-            Live
+            {t('logs.live')}
           </Typography.Text>
         </Flex>
         <Button
           icon={<ReloadOutlined />}
           onClick={() => setReloads(reloads + 1)}
-          title="Reload"
+          title={t('logs.reload')}
         />
       </Flex>
 
@@ -489,9 +499,12 @@ export default function LogViewer(props: LogViewerProps) {
       {view && !loading && view.query && (
         <Flex gap={8} wrap align="baseline">
           <Typography.Text type="secondary">
-            {view.entries.length.toLocaleString('is-IS')} lines
-            {view.hasMore ? ', older lines not loaded' : ''}
-            {following ? ' · following new lines' : ''}
+            {t('logs.lines', {
+              count: view.entries.length,
+              number: format.number(view.entries.length)
+            })}
+            {view.hasMore ? `, ${t('logs.olderNotLoaded')}` : ''}
+            {following ? ` · ${t('logs.following')}` : ''}
           </Typography.Text>
           <Typography.Text
             type="secondary"
@@ -511,8 +524,8 @@ export default function LogViewer(props: LogViewerProps) {
           <Empty
             description={
               props.source === 'scan'
-                ? 'No lines. Scans log pages only with ENABLE_SCRAPER_LOGGING=true.'
-                : 'No lines'
+                ? t('logs.noLinesScan')
+                : t('logs.noLines')
             }
           />
         ) : (
@@ -526,7 +539,7 @@ export default function LogViewer(props: LogViewerProps) {
       {olderError && <Alert type="error" showIcon title={olderError} />}
       {view?.hasMore && !loading && (
         <Button loading={loadingOlder} onClick={() => void loadOlder()}>
-          Load older lines
+          {t('logs.loadOlder')}
         </Button>
       )}
     </Flex>

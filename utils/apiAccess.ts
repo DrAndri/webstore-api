@@ -12,6 +12,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { queryPool } from './mariadb';
 import { auth } from '../auth';
 import { cookieOptions, randomToken, sign, verify } from './signedTokens';
+import { getTranslation } from '../i18n/server';
+import { ErrorKey, HttpError } from './httpError';
 
 const VISITOR_COOKIE = 'api-visitor';
 const VISITOR_TOKEN_DAYS = 30;
@@ -312,11 +314,20 @@ const secondsToMidnight = () => {
   return (midnight - now.getTime()) / 1000;
 };
 
-const error = (
+// An error response of the public api, { error: message }. The message is a
+// key of the errors namespace or an HttpError, in the language of the request:
+// Icelandic for clients that send neither the lang cookie nor Accept-Language.
+export const apiError = async (
   status: number,
-  message: string,
+  message: ErrorKey | HttpError,
   headers: Record<string, string> = {}
-) => NextResponse.json({ error: message }, { status, headers });
+) => {
+  const { t } = await getTranslation('errors');
+  return NextResponse.json(
+    { error: message instanceof HttpError ? message.translate(t) : t(message) },
+    { status, headers }
+  );
+};
 
 // Requests this minute and today per token key, for the admin interface
 export const liveUsage = () => {
@@ -349,7 +360,7 @@ export const withApiAccess =
       if (token) {
         const found = await lookupToken(token);
         if (!found || found.revoked || !found.enabled)
-          return error(401, 'The API token is not valid');
+          return apiError(401, 'api.tokenInvalid');
         key = `t${found.tokenId}`;
         limits = found;
         tokenId = found.tokenId;
@@ -362,8 +373,7 @@ export const withApiAccess =
         limits = user;
       } else if (!token) {
         const anonymousUser = await anonymousLimits();
-        if (!anonymousUser?.enabled)
-          return error(401, 'An API token is required');
+        if (!anonymousUser?.enabled) return apiError(401, 'api.tokenRequired');
         anonymous = true;
         let visitor = (
           await verify<{ v: string }>(
@@ -372,13 +382,9 @@ export const withApiAccess =
         )?.v;
         if (!visitor) {
           if (!mayIssueVisitorToken(clientIp(request)))
-            return error(
-              429,
-              'Too many new visitors from this address, try again later',
-              {
-                'Retry-After': '3600'
-              }
-            );
+            return apiError(429, 'api.tooManyVisitors', {
+              'Retry-After': '3600'
+            });
           visitor = randomToken(16);
           visitorCookie = await sign(
             { v: visitor },
@@ -390,12 +396,12 @@ export const withApiAccess =
       }
     } catch (e) {
       console.error('Checking api access failed', e);
-      return error(503, 'The API is not available');
+      return apiError(503, 'api.unavailable');
     }
 
     const usage = await consume(key!, limits!, tokenId, anonymous);
     if (!usage.allowed)
-      return error(429, 'Too many requests', {
+      return apiError(429, 'api.tooManyRequests', {
         ...usage.headers,
         'Retry-After': String(Math.ceil(usage.retryAfter))
       });
@@ -403,7 +409,7 @@ export const withApiAccess =
     const response = await handler(request, context);
     // Response.error() has status 0, which a NextResponse can not have
     if (response.type === 'error' || response.status === 0)
-      return error(500, 'Something went wrong');
+      return apiError(500, 'somethingWentWrong');
     const result = new NextResponse(response.body, response);
     for (const [name, value] of Object.entries(usage.headers))
       result.headers.set(name, value);

@@ -22,6 +22,7 @@ import {
 import dayjs from 'dayjs';
 import Link from 'next/link';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Bar,
   BarChart,
@@ -34,12 +35,15 @@ import {
 } from 'recharts';
 import useSWR from 'swr';
 import { ApiToken, ApiUserDetails } from '../../utils/admin/types';
-import { fetchJson, formatNumber, formatTime, fromNow, sendJson } from './api';
+import { useFormat } from '../I18n/I18nProvider';
+import { fetchJson, sendJson } from './api';
 import { TokenModal, UsageCell } from './ApiUsers';
 import useChartTheme from '../Theme/useChartTheme';
 import { SERIES_COLORS } from './charts';
 
 function UsageChart({ usage }: { usage: ApiUserDetails['usage'] }) {
+  const { t } = useTranslation('apiUsers');
+  const format = useFormat();
   const chart = useChartTheme();
   const days = Array.from({ length: 30 }, (_, i) => {
     const day = dayjs
@@ -74,12 +78,12 @@ function UsageChart({ usage }: { usage: ApiUserDetails['usage'] }) {
         <Tooltip
           {...chart.tooltip}
           cursor={{ fill: chart.cursor }}
-          formatter={(value, name) => [formatNumber(Number(value)), name]}
+          formatter={(value, name) => [format.number(Number(value)), name]}
         />
         <Legend iconType="circle" iconSize={8} />
         <Bar
           dataKey="requests"
-          name="Served"
+          name={t('user.served')}
           stackId="usage"
           fill={SERIES_COLORS[0]}
           stroke={chart.surface}
@@ -87,7 +91,7 @@ function UsageChart({ usage }: { usage: ApiUserDetails['usage'] }) {
         />
         <Bar
           dataKey="rejected"
-          name="Rejected"
+          name={t('user.rejected')}
           stackId="usage"
           fill={SERIES_COLORS[1]}
           stroke={chart.surface}
@@ -100,6 +104,8 @@ function UsageChart({ usage }: { usage: ApiUserDetails['usage'] }) {
 }
 
 export default function ApiUserPage({ userId }: { userId: number }) {
+  const { t } = useTranslation('apiUsers');
+  const format = useFormat();
   const { message } = App.useApp();
   const { data, error, mutate } = useSWR<ApiUserDetails>(
     `/api/admin/api-users/${userId}`,
@@ -128,7 +134,7 @@ export default function ApiUserPage({ userId }: { userId: number }) {
         ),
         false
       );
-      message.success('Saved, the limits apply within seconds');
+      message.success(t('form.saved'));
     } catch (e) {
       message.error((e as Error).message);
     } finally {
@@ -159,7 +165,7 @@ export default function ApiUserPage({ userId }: { userId: number }) {
         `/api/admin/api-users/${userId}/tokens/${tokenId}/revoke`,
         'POST'
       );
-      message.success('Token revoked');
+      message.success(t('user.revoked'));
       void mutate();
     } catch (e) {
       message.error((e as Error).message);
@@ -169,7 +175,7 @@ export default function ApiUserPage({ userId }: { userId: number }) {
   return (
     <Flex vertical gap={16}>
       <Link href="/admin/api-users">
-        <ArrowLeftOutlined /> API users
+        <ArrowLeftOutlined /> {t('title')}
       </Link>
       <Typography.Title level={3} style={{ margin: 0 }}>
         {user.name}
@@ -177,26 +183,42 @@ export default function ApiUserPage({ userId }: { userId: number }) {
       <Row gutter={[16, 16]}>
         <Col xs={12} md={6}>
           <Card size="small">
-            <Statistic title="This minute" value={user.requestsThisMinute} />
+            <Statistic
+              title={t('columns.thisMinute')}
+              value={user.requestsThisMinute}
+              formatter={(value) => format.number(Number(value))}
+            />
           </Card>
         </Col>
         <Col xs={12} md={6}>
           <Card size="small">
-            <Statistic title="Today" value={user.requestsToday} />
+            <Statistic
+              title={t('columns.today')}
+              value={user.requestsToday}
+              formatter={(value) => format.number(Number(value))}
+            />
           </Card>
         </Col>
         <Col xs={12} md={6}>
           <Card size="small">
-            <Statistic title="Rejected today" value={user.rejectedToday} />
+            <Statistic
+              title={t('user.rejectedToday')}
+              value={user.rejectedToday}
+              formatter={(value) => format.number(Number(value))}
+            />
           </Card>
         </Col>
         <Col xs={12} md={6}>
           <Card size="small">
-            <Statistic title="Last 30 days" value={user.requests30Days} />
+            <Statistic
+              title={t('columns.last30Days')}
+              value={user.requests30Days}
+              formatter={(value) => format.number(Number(value))}
+            />
           </Card>
         </Col>
       </Row>
-      <Card size="small" title="Requests per day">
+      <Card size="small" title={t('user.requestsPerDay')}>
         <UsageChart usage={data.usage} />
       </Card>
       <Row gutter={[16, 16]}>
@@ -204,7 +226,9 @@ export default function ApiUserPage({ userId }: { userId: number }) {
           <Card
             size="small"
             title={
-              user.anonymous ? 'Limits of each visitor' : 'Details and limits'
+              user.anonymous
+                ? t('user.visitorLimits')
+                : t('user.detailsAndLimits')
             }
           >
             <Form
@@ -218,24 +242,24 @@ export default function ApiUserPage({ userId }: { userId: number }) {
                 <>
                   <Form.Item
                     name="name"
-                    label="Name"
+                    label={t('form.name')}
                     rules={[{ required: true, min: 2 }]}
                   >
                     <Input />
                   </Form.Item>
                   <Form.Item
                     name="email"
-                    label="Email"
+                    label={t('form.email')}
                     rules={[{ type: 'email' }]}
-                    extra="Signing in on the website with this Google address gives these limits"
+                    extra={t('form.emailHelp')}
                   >
                     <Input />
                   </Form.Item>
                   <Form.Item
                     name="admin"
-                    label="Admin"
+                    label={t('form.admin')}
                     valuePropName="checked"
-                    extra="Can sign in to the admin interface with the email address"
+                    extra={t('form.adminHelp')}
                   >
                     <Switch />
                   </Form.Item>
@@ -244,14 +268,14 @@ export default function ApiUserPage({ userId }: { userId: number }) {
               <Flex gap={16} wrap>
                 <Form.Item
                   name="requestsPerMinute"
-                  label="Requests per minute"
+                  label={t('form.requestsPerMinute')}
                   rules={[{ required: true }]}
                 >
                   <InputNumber min={1} />
                 </Form.Item>
                 <Form.Item
                   name="requestsPerDay"
-                  label="Requests per day"
+                  label={t('form.requestsPerDay')}
                   rules={[{ required: true }]}
                 >
                   <InputNumber min={1} />
@@ -260,22 +284,24 @@ export default function ApiUserPage({ userId }: { userId: number }) {
               <Form.Item
                 name="enabled"
                 label={
-                  user.anonymous ? 'Allow requests without a token' : 'Active'
+                  user.anonymous
+                    ? t('form.allowWithoutToken')
+                    : t('form.active')
                 }
                 valuePropName="checked"
                 extra={
                   user.anonymous
-                    ? 'When off, the website search stops working and every request needs a token.'
-                    : 'When off, all tokens of the user are refused and signing in on the website gives the anonymous limits.'
+                    ? t('form.visitorsOffHelp')
+                    : t('form.userOffHelp')
                 }
               >
                 <Switch />
               </Form.Item>
-              <Form.Item name="note" label="Note">
+              <Form.Item name="note" label={t('form.note')}>
                 <Input.TextArea autoSize={{ minRows: 2 }} />
               </Form.Item>
               <Button type="primary" htmlType="submit" loading={saving}>
-                Save
+                {t('form.save')}
               </Button>
             </Form>
           </Card>
@@ -284,12 +310,12 @@ export default function ApiUserPage({ userId }: { userId: number }) {
           <Col xs={24} lg={14}>
             <Card
               size="small"
-              title="Tokens"
+              title={t('columns.tokens')}
               extra={
                 <Flex gap={8}>
                   <Input
                     size="small"
-                    placeholder="Name, e.g. production"
+                    placeholder={t('user.tokenNamePlaceholder')}
                     value={tokenName}
                     onChange={(e) => setTokenName(e.target.value)}
                   />
@@ -298,16 +324,18 @@ export default function ApiUserPage({ userId }: { userId: number }) {
                     icon={<PlusOutlined />}
                     onClick={newToken}
                   >
-                    New token
+                    {t('user.newToken')}
                   </Button>
                 </Flex>
               }
             >
               {user.email && (
                 <Typography.Paragraph type="secondary">
-                  Signed in on the website as {user.email}:{' '}
-                  {formatNumber(data.websiteRequestsThisMinute)} requests this
-                  minute, {formatNumber(data.websiteRequestsToday)} today
+                  {t('user.websiteUsage', {
+                    email: user.email,
+                    minute: format.number(data.websiteRequestsThisMinute),
+                    today: format.number(data.websiteRequestsToday)
+                  })}
                 </Typography.Paragraph>
               )}
               <Table<ApiToken>
@@ -318,7 +346,7 @@ export default function ApiUserPage({ userId }: { userId: number }) {
                 scroll={{ x: true }}
                 columns={[
                   {
-                    title: 'Token',
+                    title: t('columns.token'),
                     render: (_, token) => (
                       <Flex vertical>
                         <code>{token.prefix}…</code>
@@ -332,16 +360,20 @@ export default function ApiUserPage({ userId }: { userId: number }) {
                     )
                   },
                   {
-                    title: 'Status',
+                    title: t('columns.status'),
                     render: (_, token) =>
                       token.revokedAt ? (
-                        <Tag>Revoked {formatTime(token.revokedAt)}</Tag>
+                        <Tag>
+                          {t('user.revokedAt', {
+                            time: format.time(token.revokedAt)
+                          })}
+                        </Tag>
                       ) : (
-                        <Tag color="success">Active</Tag>
+                        <Tag color="success">{t('active')}</Tag>
                       )
                   },
                   {
-                    title: 'This minute',
+                    title: t('columns.thisMinute'),
                     render: (_, token) => (
                       <UsageCell
                         used={token.requestsThisMinute}
@@ -350,7 +382,7 @@ export default function ApiUserPage({ userId }: { userId: number }) {
                     )
                   },
                   {
-                    title: 'Today',
+                    title: t('columns.today'),
                     render: (_, token) => (
                       <UsageCell
                         used={token.requestsToday}
@@ -359,24 +391,27 @@ export default function ApiUserPage({ userId }: { userId: number }) {
                     )
                   },
                   {
-                    title: 'Last used',
-                    render: (_, token) => fromNow(token.lastUsedAt)
+                    title: t('columns.lastUsed'),
+                    render: (_, token) => format.fromNow(token.lastUsedAt)
                   },
                   {
-                    title: 'Created',
+                    title: t('columns.created'),
                     render: (_, token) =>
-                      `${formatTime(token.createdAt)} by ${token.createdBy ?? '–'}`
+                      t('user.createdBy', {
+                        time: format.time(token.createdAt),
+                        name: token.createdBy ?? '–'
+                      })
                   },
                   {
                     title: '',
                     render: (_, token) =>
                       !token.revokedAt && (
                         <Popconfirm
-                          title="Revoke this token? Requests with it are refused right away."
+                          title={t('user.revokeConfirm')}
                           onConfirm={() => revoke(token.id)}
                         >
                           <Button size="small" danger>
-                            Revoke
+                            {t('user.revoke')}
                           </Button>
                         </Popconfirm>
                       )

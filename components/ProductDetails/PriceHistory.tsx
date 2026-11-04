@@ -2,6 +2,7 @@
 import { Flex, Segmented, Table, Typography } from 'antd';
 import dayjs from 'dayjs';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   CartesianGrid,
   Legend,
@@ -13,6 +14,7 @@ import {
   YAxis
 } from 'recharts';
 import { Price } from '../../types';
+import { useFormat } from '../I18n/I18nProvider';
 import useChartTheme from '../Theme/useChartTheme';
 
 // The first two categorical slots, validated for color vision deficiency.
@@ -20,15 +22,13 @@ import useChartTheme from '../Theme/useChartTheme';
 const PRICE_COLOR = '#2a78d6';
 const SALE_COLOR = '#eb6834';
 
+// The labels are in the site namespace, priceHistory.ranges.<key>
 const RANGES = {
-  '3m': { label: '3 mán.', months: 3 },
-  '1y': { label: '1 ár', months: 12 },
-  all: { label: 'Allt', months: undefined }
+  '3m': { months: 3 },
+  '1y': { months: 12 },
+  all: { months: undefined }
 } as const;
 type RangeKey = keyof typeof RANGES;
-
-const formatPrice = (price: number) => `${price.toLocaleString('is-IS')} kr.`;
-const formatDay = (day: string) => dayjs(day).format('D. MMM YYYY');
 
 interface DayRow {
   day: string;
@@ -109,7 +109,7 @@ const isolatedDot = (
 
 interface PeriodRow {
   key: string;
-  type: 'Verð' | 'Tilboð';
+  type: 'price' | 'sale';
   price: number;
   start: string;
   end: string;
@@ -121,13 +121,13 @@ const toPeriods = (prices: Price[], salePrices: Price[]): PeriodRow[] =>
   [
     ...prices.map((period, index): PeriodRow => ({
       key: `p${period.start}`,
-      type: 'Verð',
+      type: 'price',
       ...period,
       change: index > 0 ? period.price - prices[index - 1].price : undefined
     })),
     ...salePrices.map((period): PeriodRow => ({
       key: `s${period.start}`,
-      type: 'Tilboð',
+      type: 'sale',
       ...period
     }))
   ].sort(
@@ -144,9 +144,18 @@ export default function PriceHistory({
   const [view, setView] = useState<'chart' | 'table'>('chart');
   const [range, setRange] = useState<RangeKey>('all');
   const chart = useChartTheme();
+  const { t } = useTranslation('site');
+  const format = useFormat();
+  const formatPrice = (price: number) => format.price(price);
+  const formatDay = (day: string) =>
+    dayjs(day).locale(format.language).format(t('dates.day'));
 
   if (prices.length === 0 && salePrices.length === 0)
-    return <Typography.Text type="secondary">Engin verð skráð</Typography.Text>;
+    return (
+      <Typography.Text type="secondary">
+        {t('priceHistory.noPrices')}
+      </Typography.Text>
+    );
 
   const months = RANGES[range].months;
   const days = toDays(
@@ -164,8 +173,8 @@ export default function PriceHistory({
           value={view}
           onChange={setView}
           options={[
-            { value: 'chart', label: 'Graf' },
-            { value: 'table', label: 'Tafla' }
+            { value: 'chart', label: t('priceHistory.chart') },
+            { value: 'table', label: t('priceHistory.table') }
           ]}
         />
         {view === 'chart' && (
@@ -173,9 +182,9 @@ export default function PriceHistory({
             size="small"
             value={range}
             onChange={setRange}
-            options={Object.entries(RANGES).map(([value, { label }]) => ({
-              value: value as RangeKey,
-              label
+            options={(Object.keys(RANGES) as RangeKey[]).map((value) => ({
+              value,
+              label: t(`priceHistory.ranges.${value}`)
             }))}
           />
         )}
@@ -187,17 +196,30 @@ export default function PriceHistory({
           pagination={{ pageSize: 10, hideOnSinglePage: true }}
           scroll={{ x: true }}
           columns={[
-            { title: 'Frá', dataIndex: 'start', render: formatDay },
-            { title: 'Til', dataIndex: 'end', render: formatDay },
-            { title: 'Tegund', dataIndex: 'type' },
             {
-              title: 'Verð',
+              title: t('priceHistory.columns.from'),
+              dataIndex: 'start',
+              render: formatDay
+            },
+            {
+              title: t('priceHistory.columns.to'),
+              dataIndex: 'end',
+              render: formatDay
+            },
+            {
+              title: t('priceHistory.columns.type'),
+              dataIndex: 'type',
+              render: (type: PeriodRow['type']) =>
+                t(`priceHistory.types.${type}`)
+            },
+            {
+              title: t('priceHistory.columns.price'),
               dataIndex: 'price',
               align: 'right',
               render: formatPrice
             },
             {
-              title: 'Breyting',
+              title: t('priceHistory.columns.change'),
               dataIndex: 'change',
               align: 'right',
               render: (change?: number) =>
@@ -214,7 +236,7 @@ export default function PriceHistory({
         />
       ) : days.length === 0 ? (
         <Typography.Text type="secondary">
-          Engin verð á þessu tímabili
+          {t('priceHistory.noPricesInRange')}
         </Typography.Text>
       ) : (
         <ResponsiveContainer width="100%" height={300}>
@@ -230,7 +252,11 @@ export default function PriceHistory({
               tickLine={false}
               minTickGap={32}
               tickFormatter={(day: string) =>
-                dayjs(day).format(days.length > 120 ? 'MMM YYYY' : 'D. MMM')
+                dayjs(day)
+                  .locale(format.language)
+                  .format(
+                    days.length > 120 ? t('dates.month') : t('dates.dayMonth')
+                  )
               }
             />
             <YAxis
@@ -246,7 +272,7 @@ export default function PriceHistory({
               ]}
               tickCount={5}
               allowDecimals={false}
-              tickFormatter={(value: number) => value.toLocaleString('is-IS')}
+              tickFormatter={(value: number) => format.number(value)}
             />
             <Tooltip
               {...chart.tooltip}
@@ -257,7 +283,7 @@ export default function PriceHistory({
             <Line
               type="stepAfter"
               dataKey="price"
-              name="Verð"
+              name={t('priceHistory.types.price')}
               stroke={PRICE_COLOR}
               strokeWidth={2}
               dot={isolatedDot(days, 'price', PRICE_COLOR, chart.surface)}
@@ -268,7 +294,7 @@ export default function PriceHistory({
               <Line
                 type="stepAfter"
                 dataKey="salePrice"
-                name="Tilboðsverð"
+                name={t('priceHistory.salePrice')}
                 stroke={SALE_COLOR}
                 strokeWidth={2}
                 strokeDasharray="6 3"

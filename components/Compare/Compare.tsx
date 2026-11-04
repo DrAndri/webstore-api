@@ -12,13 +12,17 @@ import {
   Tag,
   Typography
 } from 'antd';
+import type { TFunction } from 'i18next';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
+import type { Format } from '../../i18n/format';
 import { StoreConfig } from '../../types';
 import type { ComparedProduct } from '../../utils/compare';
 import { MAX_COMPARED } from '../../utils/compareLimits';
+import { useFormat } from '../I18n/I18nProvider';
 import PriceChart from '../PriceChart/PriceChart';
 
 interface Row {
@@ -31,26 +35,30 @@ interface Row {
   best?: number;
 }
 
-const formatPrice = (price: number | null) =>
-  price === null ? null : `${price.toLocaleString('is-IS')} kr.`;
-
-const fetchCompare = async (ids: string): Promise<ComparedProduct[]> => {
+// messages are shown when the api gives no error of its own
+const fetchCompare = async (
+  ids: string,
+  messages: { tooMany: string; failed: string }
+): Promise<ComparedProduct[]> => {
   const response = await fetch('/api/compare', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ productIds: ids.split(',') })
   });
-  if (response.status === 429)
-    throw new Error('Of margar fyrirspurnir, reyndu aftur eftir smá stund.');
+  if (response.status === 429) throw new Error(messages.tooMany);
   const json = await response.json();
-  if (!response.ok) throw new Error(json.error ?? 'Samanburðurinn mistókst');
+  if (!response.ok) throw new Error(json.error ?? messages.failed);
   return json as ComparedProduct[];
 };
 
 const effectivePrice = (product: ComparedProduct) =>
   product.salePrice ?? product.price;
 
-const buildRows = (products: ComparedProduct[]): Row[] => {
+const buildRows = (
+  products: ComparedProduct[],
+  t: TFunction<'site'>,
+  format: Format
+): Row[] => {
   const prices = products.map(effectivePrice);
   const lowest = Math.min(...prices.filter((p): p is number => p !== null));
   const simple = (
@@ -63,28 +71,28 @@ const buildRows = (products: ComparedProduct[]): Row[] => {
   };
 
   const rows: Row[] = [
-    simple('storeName', 'Verslun', (p) => p.storeName),
+    simple('storeName', t('compare.rows.storeName'), (p) => p.storeName),
     {
       key: 'price',
-      label: 'Verð',
+      label: t('compare.rows.price'),
       values: products.map((p) =>
         p.price === null ? null : (
           <Flex vertical key={p.id}>
             {p.salePrice !== null ? (
               <>
                 <Typography.Text strong>
-                  {formatPrice(p.salePrice)}
+                  {format.price(p.salePrice)}
                 </Typography.Text>
                 <Typography.Text delete type="secondary">
-                  {formatPrice(p.price)}
+                  {format.price(p.price)}
                 </Typography.Text>
               </>
             ) : (
-              <Typography.Text strong>{formatPrice(p.price)}</Typography.Text>
+              <Typography.Text strong>{format.price(p.price)}</Typography.Text>
             )}
             {effectivePrice(p) === lowest && products.length > 1 && (
               <Tag color="success" style={{ alignSelf: 'start' }}>
-                Lægst
+                {t('compare.lowest')}
               </Tag>
             )}
           </Flex>
@@ -94,25 +102,37 @@ const buildRows = (products: ComparedProduct[]): Row[] => {
     },
     {
       key: 'lowestPrice',
-      label: 'Lægsta verð frá upphafi',
+      label: t('compare.rows.lowestPrice'),
       values: products.map((p) =>
         p.lowestPrice === null
           ? null
-          : `${formatPrice(p.lowestPrice)} (${p.lowestPriceDate})`
+          : `${format.price(p.lowestPrice)} (${p.lowestPriceDate})`
       ),
       compare: products.map((p) =>
         p.lowestPrice === null ? null : String(p.lowestPrice)
       )
     },
-    simple('inStock', 'Á lager', (p) =>
-      p.inStock === null ? null : p.inStock ? 'Já' : 'Nei'
+    simple('inStock', t('compare.rows.inStock'), (p) =>
+      p.inStock === null ? null : p.inStock ? t('yes') : t('no')
     ),
-    simple('sku', 'Vörunúmer', (p) => p.sku),
-    simple('ean', 'Strikamerki', (p) => p.ean),
-    simple('manufacturer', 'Framleiðandi', (p) => p.manufacturer),
-    simple('category', 'Flokkur', (p) => p.category),
-    simple('firstSeenDate', 'Fyrst skráð', (p) => p.firstSeenDate),
-    simple('lastChangeDate', 'Síðast breytt', (p) => p.lastChangeDate)
+    simple('sku', t('compare.rows.sku'), (p) => p.sku),
+    simple('ean', t('compare.rows.ean'), (p) => p.ean),
+    simple(
+      'manufacturer',
+      t('compare.rows.manufacturer'),
+      (p) => p.manufacturer
+    ),
+    simple('category', t('compare.rows.category'), (p) => p.category),
+    simple(
+      'firstSeenDate',
+      t('compare.rows.firstSeenDate'),
+      (p) => p.firstSeenDate
+    ),
+    simple(
+      'lastChangeDate',
+      t('compare.rows.lastChangeDate'),
+      (p) => p.lastChangeDate
+    )
   ];
 
   // Stores name the same attribute differently, so they are matched by name
@@ -144,6 +164,8 @@ const differs = (row: Row) =>
     .size > 1;
 
 export default function Compare({ stores }: { stores: StoreConfig[] }) {
+  const { t } = useTranslation('site');
+  const format = useFormat();
   const params = useSearchParams();
   const ids = (params.get('selectedProductIds') ?? '')
     .split(',')
@@ -151,23 +173,21 @@ export default function Compare({ stores }: { stores: StoreConfig[] }) {
     .slice(0, MAX_COMPARED);
   const { data, error, isLoading } = useSWR(
     ids.length ? ids.join(',') : null,
-    fetchCompare
+    (key: string) =>
+      fetchCompare(key, {
+        tooMany: t('requests.tooMany'),
+        failed: t('requests.compareFailed')
+      })
   );
   const [onlyDifferences, setOnlyDifferences] = useState(false);
 
   if (ids.length === 0)
-    return (
-      <Alert
-        type="info"
-        showIcon
-        title="Veldu vörur í ítarlegu leitinni til að bera þær saman."
-      />
-    );
+    return <Alert type="info" showIcon title={t('compare.empty')} />;
   if (error) return <Alert type="error" showIcon title={error.message} />;
   if (isLoading || !data)
     return <Spin style={{ display: 'block', marginTop: 64 }} />;
 
-  const rows = buildRows(data);
+  const rows = buildRows(data, t, format);
   const visibleRows = onlyDifferences ? rows.filter(differs) : rows;
 
   return (
@@ -175,10 +195,12 @@ export default function Compare({ stores }: { stores: StoreConfig[] }) {
       <Flex justify="space-between" align="center" wrap gap={8}>
         <Flex gap={8} align="center">
           <Switch checked={onlyDifferences} onChange={setOnlyDifferences} />
-          Sýna aðeins það sem er ólíkt
+          {t('compare.onlyDifferences')}
         </Flex>
         <Link href={`/?selectedProductIds=${ids.join(',')}`}>
-          <Button icon={<LineChartOutlined />}>Opna í verðsögu</Button>
+          <Button icon={<LineChartOutlined />}>
+            {t('compare.openPriceHistory')}
+          </Button>
         </Link>
       </Flex>
       <Table<Row>
@@ -230,7 +252,7 @@ export default function Compare({ stores }: { stores: StoreConfig[] }) {
           }))
         ]}
       />
-      <Card size="small" title="Verðsaga">
+      <Card size="small" title={t('compare.priceHistory')}>
         <div style={{ height: 420 }}>
           <PriceChart stores={stores} />
         </div>

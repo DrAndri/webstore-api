@@ -14,10 +14,10 @@ export const GET = withAdmin(() => listApiUsers());
 // Creates the user with a first token, which is only returned this once
 export const POST = withAdmin(async (request, { user }) => {
   const input = await readJson<ApiUserInput>(request);
-  if (!input.name) throw new HttpError(400, 'Enter a name');
+  if (!input.name) throw new HttpError(400, { key: 'apiUsers.enterName' });
   const values = validateApiUser({ enabled: true, ...input }, false);
   if (values.admin && !values.email)
-    throw new HttpError(400, 'An admin needs an email address to sign in');
+    throw new HttpError(400, { key: 'apiUsers.adminNeedsEmail' });
   const columns = Object.keys(values);
   const result = await adminQuery<UpsertResult>(
     `INSERT INTO apiUsers (${columns.join(', ')}, anonymous, createdAt, createdBy)

@@ -14,26 +14,19 @@ import {
   Typography
 } from 'antd';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
-import {
-  CronDescription,
-  MODE_LABELS,
-  Schedule
-} from '../../utils/admin/types';
-import { fetchJson, formatTime, fromNow, sendJson } from './api';
+import { CronDescription, Schedule } from '../../utils/admin/types';
+import { useFormat } from '../I18n/I18nProvider';
+import { fetchJson, sendJson } from './api';
 
-const DESCRIPTIONS = {
-  crawler:
-    'Crawls every enabled store from its start page and sitemaps. Finds new products, slow.',
-  list: 'Re-scrapes the product pages found in the last scan of each store. Keeps prices fresh, faster.'
-};
-
+// The labels are schedules.presets.<label> in the admin namespace
 const PRESETS = [
-  { label: 'Every night at 04:00', cron: '0 4 * * *' },
-  { label: 'Every 6 hours', cron: '0 */6 * * *' },
-  { label: 'Mondays at 01:00', cron: '0 1 * * 1' },
-  { label: 'Twice a week', cron: '0 1 * * 1,4' }
-];
+  { label: 'nightly', cron: '0 4 * * *' },
+  { label: 'every6Hours', cron: '0 */6 * * *' },
+  { label: 'mondays', cron: '0 1 * * 1' },
+  { label: 'twiceAWeek', cron: '0 1 * * 1,4' }
+] as const;
 
 function ScheduleCard({
   schedule,
@@ -43,6 +36,8 @@ function ScheduleCard({
   onSaved: (schedules: Schedule[]) => void;
 }) {
   const { message } = App.useApp();
+  const { t } = useTranslation('admin');
+  const format = useFormat();
   const [cron, setCron] = useState(schedule.cron);
   const [enabled, setEnabled] = useState(schedule.enabled);
   const [saving, setSaving] = useState(false);
@@ -68,7 +63,7 @@ function ScheduleCard({
           enabled
         })
       );
-      message.success('Saved, the scraper applies it within 30 seconds');
+      message.success(t('schedules.saved'));
     } catch (e) {
       message.error((e as Error).message);
     } finally {
@@ -78,32 +73,31 @@ function ScheduleCard({
 
   return (
     <Card
-      title={MODE_LABELS[schedule.mode]}
+      title={t(`modes.${schedule.mode}`)}
       extra={
         <Switch
           checked={enabled}
           onChange={setEnabled}
-          checkedChildren="On"
-          unCheckedChildren="Off"
+          checkedChildren={t('schedules.on')}
+          unCheckedChildren={t('schedules.off')}
         />
       }
     >
       <Flex vertical gap={12}>
         <Typography.Text type="secondary">
-          {DESCRIPTIONS[schedule.mode]}
+          {t(`schedules.descriptions.${schedule.mode}`)}
         </Typography.Text>
         <div>
-          <Typography.Text strong>Cron expression (UTC)</Typography.Text>
+          <Typography.Text strong>{t('schedules.cronLabel')}</Typography.Text>
           <Input
             value={cron}
             onChange={(e) => setCron(e.target.value)}
             status={preview && !preview.valid ? 'error' : undefined}
             style={{ fontFamily: 'monospace', marginTop: 4 }}
-            placeholder="minute hour day-of-month month day-of-week"
+            placeholder={t('schedules.cronPlaceholder')}
           />
           <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-            minute hour day-of-month month day-of-week, an optional sixth field
-            in front is seconds
+            {t('schedules.cronHelp')}
           </Typography.Text>
         </div>
         <Flex gap={4} wrap>
@@ -113,7 +107,7 @@ function ScheduleCard({
               checked={cron === preset.cron}
               onChange={() => setCron(preset.cron)}
             >
-              {preset.label}
+              {t(`schedules.presets.${preset.label}`)}
             </Tag.CheckableTag>
           ))}
         </Flex>
@@ -123,14 +117,14 @@ function ScheduleCard({
         {preview?.valid && (
           <div>
             <Typography.Text strong>
-              {enabled ? 'Next runs' : 'Would run'}
+              {enabled ? t('schedules.nextRuns') : t('schedules.wouldRun')}
             </Typography.Text>
             <ul style={{ margin: '4px 0 0', paddingLeft: 20 }}>
               {preview.nextRuns.map((run) => (
                 <li key={run}>
-                  {formatTime(run)}{' '}
+                  {format.time(run)}{' '}
                   <Typography.Text type="secondary">
-                    ({fromNow(run)})
+                    ({format.fromNow(run)})
                   </Typography.Text>
                 </li>
               ))}
@@ -141,13 +135,20 @@ function ScheduleCard({
           <Alert
             type="error"
             showIcon
-            title={`The scraper rejected the schedule: ${schedule.lastError}`}
+            title={t('schedules.rejected', { error: schedule.lastError })}
           />
         )}
         <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-          Last ran {fromNow(schedule.lastRunAt)}. Changed{' '}
-          {fromNow(schedule.updatedAt)}
-          {schedule.updatedBy && ` by ${schedule.updatedBy}`}.
+          {schedule.updatedBy
+            ? t('schedules.changedBy', {
+                lastRun: format.fromNow(schedule.lastRunAt),
+                changed: format.fromNow(schedule.updatedAt),
+                user: schedule.updatedBy
+              })
+            : t('schedules.changed', {
+                lastRun: format.fromNow(schedule.lastRunAt),
+                changed: format.fromNow(schedule.updatedAt)
+              })}
         </Typography.Text>
         <Flex justify="end" gap={8}>
           <Button
@@ -157,7 +158,7 @@ function ScheduleCard({
               setEnabled(schedule.enabled);
             }}
           >
-            Reset
+            {t('schedules.reset')}
           </Button>
           <Button
             type="primary"
@@ -165,7 +166,7 @@ function ScheduleCard({
             loading={saving}
             onClick={save}
           >
-            Save
+            {t('schedules.save')}
           </Button>
         </Flex>
       </Flex>
@@ -174,6 +175,7 @@ function ScheduleCard({
 }
 
 export default function Schedules() {
+  const { t } = useTranslation('admin');
   const { data, error, mutate } = useSWR<Schedule[]>(
     '/api/admin/schedules',
     fetchJson
@@ -181,13 +183,7 @@ export default function Schedules() {
   if (error) return <Alert type="error" showIcon title={error.message} />;
   if (!data) return <Spin style={{ display: 'block', marginTop: 64 }} />;
   if (data.length === 0)
-    return (
-      <Alert
-        type="info"
-        showIcon
-        title="The schedules are created the first time the scraper starts with the job runner."
-      />
-    );
+    return <Alert type="info" showIcon title={t('schedules.empty')} />;
   return (
     <Row gutter={[16, 16]}>
       {data.map((schedule) => (

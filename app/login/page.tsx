@@ -4,12 +4,17 @@ import Title from 'antd/es/typography/Title';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { auth, safeRedirect } from '../../auth';
+import LanguageSwitch from '../../components/I18n/LanguageSwitch';
+import { getTranslation } from '../../i18n/server';
 import { signInWithGoogle } from '../actions/auth';
 
-export const metadata = {
-  title: 'Innskráning',
-  robots: { index: false, follow: false }
-};
+export async function generateMetadata() {
+  const { t } = await getTranslation('site');
+  return {
+    title: t('login.title'),
+    robots: { index: false, follow: false }
+  };
+}
 
 export default async function LoginPage({
   searchParams
@@ -20,6 +25,7 @@ export default async function LoginPage({
   const target = safeRedirect(returnTo);
   const session = await auth();
   if (session?.user) redirect(target);
+  const { t } = await getTranslation('site');
 
   return (
     <Flex
@@ -29,27 +35,21 @@ export default async function LoginPage({
     >
       <Card style={{ width: 400, maxWidth: '100%' }}>
         <Flex vertical gap={16}>
-          <Title level={4} style={{ margin: 0 }}>
-            Innskráning
-          </Title>
-          {error && (
-            <Alert
-              type="error"
-              showIcon
-              title="Innskráning tókst ekki. Netfangið þarf að vera staðfest hjá Google."
-            />
-          )}
-          <Text type="secondary">
-            Ef netfangið þitt er skráð sem notandi vefþjónustunnar gilda þín
-            mörk á fjölda fyrirspurna, annars sömu mörk og fyrir aðra gesti.
-          </Text>
+          <Flex justify="space-between" align="center" gap={8}>
+            <Title level={4} style={{ margin: 0 }}>
+              {t('login.title')}
+            </Title>
+            <LanguageSwitch type="text" />
+          </Flex>
+          {error && <Alert type="error" showIcon title={t('login.failed')} />}
+          <Text type="secondary">{t('login.limits')}</Text>
           <form action={signInWithGoogle}>
             <input type="hidden" name="returnTo" value={target} />
             <Button type="primary" size="large" htmlType="submit" block>
-              Skrá inn með Google
+              {t('login.withGoogle')}
             </Button>
           </form>
-          <Link href={target}>Til baka</Link>
+          <Link href={target}>{t('login.back')}</Link>
         </Flex>
       </Card>
     </Flex>

@@ -27,16 +27,17 @@ import {
 } from 'antd';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import {
-  MODE_LABELS,
   Overview,
   ScheduledMode,
   StoreStatus,
   TrendRow
 } from '../../utils/admin/types';
+import { useFormat } from '../I18n/I18nProvider';
 import ActiveJobs from './ActiveJobs';
-import { fetchJson, formatNumber, formatTime, fromNow, sendJson } from './api';
+import { fetchJson, sendJson } from './api';
 import { FieldErrorsChart, Sparkline } from './charts';
 import RunScanModal from './RunScanModal';
 import { HealthTag, JobStatusTag } from './StatusTags';
@@ -45,46 +46,67 @@ const HEALTH_ORDER = { error: 0, warning: 1, unknown: 2, ok: 3, disabled: 4 };
 
 function ScraperCard({ overview }: { overview: Overview }) {
   const { scraper, schedules } = overview;
+  const { t } = useTranslation('admin');
+  const format = useFormat();
   return (
-    <Card title="Scraper" size="small" style={{ height: '100%' }}>
+    <Card
+      title={t('dashboard.scraper')}
+      size="small"
+      style={{ height: '100%' }}
+    >
       {!scraper ? (
-        <Alert
-          type="warning"
-          showIcon
-          title="The scraper has not reported in yet. Is the job runner deployed?"
-        />
+        <Alert type="warning" showIcon title={t('dashboard.notReported')} />
       ) : (
         <Flex vertical gap={8}>
           <div>
             {scraper.online ? (
               <Tag color="success" icon={<CheckCircleOutlined />}>
-                Online
+                {t('dashboard.online')}
               </Tag>
             ) : (
               <Tag color="error" icon={<CloseCircleOutlined />}>
-                Offline since {fromNow(scraper.lastSeenAt)}
+                {t('dashboard.offlineSince', {
+                  time: format.fromNow(scraper.lastSeenAt)
+                })}
               </Tag>
             )}
             <Typography.Text type="secondary">
-              Up since {formatTime(scraper.startedAt)}
-              {scraper.hostname && ` on ${scraper.hostname}`},{' '}
-              {scraper.concurrency} stores at a time
+              {scraper.hostname
+                ? t('dashboard.upSinceOn', {
+                    time: format.time(scraper.startedAt),
+                    host: scraper.hostname
+                  })
+                : t('dashboard.upSince', {
+                    time: format.time(scraper.startedAt)
+                  })}
+              {scraper.concurrency !== null &&
+                `, ${t('dashboard.concurrency', { count: scraper.concurrency })}`}
             </Typography.Text>
           </div>
           <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-            Configs from {scraper.configSource ?? 'unknown'}
-            {scraper.configCommit && ` at ${scraper.configCommit.slice(0, 7)}`}
+            {scraper.configCommit
+              ? t('dashboard.configsFromAt', {
+                  source: scraper.configSource ?? t('dashboard.unknownSource'),
+                  commit: scraper.configCommit.slice(0, 7)
+                })
+              : t('dashboard.configsFrom', {
+                  source: scraper.configSource ?? t('dashboard.unknownSource')
+                })}
           </Typography.Text>
           {schedules.map((schedule) => (
             <Typography.Text key={schedule.mode}>
-              {MODE_LABELS[schedule.mode]}:{' '}
+              {t(`modes.${schedule.mode}`)}:{' '}
               {schedule.enabled ? (
                 <>
-                  <code>{schedule.cron}</code>, next{' '}
-                  {formatTime(schedule.nextRuns[0])} UTC
+                  <code>{schedule.cron}</code>,{' '}
+                  {t('dashboard.nextRun', {
+                    time: format.time(schedule.nextRuns[0])
+                  })}
                 </>
               ) : (
-                <Typography.Text type="secondary">disabled</Typography.Text>
+                <Typography.Text type="secondary">
+                  {t('dashboard.scheduleDisabled')}
+                </Typography.Text>
               )}
             </Typography.Text>
           ))}
@@ -92,7 +114,7 @@ function ScraperCard({ overview }: { overview: Overview }) {
             <Alert
               type="error"
               showIcon
-              title="Some store configs do not load"
+              title={t('dashboard.configErrors')}
               description={scraper.configErrors.map((e) => (
                 <div key={e.file}>
                   {e.file}: {e.message}
@@ -109,6 +131,8 @@ function ScraperCard({ overview }: { overview: Overview }) {
 export default function Dashboard() {
   const { token } = theme.useToken();
   const { message } = App.useApp();
+  const { t } = useTranslation('admin');
+  const format = useFormat();
   const { data, error, mutate } = useSWR<Overview>(
     '/api/admin/overview',
     fetchJson,
@@ -166,8 +190,8 @@ export default function Dashboard() {
         'POST',
         { storeIds: [storeId], mode }
       );
-      if (queued) message.success('Scan queued');
-      else message.info('A scan of this store is already queued or running');
+      if (queued) message.success(t('dashboard.scanQueued'));
+      else message.info(t('dashboard.storeAlreadyQueued'));
       void mutate();
     } catch (e) {
       message.error((e as Error).message);
@@ -181,8 +205,8 @@ export default function Dashboard() {
         '/api/admin/jobs/reindex',
         'POST'
       );
-      if (queued) message.success('Solr reindex queued');
-      else message.info('A reindex is already queued or running');
+      if (queued) message.success(t('dashboard.reindexQueued'));
+      else message.info(t('dashboard.reindexAlreadyQueued'));
       void mutate();
     } catch (e) {
       message.error((e as Error).message);
@@ -193,13 +217,13 @@ export default function Dashboard() {
     <Flex vertical gap={16}>
       <Flex justify="space-between" align="center" wrap gap={8}>
         <Typography.Title level={3} style={{ margin: 0 }}>
-          Dashboard
+          {t('dashboard.title')}
         </Typography.Title>
         <Space wrap>
           <Popconfirm
-            title="Reindex Solr?"
-            description="Sends every product, category, manufacturer and attribute in the database to Solr again."
-            okText="Reindex"
+            title={t('dashboard.reindexConfirm')}
+            description={t('dashboard.reindexDescription')}
+            okText={t('dashboard.reindexOk')}
             disabled={reindexing}
             onConfirm={reindex}
           >
@@ -207,7 +231,7 @@ export default function Dashboard() {
               icon={<SyncOutlined spin={reindexing} />}
               disabled={reindexing}
             >
-              {reindexing ? 'Reindexing Solr' : 'Reindex Solr'}
+              {reindexing ? t('dashboard.reindexing') : t('dashboard.reindex')}
             </Button>
           </Popconfirm>
           <Button
@@ -215,7 +239,7 @@ export default function Dashboard() {
             icon={<PlayCircleOutlined />}
             onClick={() => setRunFor([])}
           >
-            Run scan
+            {t('dashboard.runScan')}
           </Button>
         </Space>
       </Flex>
@@ -224,7 +248,7 @@ export default function Dashboard() {
         <Alert
           type="warning"
           showIcon
-          title="The store configs could not be listed from GitHub. Check GITHUB_CONFIG_REPO and GITHUB_TOKEN."
+          title={t('dashboard.configsUnavailable')}
         />
       )}
 
@@ -237,14 +261,18 @@ export default function Dashboard() {
             <Row gutter={[16, 16]}>
               <Col xs={12} sm={8}>
                 <Statistic
-                  title="Running"
+                  title={t('dashboard.running')}
                   value={running}
-                  suffix={queued ? `+ ${queued} queued` : undefined}
+                  suffix={
+                    queued
+                      ? t('dashboard.queuedSuffix', { count: queued })
+                      : undefined
+                  }
                 />
               </Col>
               <Col xs={12} sm={8}>
                 <Statistic
-                  title="Healthy"
+                  title={t('dashboard.healthy')}
                   value={count('ok')}
                   prefix={
                     <CheckCircleOutlined
@@ -255,12 +283,12 @@ export default function Dashboard() {
               </Col>
               <Col xs={12} sm={8}>
                 <Statistic
-                  title="Need attention"
+                  title={t('dashboard.needAttention')}
                   value={count('warning') + count('error')}
                   prefix={
                     <CloseCircleOutlined style={{ color: token.colorError }} />
                   }
-                  suffix={`${count('error')} failing`}
+                  suffix={t('dashboard.failing', { count: count('error') })}
                 />
               </Col>
             </Row>
@@ -268,11 +296,11 @@ export default function Dashboard() {
         </Col>
       </Row>
 
-      <Card title="Running and queued scans" size="small">
+      <Card title={t('dashboard.activeScans')} size="small">
         <ActiveJobs jobs={data.activeJobs} onChange={() => void mutate()} />
       </Card>
 
-      <Card title="Stores" size="small">
+      <Card title={t('dashboard.stores')} size="small">
         <Table<StoreStatus>
           rowKey="id"
           size="small"
@@ -281,13 +309,13 @@ export default function Dashboard() {
           scroll={{ x: true }}
           columns={[
             {
-              title: 'Store',
+              title: t('columns.store'),
               render: (_, store) => (
                 <Link href={`/admin/stores/${store.id}`}>{store.name}</Link>
               )
             },
             {
-              title: 'Health',
+              title: t('dashboard.health'),
               render: (_, store) => (
                 <Flex gap={4} wrap>
                   <HealthTag health={store.health} />
@@ -296,35 +324,39 @@ export default function Dashboard() {
               )
             },
             {
-              title: 'Issues',
+              title: t('dashboard.issues'),
               render: (_, store) => (
                 <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                   {store.health.reasons[0]}
                   {store.health.reasons.length > 1 &&
-                    ` (+${store.health.reasons.length - 1} more)`}
+                    ` ${t('dashboard.moreIssues', {
+                      count: store.health.reasons.length - 1
+                    })}`}
                 </Typography.Text>
               )
             },
             {
-              title: 'Last scan',
+              title: t('dashboard.lastScan'),
               render: (_, store) =>
                 store.lastJob ? (
-                  <span title={formatTime(store.lastJob.finishedAt)}>
-                    {fromNow(store.lastJob.finishedAt)} ·{' '}
-                    {MODE_LABELS[store.lastJob.mode].toLowerCase()}
+                  <span title={format.time(store.lastJob.finishedAt)}>
+                    {format.fromNow(store.lastJob.finishedAt)} ·{' '}
+                    {t(`modes.${store.lastJob.mode}`).toLocaleLowerCase(
+                      format.locale
+                    )}
                   </span>
                 ) : (
-                  'never'
+                  t('dashboard.never')
                 )
             },
             {
-              title: 'Products (last crawl)',
+              title: t('dashboard.productsLastCrawl'),
               align: 'right',
               render: (_, store) =>
-                formatNumber(store.lastCrawl?.totalProcessed)
+                format.number(store.lastCrawl?.totalProcessed)
             },
             {
-              title: 'Trend',
+              title: t('dashboard.trend'),
               render: (_, store) => (
                 <Sparkline values={sparklines.get(store.id) ?? []} />
               )
@@ -338,18 +370,19 @@ export default function Dashboard() {
                     disabled={!store.hasConfig}
                     onClick={() => runNow(store.id, 'crawler')}
                   >
-                    Crawl
+                    {t('dashboard.crawl')}
                   </Button>
                   <Dropdown
                     disabled={!store.hasConfig}
                     menu={{
-                      items: [
-                        { key: 'list', label: 'Re-scrape active products' }
-                      ],
+                      items: [{ key: 'list', label: t('dashboard.rescrape') }],
                       onClick: () => runNow(store.id, 'list')
                     }}
                   >
-                    <Button icon={<DownOutlined />} aria-label="More scans" />
+                    <Button
+                      icon={<DownOutlined />}
+                      aria-label={t('dashboard.moreScans')}
+                    />
                   </Dropdown>
                 </Space.Compact>
               )
@@ -359,7 +392,7 @@ export default function Dashboard() {
       </Card>
 
       <Card
-        title="Scrape errors per day"
+        title={t('dashboard.errorsPerDay')}
         size="small"
         extra={
           <Flex gap={8} wrap>
@@ -368,27 +401,25 @@ export default function Dashboard() {
               value={trendMode}
               onChange={(value) => setTrendMode(value as ScheduledMode | 'all')}
               options={[
-                { value: 'all', label: 'All scans' },
-                { value: 'crawler', label: 'Full crawls' },
-                { value: 'list', label: 'Active products' }
+                { value: 'all', label: t('dashboard.allScans') },
+                { value: 'crawler', label: t('dashboard.fullCrawls') },
+                { value: 'list', label: t('modes.list') }
               ]}
             />
             <Segmented
               size="small"
               value={trendDays}
               onChange={(value) => setTrendDays(value as number)}
-              options={[
-                { value: 7, label: '7 d' },
-                { value: 30, label: '30 d' },
-                { value: 90, label: '90 d' }
-              ]}
+              options={[7, 30, 90].map((days) => ({
+                value: days,
+                label: t('dashboard.days', { days })
+              }))}
             />
           </Flex>
         }
       >
         <Typography.Paragraph type="secondary" style={{ fontSize: 12 }}>
-          Products where a field could not be scraped, by field. A jump usually
-          means a store changed its pages.
+          {t('dashboard.errorsHelp')}
         </Typography.Paragraph>
         {trends ? <FieldErrorsChart rows={trends} /> : <Spin />}
       </Card>

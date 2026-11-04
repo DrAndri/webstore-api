@@ -1,10 +1,13 @@
 'use client';
-import dayjs from 'dayjs';
-import relativeTime from 'dayjs/plugin/relativeTime';
-import utc from 'dayjs/plugin/utc';
+import { resources } from '../../i18n/resources';
+import { DEFAULT_LANGUAGE, parseLanguage } from '../../i18n/settings';
 
-dayjs.extend(relativeTime);
-dayjs.extend(utc);
+// For responses without a message. There is no t outside components, the lang
+// attribute of the page follows the language switch.
+const requestFailed = (status: number) =>
+  resources[
+    parseLanguage(document.documentElement.lang) ?? DEFAULT_LANGUAGE
+  ].errors.requestFailed.replace('{{status}}', String(status));
 
 export class ApiError extends Error {
   status: number;
@@ -25,7 +28,7 @@ const handle = async <T>(response: Response): Promise<T> => {
   if (!response.ok)
     throw new ApiError(
       response.status,
-      body.error ?? `Request failed (${response.status})`
+      body.error ?? requestFailed(response.status)
     );
   return body as T;
 };
@@ -41,22 +44,5 @@ export const sendJson = <T>(url: string, method: string, body?: unknown) =>
     body: body === undefined ? undefined : JSON.stringify(body)
   }).then((response) => handle<T>(response));
 
-export const formatTime = (value: string | null | undefined) =>
-  value ? dayjs(value).format('YYYY-MM-DD HH:mm') : '–';
-
-export const fromNow = (value: string | null | undefined) =>
-  value ? dayjs(value).fromNow() : 'never';
-
-export const formatDuration = (
-  start: string | null | undefined,
-  end?: string | null
-) => {
-  if (!start) return '–';
-  const minutes = dayjs(end ?? undefined).diff(dayjs(start), 'minute');
-  if (minutes < 1) return '< 1 min';
-  if (minutes < 60) return `${minutes} min`;
-  return `${Math.floor(minutes / 60)} h ${minutes % 60} min`;
-};
-
-export const formatNumber = (value: number | null | undefined) =>
-  value === null || value === undefined ? '–' : value.toLocaleString('is-IS');
+// Times, durations and numbers are formatted with useFormat() from
+// components/I18n/I18nProvider, in the language of the page

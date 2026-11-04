@@ -1,4 +1,5 @@
-import { withApiAccess } from '../../../utils/apiAccess';
+import { getTranslation } from '../../../i18n/server';
+import { apiError, withApiAccess } from '../../../utils/apiAccess';
 import { search, SearchError } from '../../../utils/search';
 import { SearchRequest } from '../../../utils/searchFields';
 
@@ -7,14 +8,14 @@ export const POST = withApiAccess(async (request: Request) => {
   try {
     body = (await request.json()) as SearchRequest;
   } catch {
-    return Response.json({ error: 'Ógild fyrirspurn' }, { status: 400 });
+    return apiError(400, 'search.invalidRequest');
   }
   try {
-    return Response.json(await search(body));
+    // Facet labels in the language of the request, Icelandic by default
+    return Response.json(await search(body, await getTranslation('site')));
   } catch (e) {
-    if (e instanceof SearchError)
-      return Response.json({ error: e.message }, { status: 400 });
+    if (e instanceof SearchError) return apiError(400, e);
     console.error('Search failed', e);
-    return Response.json({ error: 'Leitin mistókst' }, { status: 500 });
+    return apiError(500, 'search.failed');
   }
 });

@@ -9,8 +9,8 @@ const MAX_PAGES = 100;
 export const GET = withAdmin(
   async (request): Promise<{ value: string; count?: number }[]> => {
     const params = request.nextUrl.searchParams;
-    const { from, start, end, note } = await resolveLogSource(params);
-    if (note) return [];
+    const { from, start, end, notStarted } = await resolveLogSource(params);
+    if (notStarted) return [];
     if (from.source === 'app') return appLabelCounts(start, end);
 
     const q = (params.get('q') ?? '').trim().toLowerCase();

@@ -55,7 +55,7 @@ export const POST = withAdmin(async (request, { user }) => {
     mode?: ScheduledMode;
   }>(request);
   if (body.mode !== 'crawler' && body.mode !== 'list')
-    throw new HttpError(400, 'mode must be crawler or list');
+    throw new HttpError(400, { key: 'modeCrawlerOrList' });
 
   let condition: string;
   const values: unknown[] = [];
@@ -67,7 +67,7 @@ export const POST = withAdmin(async (request, { user }) => {
   ) {
     condition = 's.id IN (?)';
     values.push(body.storeIds);
-  } else throw new HttpError(400, 'Select at least one store');
+  } else throw new HttpError(400, { key: 'jobs.selectStore' });
 
   const result = await adminQuery<UpsertResult>(
     `INSERT INTO scrapeJobs (storeId, mode, source, status, requestedBy, queuedAt)

@@ -11,14 +11,15 @@ import {
 } from 'antd';
 import dayjs from 'dayjs';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import {
   ATTRIBUTE_FIELD,
   fieldKind,
   fieldOps,
-  OP_LABELS,
   SEARCH_FIELDS,
-  SearchCondition
+  SearchCondition,
+  SearchFieldKey
 } from '../../utils/searchFields';
 
 interface AttributeOption {
@@ -48,6 +49,7 @@ function AttributePicker({
   label?: string;
   onChange: (field: string, label: string) => void;
 }) {
+  const { t } = useTranslation('site');
   const [term, setTerm] = useState('');
   const debounced = useDebounced(term);
   const { data, isLoading } = useSWR<AttributeOption[]>(
@@ -68,13 +70,13 @@ function AttributePicker({
     <Select
       showSearch={{ filterOption: false, onSearch: setTerm }}
       value={value}
-      placeholder="Leitaðu að eiginleika, t.d. Litur"
+      placeholder={t('conditionEditor.attributePlaceholder')}
       notFoundContent={
         debounced.length < 2
-          ? 'Skrifaðu að minnsta kosti tvo stafi'
+          ? t('conditionEditor.minTwoChars')
           : isLoading
-            ? 'Leita…'
-            : 'Enginn eiginleiki fannst'
+            ? t('searching')
+            : t('conditionEditor.noAttribute')
       }
       options={options}
       onChange={(field, option) =>
@@ -94,6 +96,7 @@ function AttributeValueInput({
   value?: string;
   onChange: (value: string) => void;
 }) {
+  const { t } = useTranslation('site');
   const debounced = useDebounced(value ?? '');
   const { data } = useSWR<{ value: string; count: number }[]>(
     `/api/search/attribute-values?id=${attributeId}&q=${encodeURIComponent(debounced)}`,
@@ -107,7 +110,7 @@ function AttributeValueInput({
         value: option.value,
         label: `${option.value} (${option.count})`
       }))}
-      placeholder="Gildi"
+      placeholder={t('conditionEditor.value')}
       style={{ minWidth: 200, flex: 1 }}
     />
   );
@@ -120,13 +123,14 @@ function ValueInput({
   condition: SearchCondition;
   onChange: (condition: SearchCondition) => void;
 }) {
+  const { t } = useTranslation('site');
   const kind = fieldKind(condition.field);
   const attributeId = ATTRIBUTE_FIELD.exec(condition.field)?.[1];
   if (kind === 'number')
     return (
       <Flex gap={4} align="center">
         <InputNumber
-          placeholder="frá"
+          placeholder={t('conditionEditor.numberFrom')}
           min={0}
           value={condition.value ? Number(condition.value) : null}
           onChange={(value) =>
@@ -138,7 +142,7 @@ function ValueInput({
         />
         –
         <InputNumber
-          placeholder="til"
+          placeholder={t('conditionEditor.numberTo')}
           min={0}
           value={condition.value2 ? Number(condition.value2) : null}
           onChange={(value) =>
@@ -155,7 +159,10 @@ function ValueInput({
     return (
       <DatePicker.RangePicker
         allowEmpty={[true, true]}
-        placeholder={['Frá', 'Til']}
+        placeholder={[
+          t('conditionEditor.dateFrom'),
+          t('conditionEditor.dateTo')
+        ]}
         value={[
           condition.value ? dayjs(condition.value) : null,
           condition.value2 ? dayjs(condition.value2) : null
@@ -175,8 +182,8 @@ function ValueInput({
         value={condition.value ?? 'true'}
         onChange={(value) => onChange({ ...condition, value })}
         options={[
-          { value: 'true', label: 'Já' },
-          { value: 'false', label: 'Nei' }
+          { value: 'true', label: t('yes') },
+          { value: 'false', label: t('no') }
         ]}
         style={{ width: 100 }}
       />
@@ -193,7 +200,7 @@ function ValueInput({
     <Input
       value={condition.value}
       onChange={(e) => onChange({ ...condition, value: e.target.value })}
-      placeholder="Gildi"
+      placeholder={t('conditionEditor.value')}
       allowClear
       style={{ minWidth: 200, flex: 1 }}
     />
@@ -212,6 +219,7 @@ export default function ConditionEditor({
     attributeLabels?: Record<string, string>
   ) => void;
 }) {
+  const { t } = useTranslation('site');
   const update = (index: number, condition: SearchCondition) =>
     onChange(conditions.map((c, i) => (i === index ? condition : c)));
 
@@ -232,11 +240,13 @@ export default function ConditionEditor({
                 update(index, { field, op });
               }}
               options={[
-                ...Object.entries(SEARCH_FIELDS).map(([value, { label }]) => ({
-                  value,
-                  label
-                })),
-                { value: 'attribute', label: 'Eiginleiki…' }
+                ...(Object.keys(SEARCH_FIELDS) as SearchFieldKey[]).map(
+                  (value) => ({
+                    value,
+                    label: t(`searchFields.fields.${value}`)
+                  })
+                ),
+                { value: 'attribute', label: t('conditionEditor.attribute') }
               ]}
             />
             {isAttribute && (
@@ -263,7 +273,7 @@ export default function ConditionEditor({
                   onChange={(op) => update(index, { ...condition, op })}
                   options={fieldOps(condition.field).map((op) => ({
                     value: op,
-                    label: OP_LABELS[op]
+                    label: t(`searchFields.ops.${op}`)
                   }))}
                 />
               )}
@@ -275,7 +285,7 @@ export default function ConditionEditor({
             )}
             <Button
               icon={<DeleteOutlined />}
-              aria-label="Fjarlægja skilyrði"
+              aria-label={t('conditionEditor.remove')}
               onClick={() => onChange(conditions.filter((_, i) => i !== index))}
             />
           </Flex>
@@ -291,7 +301,7 @@ export default function ConditionEditor({
         }
         style={{ alignSelf: 'start' }}
       >
-        Bæta við skilyrði
+        {t('conditionEditor.add')}
       </Button>
     </Flex>
   );

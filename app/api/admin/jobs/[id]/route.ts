@@ -10,7 +10,7 @@ export const GET = withAdmin<{ params: Promise<{ id: string }> }>(
        LEFT JOIN stores s ON s.id = j.storeId WHERE j.id = ?`,
       [id]
     );
-    if (!row) throw new HttpError(404, 'Job not found');
+    if (!row) throw new HttpError(404, { key: 'jobs.notFound' });
     return toJob(row);
   }
 );

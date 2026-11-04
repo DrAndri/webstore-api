@@ -28,6 +28,7 @@ import dayjs from 'dayjs';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import { MAX_COMPARED } from '../../utils/compareLimits';
 import {
@@ -38,22 +39,27 @@ import {
   SortKey,
   SORTS
 } from '../../utils/searchFields';
+import { useFormat } from '../I18n/I18nProvider';
 import ProductDetails from '../ProductDetails/ProductDetails';
 import ConditionEditor from './ConditionEditor';
 import FacetList from './FacetList';
 
 const PAGE_SIZE = 24;
 
-const postJson = async <T,>([url, body]: [string, string]): Promise<T> => {
+// messages are shown when the api gives no error of its own
+const postJson = async <T,>(
+  url: string,
+  body: string,
+  messages: { tooMany: string; failed: string }
+): Promise<T> => {
   const response = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body
   });
-  if (response.status === 429)
-    throw new Error('Of margar fyrirspurnir, reyndu aftur eftir smá stund.');
+  if (response.status === 429) throw new Error(messages.tooMany);
   const json = await response.json();
-  if (!response.ok) throw new Error(json.error ?? 'Leitin mistókst');
+  if (!response.ok) throw new Error(json.error ?? messages.failed);
   return json as T;
 };
 
@@ -64,11 +70,6 @@ const parseJsonParam = <T,>(value: string | null, fallback: T): T => {
     return fallback;
   }
 };
-
-const formatPrice = (price?: number | null) =>
-  price === undefined || price === null
-    ? '–'
-    : `${price.toLocaleString('is-IS')} kr.`;
 
 interface Selected {
   id: string;
@@ -92,6 +93,12 @@ export default function AdvancedSearch({
   const router = useRouter();
   const pathname = usePathname();
   const screens = Grid.useBreakpoint();
+  const { t } = useTranslation('site');
+  const format = useFormat();
+  const messages = {
+    tooMany: t('requests.tooMany'),
+    failed: t('requests.searchFailed')
+  };
 
   const [q, setQ] = useState(params.get('q') ?? '');
   const [conditions, setConditions] = useState<SearchCondition[]>(
@@ -123,7 +130,7 @@ export default function AdvancedSearch({
     if (unlabeled.length === 0) return;
     void postJson<
       { id: string; name: string | null; sku: string; storeName: string }[]
-    >(['/api/compare', JSON.stringify({ productIds: unlabeled })]).then(
+    >('/api/compare', JSON.stringify({ productIds: unlabeled }), messages).then(
       (products) =>
         setSelected((current) =>
           current.map((s) => {
@@ -188,9 +195,12 @@ export default function AdvancedSearch({
     pathname
   ]);
 
+  // The facet labels are in the language of the request, so a new language
+  // searches again
   const { data, error, isLoading } = useSWR<SearchResponse>(
-    ['/api/search', JSON.stringify(debouncedRequest)],
-    postJson,
+    ['/api/search', JSON.stringify(debouncedRequest), format.language],
+    ([url, body]: [string, string, string]) =>
+      postJson<SearchResponse>(url, body, messages),
     { keepPreviousData: true }
   );
 
@@ -252,10 +262,10 @@ export default function AdvancedSearch({
     >
       <Flex justify="space-between" align="center" wrap gap={8}>
         <Typography.Title level={3} style={{ margin: 0 }}>
-          Ítarleg leit
+          {t('advancedSearch.title')}
         </Typography.Title>
         <Flex gap={16} align="center" wrap>
-          <Link href="/">Til baka í verðsögu</Link>
+          <Link href="/">{t('advancedSearch.backToPriceHistory')}</Link>
           {userMenu}
         </Flex>
       </Flex>
@@ -265,7 +275,7 @@ export default function AdvancedSearch({
           <Input.Search
             size="large"
             allowClear
-            placeholder="Leitaðu í heiti, vörunúmeri, strikamerki og lýsingu"
+            placeholder={t('advancedSearch.placeholder')}
             value={q}
             onChange={(e) => {
               setQ(e.target.value);
@@ -288,7 +298,7 @@ export default function AdvancedSearch({
         <Alert
           type="info"
           showIcon
-          title="Leitarvélin hefur ekki verið uppfærð enn, skilyrði á heiti og vörunúmeri eru borin saman orð fyrir orð og eiginleikar eru hástafanæmir."
+          title={t('advancedSearch.inexactMatching')}
         />
       )}
       {error && <Alert type="error" showIcon title={error.message} />}
@@ -304,10 +314,11 @@ export default function AdvancedSearch({
             <Flex justify="space-between" align="center" wrap gap={8}>
               <Typography.Text strong>
                 {data
-                  ? data.total === 1
-                    ? '1 vara fannst'
-                    : `${data.total.toLocaleString('is-IS')} vörur fundust`
-                  : 'Leita…'}
+                  ? t('advancedSearch.found', {
+                      count: data.total,
+                      total: format.number(data.total)
+                    })
+                  : t('searching')}
               </Typography.Text>
               <Flex gap={8} align="center">
                 {!screens.lg && (
@@ -315,8 +326,11 @@ export default function AdvancedSearch({
                     icon={<FilterOutlined />}
                     onClick={() => setFacetsOpen(true)}
                   >
-                    Síur
-                    {activeFilters.length ? ` (${activeFilters.length})` : ''}
+                    {activeFilters.length
+                      ? t('advancedSearch.filtersCount', {
+                          active: activeFilters.length
+                        })
+                      : t('advancedSearch.filters')}
                   </Button>
                 )}
                 <Select
@@ -326,9 +340,9 @@ export default function AdvancedSearch({
                     setPage(1);
                   }}
                   prefix={<ColumnHeightOutlined />}
-                  options={Object.entries(SORTS).map(([value, { label }]) => ({
+                  options={(Object.keys(SORTS) as SortKey[]).map((value) => ({
                     value,
-                    label
+                    label: t(`searchFields.sorts.${value}`)
                   }))}
                   style={{ width: 180 }}
                 />
@@ -356,7 +370,7 @@ export default function AdvancedSearch({
                     setPage(1);
                   }}
                 >
-                  Hreinsa allar síur
+                  {t('advancedSearch.clearFilters')}
                 </Typography.Link>
               </Flex>
             )}
@@ -366,7 +380,7 @@ export default function AdvancedSearch({
               loading={isLoading}
               dataSource={data?.products}
               scroll={{ x: true }}
-              locale={{ emptyText: 'Engar vörur fundust' }}
+              locale={{ emptyText: t('advancedSearch.empty') }}
               onRow={(product) => ({
                 style: { cursor: 'pointer' },
                 // The checkbox and the image preview do their own thing
@@ -411,7 +425,7 @@ export default function AdvancedSearch({
                     ) : null
                 },
                 {
-                  title: 'Vara',
+                  title: t('advancedSearch.columns.product'),
                   render: (_, product) => (
                     <Flex vertical>
                       <Typography.Link>
@@ -428,27 +442,32 @@ export default function AdvancedSearch({
                     </Flex>
                   )
                 },
-                { title: 'Verslun', dataIndex: 'storeName' },
-                { title: 'Vörunúmer', dataIndex: 'sku' },
                 {
-                  title: 'Verð',
+                  title: t('advancedSearch.columns.store'),
+                  dataIndex: 'storeName'
+                },
+                { title: t('advancedSearch.columns.sku'), dataIndex: 'sku' },
+                {
+                  title: t('advancedSearch.columns.price'),
                   align: 'right',
-                  render: (_, product) => formatPrice(product.price)
+                  render: (_, product) => format.price(product.price)
                 },
                 {
-                  title: 'Á lager',
+                  title: t('advancedSearch.columns.inStock'),
                   render: (_, product) =>
                     product.inStock === undefined
                       ? '–'
                       : product.inStock
-                        ? 'Já'
-                        : 'Nei'
+                        ? t('yes')
+                        : t('no')
                 },
                 {
-                  title: 'Síðast breytt',
+                  title: t('advancedSearch.columns.lastChange'),
                   render: (_, product) =>
                     product.lastChangeDate
-                      ? dayjs(product.lastChangeDate).format('D. MMM YYYY')
+                      ? dayjs(product.lastChangeDate)
+                          .locale(format.language)
+                          .format(t('dates.day'))
                       : '–'
                 }
               ]}
@@ -459,7 +478,7 @@ export default function AdvancedSearch({
 
       {!screens.lg && (
         <Drawer
-          title="Síur"
+          title={t('advancedSearch.filters')}
           open={facetsOpen}
           onClose={() => setFacetsOpen(false)}
           placement="left"
@@ -469,7 +488,7 @@ export default function AdvancedSearch({
       )}
 
       <Drawer
-        title="Vara"
+        title={t('advancedSearch.product')}
         open={productId !== null}
         onClose={() => setProductId(null)}
         size={screens.md ? 760 : '100%'}
@@ -486,7 +505,9 @@ export default function AdvancedSearch({
                   icon={isSelected ? <CheckOutlined /> : <PlusOutlined />}
                   onClick={() => toggleSelected(product, !isSelected)}
                 >
-                  {isSelected ? 'Valin' : 'Velja'}
+                  {isSelected
+                    ? t('advancedSearch.selected')
+                    : t('advancedSearch.select')}
                 </Button>
               );
             }}
@@ -507,7 +528,9 @@ export default function AdvancedSearch({
                 align="center"
                 style={{ flex: 1, minWidth: 0 }}
               >
-                <Typography.Text strong>Valdar vörur:</Typography.Text>
+                <Typography.Text strong>
+                  {t('advancedSearch.selectedProducts')}
+                </Typography.Text>
                 {selected.map((s) => (
                   <Tag
                     key={s.id}
@@ -526,7 +549,9 @@ export default function AdvancedSearch({
                 ))}
               </Flex>
               <Flex gap={8} wrap>
-                <Button onClick={() => setSelected([])}>Hreinsa val</Button>
+                <Button onClick={() => setSelected([])}>
+                  {t('advancedSearch.clearSelection')}
+                </Button>
                 <Link
                   href={`/compare?selectedProductIds=${selectedIds.slice(0, MAX_COMPARED).join(',')}`}
                 >
@@ -534,15 +559,14 @@ export default function AdvancedSearch({
                     icon={<TableOutlined />}
                     disabled={selected.length < 2}
                   >
-                    Bera saman
                     {selected.length > MAX_COMPARED
-                      ? ` (fyrstu ${MAX_COMPARED})`
-                      : ''}
+                      ? t('advancedSearch.compareFirst', { max: MAX_COMPARED })
+                      : t('advancedSearch.compare')}
                   </Button>
                 </Link>
                 <Link href={`/?selectedProductIds=${selectedIds.join(',')}`}>
                   <Button type="primary" icon={<LineChartOutlined />}>
-                    Sýna verðsögu
+                    {t('advancedSearch.showPriceHistory')}
                   </Button>
                 </Link>
               </Flex>

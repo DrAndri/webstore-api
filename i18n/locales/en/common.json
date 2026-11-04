@@ -1,0 +1,18 @@
+{
+  "language": {
+    "label": "Language",
+    "switchTo": "Switch to {{language}}"
+  },
+  "theme": {
+    "light": "Light mode",
+    "dark": "Dark mode"
+  },
+  "signIn": "Sign in",
+  "signOut": "Sign out",
+  "never": "never",
+  "duration": {
+    "lessThanMinute": "< 1 min",
+    "minutes": "{{minutes}} min",
+    "hoursMinutes": "{{hours}} h {{minutes}} min"
+  }
+}

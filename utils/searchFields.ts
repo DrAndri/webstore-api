@@ -14,6 +14,8 @@ export interface SearchCondition {
 
 export type FieldKind = 'text' | 'words' | 'number' | 'date' | 'boolean';
 
+// The labels of the match types are in the site namespace,
+// searchFields.ops.<op>
 export const MATCH_OPS: MatchOp[] = [
   'contains',
   'startsWith',
@@ -21,44 +23,51 @@ export const MATCH_OPS: MatchOp[] = [
   'exact'
 ];
 
+// The labels are in the site namespace, searchFields.fields.<key>
+export type SearchFieldKey =
+  | 'name'
+  | 'sku'
+  | 'ean'
+  | 'description'
+  | 'price'
+  | 'inStock'
+  | 'firstSeenDate'
+  | 'lastChangeDate';
+
 export const SEARCH_FIELDS: Record<
-  string,
-  { label: string; kind: FieldKind; ops: ConditionOp[] }
+  SearchFieldKey,
+  { kind: FieldKind; ops: ConditionOp[] }
 > = {
-  name: { label: 'Heiti', kind: 'text', ops: MATCH_OPS },
-  sku: { label: 'Vörunúmer', kind: 'text', ops: MATCH_OPS },
-  ean: { label: 'Strikamerki', kind: 'text', ops: MATCH_OPS },
-  description: { label: 'Lýsing', kind: 'words', ops: ['contains', 'exact'] },
-  price: { label: 'Verð', kind: 'number', ops: ['between'] },
-  inStock: { label: 'Á lager', kind: 'boolean', ops: ['is'] },
-  firstSeenDate: { label: 'Fyrst skráð', kind: 'date', ops: ['between'] },
-  lastChangeDate: { label: 'Síðast breytt', kind: 'date', ops: ['between'] }
+  name: { kind: 'text', ops: MATCH_OPS },
+  sku: { kind: 'text', ops: MATCH_OPS },
+  ean: { kind: 'text', ops: MATCH_OPS },
+  description: { kind: 'words', ops: ['contains', 'exact'] },
+  price: { kind: 'number', ops: ['between'] },
+  inStock: { kind: 'boolean', ops: ['is'] },
+  firstSeenDate: { kind: 'date', ops: ['between'] },
+  lastChangeDate: { kind: 'date', ops: ['between'] }
 };
 
 export const ATTRIBUTE_FIELD = /^attr_(\d+)$/;
 export const attributeField = (id: number | string) => `attr_${id}`;
 
-export const OP_LABELS: Record<ConditionOp, string> = {
-  contains: 'inniheldur',
-  startsWith: 'byrjar á',
-  endsWith: 'endar á',
-  exact: 'er nákvæmlega',
-  between: 'á bilinu',
-  is: 'er'
-};
-
 export const fieldKind = (field: string): FieldKind | undefined =>
-  ATTRIBUTE_FIELD.test(field) ? 'text' : SEARCH_FIELDS[field]?.kind;
+  ATTRIBUTE_FIELD.test(field)
+    ? 'text'
+    : SEARCH_FIELDS[field as SearchFieldKey]?.kind;
 
 export const fieldOps = (field: string): ConditionOp[] =>
-  ATTRIBUTE_FIELD.test(field) ? MATCH_OPS : (SEARCH_FIELDS[field]?.ops ?? []);
+  ATTRIBUTE_FIELD.test(field)
+    ? MATCH_OPS
+    : (SEARCH_FIELDS[field as SearchFieldKey]?.ops ?? []);
 
+// The labels are in the site namespace, searchFields.sorts.<key>
 export const SORTS = {
-  relevance: { label: 'Mikilvægi', solr: 'score desc' },
-  priceAsc: { label: 'Lægsta verð', solr: 'price asc' },
-  priceDesc: { label: 'Hæsta verð', solr: 'price desc' },
-  changed: { label: 'Nýjast breytt', solr: 'lastChangeDate desc' },
-  newest: { label: 'Nýjustu vörur', solr: 'firstSeenDate desc' }
+  relevance: { solr: 'score desc' },
+  priceAsc: { solr: 'price asc' },
+  priceDesc: { solr: 'price desc' },
+  changed: { solr: 'lastChangeDate desc' },
+  newest: { solr: 'firstSeenDate desc' }
 } as const;
 export type SortKey = keyof typeof SORTS;
 

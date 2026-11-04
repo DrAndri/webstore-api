@@ -18,13 +18,6 @@ export const FIELD_ERRORS = [
 ] as const;
 export type FieldError = (typeof FIELD_ERRORS)[number];
 
-export const MODE_LABELS: Record<JobMode, string> = {
-  crawler: 'Full crawl',
-  list: 'Active products',
-  test: 'Test',
-  index: 'Solr reindex'
-};
-
 export interface Job extends Record<FieldError, number> {
   id: number;
   storeId: number | null;

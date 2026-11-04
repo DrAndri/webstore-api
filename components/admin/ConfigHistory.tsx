@@ -13,10 +13,12 @@ import {
   Typography
 } from 'antd';
 import { useState } from 'react';
+import { Trans, useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import { patchLines } from '../../utils/admin/storeConfig';
 import { ConfigCommit } from '../../utils/admin/types';
-import { fetchJson, formatTime, fromNow, sendJson } from './api';
+import { useFormat } from '../I18n/I18nProvider';
+import { fetchJson, sendJson } from './api';
 import DiffView from './DiffView';
 
 interface CommitDetails {
@@ -39,6 +41,8 @@ function CommitModal({
   onRestored: () => void;
 }) {
   const { message } = App.useApp();
+  const { t } = useTranslation('stores');
+  const format = useFormat();
   const { data, error } = useSWR<CommitDetails>(
     `/api/admin/stores/${storeId}/history/${commit.sha}`,
     fetchJson
@@ -54,7 +58,7 @@ function CommitModal({
         sha: currentSha,
         message: `Restore config to ${commit.sha.slice(0, 7)} (${commit.message.split('\n')[0]})`
       });
-      message.success('Config restored');
+      message.success(t('history.restored'));
       onRestored();
     } catch (e) {
       message.error((e as Error).message);
@@ -72,10 +76,10 @@ function CommitModal({
       footer={
         <Flex justify="space-between">
           <Button href={commit.url} target="_blank" icon={<GithubOutlined />}>
-            View on GitHub
+            {t('history.viewOnGithub')}
           </Button>
           <Popconfirm
-            title="Commit this version of the config as a new change?"
+            title={t('history.restoreConfirm')}
             onConfirm={restore}
             disabled={!data?.text}
           >
@@ -84,14 +88,14 @@ function CommitModal({
               loading={restoring}
               disabled={!data?.text}
             >
-              Restore this version
+              {t('history.restore')}
             </Button>
           </Popconfirm>
         </Flex>
       }
     >
       <Typography.Paragraph type="secondary">
-        {commit.authorName} · {formatTime(commit.date)} ·{' '}
+        {commit.authorName} · {format.time(commit.date)} ·{' '}
         {commit.sha.slice(0, 7)}
       </Typography.Paragraph>
       {commit.message.includes('\n') && (
@@ -105,11 +109,7 @@ function CommitModal({
         (data.patch ? (
           <DiffView lines={patchLines(data.patch)} />
         ) : (
-          <Alert
-            type="info"
-            showIcon
-            title="GitHub does not show the change, the diff may be too large."
-          />
+          <Alert type="info" showIcon title={t('history.noDiff')} />
         ))}
     </Modal>
   );
@@ -127,6 +127,8 @@ export default function ConfigHistory({
   legacyHistoryUrl: string;
   onRestored: () => void;
 }) {
+  const { t } = useTranslation('stores');
+  const format = useFormat();
   const { data, error, mutate } = useSWR<ConfigCommit[]>(
     `/api/admin/stores/${storeId}/history`,
     fetchJson
@@ -139,7 +141,7 @@ export default function ConfigHistory({
       <List<ConfigCommit>
         loading={!data}
         dataSource={data}
-        locale={{ emptyText: 'No changes yet' }}
+        locale={{ emptyText: t('history.empty') }}
         renderItem={(commit) => (
           <List.Item
             actions={[
@@ -148,7 +150,7 @@ export default function ConfigHistory({
                 size="small"
                 onClick={() => setSelected(commit)}
               >
-                View change
+                {t('history.view')}
               </Button>
             ]}
           >
@@ -158,9 +160,10 @@ export default function ConfigHistory({
               }
               title={commit.message.split('\n')[0]}
               description={
-                <span title={formatTime(commit.date)}>
+                <span title={format.time(commit.date)}>
                   {commit.authorLogin ?? commit.authorName} ·{' '}
-                  {fromNow(commit.date)} · <code>{commit.sha.slice(0, 7)}</code>
+                  {format.fromNow(commit.date)} ·{' '}
+                  <code>{commit.sha.slice(0, 7)}</code>
                 </span>
               }
             />
@@ -168,12 +171,13 @@ export default function ConfigHistory({
         )}
       />
       <Typography.Paragraph type="secondary" style={{ marginTop: 8 }}>
-        Changes made before the configs were split into one file per store are
-        in the{' '}
-        <Typography.Link href={legacyHistoryUrl} target="_blank">
-          history of crawler/storeConfigs.ts
-        </Typography.Link>
-        .
+        <Trans
+          t={t}
+          i18nKey="history.legacy"
+          components={{
+            link: <Typography.Link href={legacyHistoryUrl} target="_blank" />
+          }}
+        />
       </Typography.Paragraph>
       {selected && (
         <CommitModal

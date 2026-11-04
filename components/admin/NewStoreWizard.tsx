@@ -17,6 +17,7 @@ import {
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   pruneConfig,
   validateStoreConfig
@@ -37,33 +38,29 @@ type WizardValues = ConfigFormValues & {
   apiEnabled: boolean;
 };
 
+// The texts are wizard.steps.<key> and wizard.steps.<key>Content
 const STEPS: {
-  title: string;
-  content: string;
+  key: 'store' | 'productPages' | 'crawling' | 'test';
   sections: ConfigSection[];
   fields: (string | string[])[];
 }[] = [
   {
-    title: 'Store',
-    content: 'Name and website',
+    key: 'store',
     sections: ['basics'],
     fields: ['name', 'startUrl', 'productPageIdentifier']
   },
   {
-    title: 'Product pages',
-    content: 'What to scrape',
+    key: 'productPages',
     sections: ['structured', 'selectors', 'attributes', 'sanitizers'],
     fields: [['selectors'], ['skuUrl'], ['skuAttribute'], ['skuSanitizers']]
   },
   {
-    title: 'Crawling',
-    content: 'Which pages to visit',
+    key: 'crawling',
     sections: ['crawling'],
     fields: []
   },
   {
-    title: 'Test and create',
-    content: 'Try it on a product',
+    key: 'test',
     sections: [],
     fields: []
   }
@@ -78,6 +75,7 @@ const INITIAL_CONFIG: Partial<WebshopCrawlerOptions> = {
 
 export default function NewStoreWizard() {
   const { message } = App.useApp();
+  const { t } = useTranslation('stores');
   const router = useRouter();
   const [form] = Form.useForm<WizardValues>();
   const [step, setStep] = useState(0);
@@ -89,7 +87,7 @@ export default function NewStoreWizard() {
     return pruneConfig(fromFormValues(values, 0)) as WebshopCrawlerOptions;
   };
   const errors =
-    step === STEPS.length - 1 ? validateStoreConfig(draftConfig()) : [];
+    step === STEPS.length - 1 ? validateStoreConfig(draftConfig(), t) : [];
 
   const next = async () => {
     try {
@@ -116,8 +114,9 @@ export default function NewStoreWizard() {
           config
         }
       );
-      if (result.warning) message.warning(result.warning, 10);
-      else message.success(`${values.name} was added`);
+      // The warning of the api is always that saving the config failed
+      if (result.warning) message.warning(t('wizard.configSaveFailed'), 10);
+      else message.success(t('wizard.added', { name: values.name }));
       router.push(`/admin/stores/${result.id}`);
     } catch (e) {
       message.error((e as Error).message);
@@ -128,14 +127,17 @@ export default function NewStoreWizard() {
   return (
     <Flex vertical gap={16}>
       <Link href="/admin/stores">
-        <ArrowLeftOutlined /> Stores
+        <ArrowLeftOutlined /> {t('wizard.back')}
       </Link>
       <Typography.Title level={3} style={{ margin: 0 }}>
-        Add a store
+        {t('wizard.title')}
       </Typography.Title>
       <Steps
         current={step}
-        items={STEPS.map(({ title, content }) => ({ title, content }))}
+        items={STEPS.map(({ key }) => ({
+          title: t(`wizard.steps.${key}`),
+          content: t(`wizard.steps.${key}Content`)
+        }))}
       />
       <Form<WizardValues>
         form={form}
@@ -153,13 +155,13 @@ export default function NewStoreWizard() {
               <Card size="small" style={{ marginBottom: 16 }}>
                 <Form.Item
                   name="name"
-                  label="Store name"
-                  extra="Shown in search results and on the price chart"
+                  label={t('wizard.name')}
+                  extra={t('wizard.nameHelp')}
                   rules={[
                     {
                       required: true,
                       min: 2,
-                      message: 'Enter the name of the store'
+                      message: t('wizard.nameRequired')
                     }
                   ]}
                 >
@@ -172,19 +174,19 @@ export default function NewStoreWizard() {
                 type="info"
                 showIcon
                 style={{ marginBottom: 16 }}
-                title="With structured data on, many stores only need the product container. Test on the last step and add CSS selectors for the fields that are missing."
+                title={t('wizard.structuredTip')}
               />
             )}
             {/* Kept mounted so values survive moving between steps */}
             <StoreConfigForm form={form} sections={STEPS[step].sections} />
             {step === STEPS.length - 1 && (
-              <Card size="small" title="Create">
+              <Card size="small" title={t('wizard.create')}>
                 <Flex vertical gap={12}>
                   {errors.length > 0 ? (
                     <Alert
                       type="error"
                       showIcon
-                      title="Fix these before creating the store"
+                      title={t('wizard.fixErrors')}
                       description={
                         <ul style={{ margin: 0, paddingLeft: 16 }}>
                           {errors.map((error) => (
@@ -195,8 +197,7 @@ export default function NewStoreWizard() {
                     />
                   ) : (
                     <Typography.Text type="secondary">
-                      The config is committed to the scraper repository as your
-                      change, and can be edited later.
+                      {t('wizard.commitInfo')}
                     </Typography.Text>
                   )}
                   <Flex gap={8} align="center">
@@ -207,7 +208,7 @@ export default function NewStoreWizard() {
                     >
                       <Switch />
                     </Form.Item>
-                    Include in scheduled scans
+                    {t('wizard.scheduledScans')}
                   </Flex>
                   <Flex gap={8} align="center">
                     <Form.Item
@@ -217,7 +218,7 @@ export default function NewStoreWizard() {
                     >
                       <Switch />
                     </Form.Item>
-                    Show in the public search
+                    {t('wizard.publicSearch')}
                   </Flex>
                 </Flex>
               </Card>
@@ -230,7 +231,7 @@ export default function NewStoreWizard() {
                 startUrl={form.getFieldValue('startUrl')}
                 getConfig={() => {
                   if (errors.length > 0) {
-                    message.error('Fix the config errors before testing');
+                    message.error(t('tester.fixConfigFirst'));
                     return undefined;
                   }
                   return draftConfig();
@@ -242,11 +243,11 @@ export default function NewStoreWizard() {
       </Form>
       <Flex justify="space-between">
         <Button disabled={step === 0} onClick={() => setStep(step - 1)}>
-          Back
+          {t('wizard.previous')}
         </Button>
         {step < STEPS.length - 1 ? (
           <Button type="primary" onClick={next}>
-            Next
+            {t('wizard.next')}
           </Button>
         ) : (
           <Button
@@ -255,7 +256,7 @@ export default function NewStoreWizard() {
             disabled={errors.length > 0}
             onClick={create}
           >
-            Create store
+            {t('wizard.createStore')}
           </Button>
         )}
       </Flex>

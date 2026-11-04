@@ -17,7 +17,7 @@ export const POST = withAdmin<{
     [parseId(tokenId), parseId(id)]
   );
   if (result.affectedRows === 0)
-    throw new HttpError(404, 'The token does not exist or is already revoked');
+    throw new HttpError(404, { key: 'apiUsers.tokenNotFound' });
   invalidateAccessCache();
   return { ok: true };
 });

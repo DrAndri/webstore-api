@@ -13,14 +13,16 @@ export interface ResolvedSource {
   from: LogSource;
   start: bigint;
   end: bigint;
-  note?: string;
+  // The scan has not started, so it has no log yet. The logs route tells why
+  // in the language of the request.
+  notStarted?: boolean;
 }
 
 const parseMs = (value: string | null, name: string) => {
   if (value === null || value === '') return undefined;
   const ms = Number(value);
   if (!Number.isFinite(ms) || ms < 0)
-    throw new HttpError(400, `Invalid ${name}`);
+    throw new HttpError(400, { key: 'invalidParam', values: { name } });
   return ms;
 };
 
@@ -33,12 +35,13 @@ export const resolveLogSource = async (
   if (source === 'app') {
     const end = parseMs(params.get('end'), 'end') ?? Date.now();
     const start = parseMs(params.get('start'), 'start') ?? end - 3600 * 1000;
-    if (start >= end) throw new HttpError(400, 'start must be before end');
+    if (start >= end) throw new HttpError(400, { key: 'logs.startBeforeEnd' });
     if (end - start > MAX_RANGE_MS)
-      throw new HttpError(400, 'The time range can be 30 days at most');
+      throw new HttpError(400, { key: 'logs.rangeTooLong' });
     return { from: { source: 'app' }, start: toNs(start), end: toNs(end) };
   }
-  if (source !== 'scan') throw new HttpError(400, 'Invalid source');
+  if (source !== 'scan')
+    throw new HttpError(400, { key: 'logs.invalidSource' });
 
   const jobId = parseId(params.get('job'), 'job');
   const [job] = await adminQuery<
@@ -53,17 +56,17 @@ export const resolveLogSource = async (
      FROM scrapeJobs j LEFT JOIN stores s ON s.id = j.storeId WHERE j.id = ?`,
     [jobId]
   );
-  if (!job) throw new HttpError(404, 'Job not found');
+  if (!job) throw new HttpError(404, { key: 'jobs.notFound' });
   // Tests are logged under a store named after the job
   const store = job.mode === 'test' ? `test-${jobId}` : job.storeName;
-  if (!store) throw new HttpError(404, 'The store of the job no longer exists');
+  if (!store) throw new HttpError(404, { key: 'logs.storeGone' });
   const from: LogSource = { source: 'scan', store, jobId };
   if (!job.startedAt)
     return {
       from,
       start: BigInt(0),
       end: BigInt(0),
-      note: 'The scan has not started yet'
+      notStarted: true
     };
   const start = job.startedAt.getTime() - SCAN_START_MARGIN_MS;
   const end = job.finishedAt
@@ -79,6 +82,7 @@ export const resolveLogSource = async (
 // Loki timestamps are nanoseconds, too large for a number
 export const parseNs = (value: string | null, name: string) => {
   if (value === null || value === '') return undefined;
-  if (!/^\d{1,20}$/.test(value)) throw new HttpError(400, `Invalid ${name}`);
+  if (!/^\d{1,20}$/.test(value))
+    throw new HttpError(400, { key: 'invalidParam', values: { name } });
   return BigInt(value);
 };

@@ -16,6 +16,7 @@ import {
   Typography
 } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   applyConfigChanges,
   checkConfigText,
@@ -53,6 +54,7 @@ export default function StoreConfigEditor({
   onSaved: () => void;
 }) {
   const { message } = App.useApp();
+  const { t } = useTranslation('stores');
   const baseText = config?.text ?? '';
   const [form] = Form.useForm<ConfigFormValues>();
   const [mode, setMode] = useState<'Form' | 'JSONC'>('Form');
@@ -61,7 +63,8 @@ export default function StoreConfigEditor({
   // editor are kept when switching back to the form
   const [formBase, setFormBase] = useState<FormBase>(() => ({
     text: baseText,
-    value: parseConfigText(baseText).value as WebshopCrawlerOptions | undefined
+    value: parseConfigText(baseText, t).value as
+      WebshopCrawlerOptions | undefined
   }));
   const [formKey, setFormKey] = useState(0);
   const [reviewing, setReviewing] = useState(false);
@@ -69,8 +72,8 @@ export default function StoreConfigEditor({
   const [saving, setSaving] = useState(false);
 
   const check = useMemo(
-    () => checkConfigText(draftText, storeId),
-    [draftText, storeId]
+    () => checkConfigText(draftText, t, storeId),
+    [draftText, t, storeId]
   );
   const dirty = draftText !== baseText;
 
@@ -91,9 +94,9 @@ export default function StoreConfigEditor({
 
   const switchMode = (next: 'Form' | 'JSONC') => {
     if (next === 'Form') {
-      const { value, errors } = parseConfigText(draftText);
+      const { value, errors } = parseConfigText(draftText, t);
       if (errors.length > 0) {
-        message.error('Fix the syntax errors before switching to the form');
+        message.error(t('editor.fixSyntax'));
         return;
       }
       setFormBase({ text: draftText, value: value as WebshopCrawlerOptions });
@@ -106,7 +109,7 @@ export default function StoreConfigEditor({
     setDraftText(baseText);
     setFormBase({
       text: baseText,
-      value: parseConfigText(baseText).value as
+      value: parseConfigText(baseText, t).value as
         WebshopCrawlerOptions | undefined
     });
     setFormKey((key) => key + 1);
@@ -120,7 +123,7 @@ export default function StoreConfigEditor({
         sha: config?.sha ?? null,
         message: commitMessage
       });
-      message.success('Committed, the scraper uses it from the next scan');
+      message.success(t('editor.committed'));
       setReviewing(false);
       onSaved();
     } catch (e) {
@@ -138,18 +141,17 @@ export default function StoreConfigEditor({
             <Segmented
               value={mode}
               onChange={(value) => switchMode(value as 'Form' | 'JSONC')}
-              options={['Form', 'JSONC']}
+              options={[
+                { value: 'Form', label: t('editor.form') },
+                { value: 'JSONC', label: 'JSONC' }
+              ]}
             />
             <Typography.Link href={fileUrl} target="_blank">
-              Open on GitHub
+              {t('editor.openOnGithub')}
             </Typography.Link>
           </Flex>
           {!config && (
-            <Alert
-              type="warning"
-              showIcon
-              title="This store has no config file yet, saving creates it."
-            />
+            <Alert type="warning" showIcon title={t('editor.noConfigFile')} />
           )}
           {mode === 'Form' ? (
             <Form<ConfigFormValues>
@@ -174,13 +176,13 @@ export default function StoreConfigEditor({
       </Col>
       <Col xs={24} xl={9}>
         <Flex vertical gap={16} style={{ position: 'sticky', top: 16 }}>
-          <Card size="small" title="Changes">
+          <Card size="small" title={t('editor.changes')}>
             <Flex vertical gap={12}>
               {check.errors.length > 0 ? (
                 <Alert
                   type="error"
                   showIcon
-                  title="The config is not valid"
+                  title={t('editor.invalid')}
                   description={
                     <ul style={{ margin: 0, paddingLeft: 16 }}>
                       {check.errors.map((error) => (
@@ -192,9 +194,9 @@ export default function StoreConfigEditor({
               ) : (
                 <Typography.Text>
                   {dirty ? (
-                    <Tag color="processing">Unsaved changes</Tag>
+                    <Tag color="processing">{t('editor.unsaved')}</Tag>
                   ) : (
-                    <Tag>No changes</Tag>
+                    <Tag>{t('editor.noChanges')}</Tag>
                   )}
                 </Typography.Text>
               )}
@@ -204,7 +206,7 @@ export default function StoreConfigEditor({
                   disabled={!dirty}
                   onClick={discard}
                 >
-                  Discard
+                  {t('editor.discard')}
                 </Button>
                 <Button
                   type="primary"
@@ -215,7 +217,7 @@ export default function StoreConfigEditor({
                     setReviewing(true);
                   }}
                 >
-                  Review and commit
+                  {t('editor.review')}
                 </Button>
               </Flex>
             </Flex>
@@ -225,7 +227,7 @@ export default function StoreConfigEditor({
             startUrl={check.value?.startUrl}
             getConfig={() => {
               if (check.errors.length > 0 || !check.value) {
-                message.error('Fix the config errors before testing');
+                message.error(t('tester.fixConfigFirst'));
                 return undefined;
               }
               return check.value;
@@ -236,8 +238,8 @@ export default function StoreConfigEditor({
       <Modal
         open={reviewing}
         width={900}
-        title="Review changes"
-        okText="Commit"
+        title={t('editor.reviewTitle')}
+        okText={t('editor.commit')}
         okButtonProps={{
           disabled: commitMessage.trim().length < 3,
           loading: saving
@@ -249,13 +251,15 @@ export default function StoreConfigEditor({
         <Flex vertical gap={12}>
           <DiffView lines={diffLines(baseText, draftText)} />
           <div>
-            <Typography.Text strong>Commit message</Typography.Text>
+            <Typography.Text strong>
+              {t('editor.commitMessage')}
+            </Typography.Text>
             <Input.TextArea
               value={commitMessage}
               onChange={(e) => setCommitMessage(e.target.value)}
               autoSize={{ minRows: 2 }}
               maxLength={500}
-              placeholder="What changed and why"
+              placeholder={t('editor.commitPlaceholder')}
             />
           </div>
         </Flex>

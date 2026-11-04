@@ -1,4 +1,4 @@
-import { withApiAccess } from '../../../../utils/apiAccess';
+import { apiError, withApiAccess } from '../../../../utils/apiAccess';
 import { NextRequest } from 'next/server';
 import { attributeValues } from '../../../../utils/search';
 
@@ -6,13 +6,13 @@ import { attributeValues } from '../../../../utils/search';
 export const GET = withApiAccess(async (request: NextRequest) => {
   const id = Number(request.nextUrl.searchParams.get('id'));
   if (!Number.isInteger(id) || id < 0)
-    return Response.json({ error: 'Ógildur eiginleiki' }, { status: 400 });
+    return apiError(400, 'search.invalidAttribute');
   try {
     return Response.json(
       await attributeValues(id, request.nextUrl.searchParams.get('q') ?? '')
     );
   } catch (e) {
     console.error('Attribute values failed', e);
-    return Response.json({ error: 'Leitin mistókst' }, { status: 500 });
+    return apiError(500, 'search.failed');
   }
 });

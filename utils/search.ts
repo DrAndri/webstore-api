@@ -1,5 +1,8 @@
 // Advanced product search on the Solr products core
+import type { TFunction } from 'i18next';
+import type { Format } from '../i18n/format';
 import { queryPool } from './mariadb';
+import { ErrorMessage, HttpError } from './httpError';
 import { solrUrl } from './solr';
 import {
   ATTRIBUTE_FIELD,
@@ -23,7 +26,12 @@ const LOOKUP_TTL_MS = 10 * 60 * 1000;
 const PRODUCT_FIELDS =
   'id,storeId,manufacturerId,categoryId,sku,name,ean,image,inStock,price,lastChangeDate';
 
-export class SearchError extends Error {}
+// A search that can not run, a 400 response with the message
+export class SearchError extends HttpError {
+  constructor(message: ErrorMessage) {
+    super(400, message);
+  }
+}
 
 const productsUrl = (handler: string) => solrUrl(`products/${handler}`);
 
@@ -137,14 +145,15 @@ const wildcard = (op: string, term: string) =>
 const parseNumber = (value: string | undefined) => {
   if (value === undefined || value.trim() === '') return '*';
   const number = Number(value);
-  if (!Number.isFinite(number)) throw new SearchError(`${value} er ekki tala`);
+  if (!Number.isFinite(number))
+    throw new SearchError({ key: 'search.notANumber', values: { value } });
   return String(number);
 };
 
 const parseDate = (value: string | undefined, endOfDay: boolean) => {
   if (!value) return '*';
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value))
-    throw new SearchError(`${value} er ekki dagsetning`);
+    throw new SearchError({ key: 'search.notADate', values: { value } });
   return `${value}T${endOfDay ? '23:59:59' : '00:00:00'}Z`;
 };
 
@@ -153,11 +162,11 @@ const conditionClause = (
   exact: boolean
 ): string | undefined => {
   if (typeof condition?.field !== 'string')
-    throw new SearchError('Ógilt skilyrði');
+    throw new SearchError({ key: 'search.invalidCondition' });
   const { field, op } = condition;
   const kind = fieldKind(field);
   if (!kind || !fieldOps(field).includes(op))
-    throw new SearchError('Ógilt skilyrði');
+    throw new SearchError({ key: 'search.invalidCondition' });
   const value = String(condition.value ?? '')
     .trim()
     .slice(0, MAX_VALUE_LENGTH);
@@ -171,7 +180,7 @@ const conditionClause = (
   if (value === '') return undefined;
   // Leading wildcards scan every term, so very short ones are not allowed
   if ((op === 'contains' || op === 'endsWith') && value.length < 2)
-    throw new SearchError('Skrifaðu að minnsta kosti tvo stafi');
+    throw new SearchError({ key: 'search.tooShort' });
 
   if (kind === 'words') {
     if (op === 'exact') return `${field}:${quote(value)}`;
@@ -200,19 +209,12 @@ const conditionClause = (
   return `${field}:(${words.join(' AND ')})`;
 };
 
-const FACET_FIELDS: Record<string, string> = {
-  storeId: 'Verslun',
-  manufacturerId: 'Framleiðandi',
-  categoryId: 'Flokkur',
-  inStock: 'Lagerstaða',
-  price: 'Verð'
-};
-
 const filterQuery = (key: string, values: string[]): string => {
   const tag = `{!tag=f_${key}}`;
   if (key === 'storeId' || key === 'manufacturerId' || key === 'categoryId') {
     const ids = values.map(Number).filter(Number.isInteger);
-    if (ids.length === 0) throw new SearchError('Ógild sía');
+    if (ids.length === 0)
+      throw new SearchError({ key: 'search.invalidFilter' });
     return `${tag}${key}:(${ids.join(' OR ')})`;
   }
   if (key === 'inStock')
@@ -220,14 +222,14 @@ const filterQuery = (key: string, values: string[]): string => {
   if (key === 'price') {
     const ranges = values.map((value) => {
       const range = PRICE_RANGES.find((r) => priceRangeKey(r) === value);
-      if (!range) throw new SearchError('Ógilt verðbil');
+      if (!range) throw new SearchError({ key: 'search.invalidPriceRange' });
       return priceRangeQuery(range);
     });
     return `${tag}(${ranges.join(' OR ')})`;
   }
   if (ATTRIBUTE_FIELD.test(key))
     return `${tag}${key}:(${values.map((v) => quote(v.slice(0, 255))).join(' OR ')})`;
-  throw new SearchError(`Óþekkt sía ${key}`);
+  throw new SearchError({ key: 'search.unknownFilter', values: { key } });
 };
 
 const priceRangeQuery = ([from, to]: [number | null, number | null]) =>
@@ -265,8 +267,15 @@ const pairs = (list: (string | number)[] = []) => {
   return result;
 };
 
+// The facet labels are in the language of t and format, the site namespace
+export interface SearchLabels {
+  t: TFunction<'site'>;
+  format: Format;
+}
+
 export const search = async (
-  request: SearchRequest
+  request: SearchRequest,
+  { t, format }: SearchLabels
 ): Promise<SearchResponse> => {
   const [{ stores, manufacturers, categories, attributes }, support] =
     await Promise.all([getLookups(), getSchemaSupport()]);
@@ -274,14 +283,14 @@ export const search = async (
     return { total: 0, products: [], facets: [], exactMatching: support.exact };
 
   if (request.conditions !== undefined && !Array.isArray(request.conditions))
-    throw new SearchError('Ógild skilyrði');
+    throw new SearchError({ key: 'search.invalidConditions' });
   if (
     request.filters !== undefined &&
     (typeof request.filters !== 'object' || request.filters === null)
   )
-    throw new SearchError('Ógildar síur');
+    throw new SearchError({ key: 'search.invalidFilters' });
   if (typeof request.q !== 'string' && request.q !== undefined)
-    throw new SearchError('Ógild leit');
+    throw new SearchError({ key: 'search.invalidSearch' });
   const conditions = (request.conditions ?? []).slice(0, MAX_CONDITIONS);
   const clauses = conditions
     .map((condition) => conditionClause(condition, support.exact))
@@ -362,7 +371,7 @@ export const search = async (
   const facets: Facet[] = [
     {
       key: 'storeId',
-      label: FACET_FIELDS.storeId,
+      label: t('facets.storeId'),
       values: pairs(fields.storeId).map(({ value, count }) => ({
         value,
         count,
@@ -371,16 +380,19 @@ export const search = async (
     },
     {
       key: 'inStock',
-      label: FACET_FIELDS.inStock,
+      label: t('facets.inStock'),
       values: pairs(fields.inStock).map(({ value, count }) => ({
         value,
         count,
-        label: value === 'true' ? 'Á lager' : 'Ekki á lager'
+        label:
+          value === 'true'
+            ? t('facets.inStockValue')
+            : t('facets.outOfStockValue')
       }))
     },
     {
       key: 'price',
-      label: FACET_FIELDS.price,
+      label: t('facets.price'),
       values: PRICE_RANGES.map((range) => ({
         value: priceRangeKey(range),
         count:
@@ -388,15 +400,18 @@ export const search = async (
           0,
         label:
           range[0] === null
-            ? `Undir ${range[1]!.toLocaleString('is-IS')} kr.`
+            ? t('facets.priceUnder', { price: format.price(range[1]) })
             : range[1] === null
-              ? `Yfir ${range[0].toLocaleString('is-IS')} kr.`
-              : `${range[0].toLocaleString('is-IS')} – ${range[1].toLocaleString('is-IS')} kr.`
+              ? t('facets.priceOver', { price: format.price(range[0]) })
+              : t('facets.priceBetween', {
+                  from: format.number(range[0]),
+                  to: format.price(range[1])
+                })
       })).filter((value) => value.count > 0)
     },
     {
       key: 'manufacturerId',
-      label: FACET_FIELDS.manufacturerId,
+      label: t('facets.manufacturerId'),
       values: pairs(fields.manufacturerId).map(({ value, count }) => ({
         value,
         count,
@@ -405,7 +420,7 @@ export const search = async (
     },
     {
       key: 'categoryId',
-      label: FACET_FIELDS.categoryId,
+      label: t('facets.categoryId'),
       values: pairs(fields.categoryId).map(({ value, count }) => ({
         value,
         count,
@@ -414,7 +429,7 @@ export const search = async (
     },
     ...attributeIds.map((id) => ({
       key: `attr_${id}`,
-      label: attributes.get(id)?.name ?? `Eiginleiki ${id}`,
+      label: attributes.get(id)?.name ?? t('facets.attribute', { id }),
       group: attributes.get(id)?.group,
       values: pairs(attributeFacets[`attr_${id}`]).map(({ value, count }) => ({
         value,

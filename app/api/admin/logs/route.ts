@@ -1,3 +1,4 @@
+import { getTranslation } from '../../../../i18n/server';
 import { HttpError, withAdmin } from '../../../../utils/admin/api';
 import { logQuery, queryLogs } from '../../../../utils/admin/loki';
 import { parseNs, resolveLogSource } from '../../../../utils/admin/logs';
@@ -23,20 +24,23 @@ export const GET = withAdmin(async (request): Promise<LogsResponse> => {
     .split(',')
     .filter(Boolean) as LogLevel[];
   if (levels.some((level) => !LOG_LEVELS.includes(level)))
-    throw new HttpError(400, 'Invalid level');
+    throw new HttpError(400, { key: 'logs.invalidLevel' });
   const labels = params.getAll('label').filter(Boolean);
   if (labels.length > 50 || labels.some((label) => label.length > 2000))
-    throw new HttpError(400, 'Too many labels');
+    throw new HttpError(400, { key: 'logs.tooManyLabels' });
   const search = (params.get('search') ?? '').trim();
-  if (search.length > 200) throw new HttpError(400, 'The search is too long');
+  if (search.length > 200)
+    throw new HttpError(400, { key: 'logs.searchTooLong' });
   const limit = Math.min(
     MAX_LIMIT,
     Math.max(1, Number(params.get('limit')) || DEFAULT_LIMIT)
   );
 
   const query = logQuery(resolved.from, { levels, labels, search });
-  if (resolved.note)
-    return { entries: [], query, hasMore: false, note: resolved.note };
+  if (resolved.notStarted) {
+    const { t } = await getTranslation('admin');
+    return { entries: [], query, hasMore: false, note: t('logs.notStarted') };
+  }
 
   const before = parseNs(params.get('before'), 'before');
   const after = parseNs(params.get('after'), 'after');

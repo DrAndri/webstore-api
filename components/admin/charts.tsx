@@ -1,6 +1,7 @@
 'use client';
 import { Segmented, Table } from 'antd';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Bar,
   BarChart,
@@ -15,8 +16,8 @@ import {
   YAxis
 } from 'recharts';
 import { FIELD_ERRORS, FieldError, TrendRow } from '../../utils/admin/types';
+import { useFormat } from '../I18n/I18nProvider';
 import useChartTheme from '../Theme/useChartTheme';
-import { formatNumber } from './api';
 
 // Categorical slots in fixed order, validated for color vision deficiency
 export const SERIES_COLORS = [
@@ -28,16 +29,6 @@ export const SERIES_COLORS = [
   '#008300',
   '#6250d6'
 ];
-
-export const FIELD_LABELS: Record<FieldError, string> = {
-  nameError: 'Name',
-  brandError: 'Brand',
-  imageError: 'Image',
-  descriptionError: 'Description',
-  inStockError: 'Stock',
-  categoriesError: 'Categories',
-  attributeError: 'Attributes'
-};
 
 const axisProps = (chart: ReturnType<typeof useChartTheme>) => ({
   stroke: chart.grid,
@@ -93,6 +84,8 @@ export function FieldErrorsChart({
   rows: TrendRow[];
   markers?: { day: string; label: string }[];
 }) {
+  const { t } = useTranslation('admin');
+  const format = useFormat();
   const [view, setView] = useState<'Chart' | 'Table'>('Chart');
   const chart = useChartTheme();
   const data = totalsByDay(rows);
@@ -101,7 +94,10 @@ export function FieldErrorsChart({
     <div>
       <Segmented
         size="small"
-        options={['Chart', 'Table']}
+        options={[
+          { value: 'Chart', label: t('charts.chart') },
+          { value: 'Table', label: t('charts.table') }
+        ]}
         value={view}
         onChange={(value) => setView(value as 'Chart' | 'Table')}
         style={{ marginBottom: 8 }}
@@ -114,21 +110,21 @@ export function FieldErrorsChart({
           pagination={{ pageSize: 10, hideOnSinglePage: true }}
           scroll={{ x: true }}
           columns={[
-            { title: 'Day', dataIndex: 'day' },
+            { title: t('charts.day'), dataIndex: 'day' },
             {
-              title: 'Products',
+              title: t('charts.products'),
               dataIndex: 'totalProcessed',
-              render: formatNumber
+              render: format.number
             },
             {
-              title: 'Failed pages',
+              title: t('charts.failedPages'),
               dataIndex: 'totalErrored',
-              render: formatNumber
+              render: format.number
             },
             ...FIELD_ERRORS.map((field) => ({
-              title: FIELD_LABELS[field],
+              title: t(`fields.${field}`),
               dataIndex: field,
-              render: formatNumber
+              render: format.number
             }))
           ]}
         />
@@ -144,14 +140,14 @@ export function FieldErrorsChart({
             <Tooltip
               {...chart.tooltip}
               cursor={{ fill: chart.cursor }}
-              formatter={(value, name) => [formatNumber(Number(value)), name]}
+              formatter={(value, name) => [format.number(Number(value)), name]}
             />
             <Legend iconType="circle" iconSize={8} />
             {FIELD_ERRORS.map((field, index) => (
               <Bar
                 key={field}
                 dataKey={field}
-                name={FIELD_LABELS[field]}
+                name={t(`fields.${field}`)}
                 stackId="errors"
                 fill={SERIES_COLORS[index]}
                 stroke={chart.surface}
@@ -192,6 +188,7 @@ export function TrendLineChart({
   height?: number;
 }) {
   const chart = useChartTheme();
+  const format = useFormat();
   return (
     <ResponsiveContainer width="100%" height={height}>
       <LineChart data={data} margin={{ top: 16, right: 8, bottom: 0, left: 0 }}>
@@ -200,7 +197,10 @@ export function TrendLineChart({
         <YAxis {...axisProps(chart)} axisLine={false} width={48} unit={unit} />
         <Tooltip
           {...chart.tooltip}
-          formatter={(value) => [`${formatNumber(Number(value))}${unit}`, name]}
+          formatter={(value) => [
+            `${format.number(Number(value))}${unit}`,
+            name
+          ]}
         />
         {markers.map((marker) => (
           <ReferenceLine
@@ -242,7 +242,9 @@ export function Sparkline({
 }: {
   values: { day: string; value: number }[];
 }) {
+  const { t } = useTranslation('admin');
   const chart = useChartTheme();
+  const format = useFormat();
   if (values.length < 2) return null;
   return (
     <div style={{ width: 96, height: 28 }} aria-hidden>
@@ -257,7 +259,10 @@ export function Sparkline({
             cursor={false}
             wrapperStyle={{ zIndex: 10 }}
             labelFormatter={(_, payload) => payload?.[0]?.payload?.day}
-            formatter={(value) => [formatNumber(Number(value)), 'Products']}
+            formatter={(value) => [
+              format.number(Number(value)),
+              t('charts.products')
+            ]}
           />
           <Line
             type="monotone"

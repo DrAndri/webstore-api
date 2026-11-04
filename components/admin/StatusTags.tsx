@@ -10,34 +10,25 @@ import {
   SyncOutlined
 } from '@ant-design/icons';
 import { Tag, Tooltip } from 'antd';
+import { useTranslation } from 'react-i18next';
 import { Health, Job, JobStatus } from '../../utils/admin/types';
 
-// Status colors always come with an icon and a label
+// Status colors always come with an icon and a label, the labels are
+// healthLevels.<level> and status.<status> in the admin namespace
 const HEALTH = {
-  ok: { color: 'success', icon: <CheckCircleOutlined />, label: 'Healthy' },
-  warning: {
-    color: 'warning',
-    icon: <ExclamationCircleOutlined />,
-    label: 'Degraded'
-  },
-  error: { color: 'error', icon: <CloseCircleOutlined />, label: 'Failing' },
-  disabled: {
-    color: 'default',
-    icon: <MinusCircleOutlined />,
-    label: 'Disabled'
-  },
-  unknown: {
-    color: 'default',
-    icon: <QuestionCircleOutlined />,
-    label: 'Unknown'
-  }
+  ok: { color: 'success', icon: <CheckCircleOutlined /> },
+  warning: { color: 'warning', icon: <ExclamationCircleOutlined /> },
+  error: { color: 'error', icon: <CloseCircleOutlined /> },
+  disabled: { color: 'default', icon: <MinusCircleOutlined /> },
+  unknown: { color: 'default', icon: <QuestionCircleOutlined /> }
 } as const;
 
 export function HealthTag({ health }: { health: Health }) {
-  const { color, icon, label } = HEALTH[health.level];
+  const { t } = useTranslation('admin');
+  const { color, icon } = HEALTH[health.level];
   const tag = (
     <Tag color={color} icon={icon}>
-      {label}
+      {t(`healthLevels.${health.level}`)}
     </Tag>
   );
   if (health.reasons.length === 0) return tag;
@@ -56,37 +47,28 @@ export function HealthTag({ health }: { health: Health }) {
   );
 }
 
-const JOB_STATUS: Record<
-  JobStatus,
-  { color: string; icon: React.ReactNode; label: string }
-> = {
-  queued: { color: 'default', icon: <ClockCircleOutlined />, label: 'Queued' },
-  running: {
-    color: 'processing',
-    icon: <SyncOutlined spin />,
-    label: 'Running'
-  },
-  succeeded: {
-    color: 'success',
-    icon: <CheckCircleOutlined />,
-    label: 'Succeeded'
-  },
-  failed: { color: 'error', icon: <CloseCircleOutlined />, label: 'Failed' },
-  cancelled: { color: 'default', icon: <StopOutlined />, label: 'Cancelled' }
-};
+const JOB_STATUS: Record<JobStatus, { color: string; icon: React.ReactNode }> =
+  {
+    queued: { color: 'default', icon: <ClockCircleOutlined /> },
+    running: { color: 'processing', icon: <SyncOutlined spin /> },
+    succeeded: { color: 'success', icon: <CheckCircleOutlined /> },
+    failed: { color: 'error', icon: <CloseCircleOutlined /> },
+    cancelled: { color: 'default', icon: <StopOutlined /> }
+  };
 
 export function JobStatusTag({
   job
 }: {
   job: Pick<Job, 'status' | 'cancelRequested' | 'errorMessage'>;
 }) {
-  const { color, icon, label } = JOB_STATUS[job.status];
+  const { t } = useTranslation('admin');
+  const { color, icon } = JOB_STATUS[job.status];
   const cancelling =
     job.cancelRequested &&
     (job.status === 'queued' || job.status === 'running');
   const tag = (
     <Tag color={color} icon={icon}>
-      {cancelling ? 'Cancelling' : label}
+      {t(cancelling ? 'status.cancelling' : `status.${job.status}`)}
     </Tag>
   );
   return job.errorMessage ? (
