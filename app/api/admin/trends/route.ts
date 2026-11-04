@@ -16,7 +16,7 @@ export const GET = withAdmin(async (request) => {
   if (mode === 'crawler' || mode === 'list') {
     conditions.push('j.mode = ?');
     values.push(mode);
-  } else conditions.push("j.mode <> 'test'");
+  } else conditions.push("j.mode IN ('crawler', 'list')");
   if (storeId) {
     conditions.push('j.storeId = ?');
     values.push(Number(storeId));

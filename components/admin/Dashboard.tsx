@@ -3,7 +3,8 @@ import {
   CheckCircleOutlined,
   CloseCircleOutlined,
   DownOutlined,
-  PlayCircleOutlined
+  PlayCircleOutlined,
+  SyncOutlined
 } from '@ant-design/icons';
 import {
   Alert,
@@ -14,6 +15,7 @@ import {
   Flex,
   Row,
   App,
+  Popconfirm,
   Segmented,
   Space,
   Spin,
@@ -172,19 +174,50 @@ export default function Dashboard() {
     }
   };
 
+  const reindexing = data.activeJobs.some((job) => job.mode === 'index');
+  const reindex = async () => {
+    try {
+      const { queued } = await sendJson<{ queued: number }>(
+        '/api/admin/jobs/reindex',
+        'POST'
+      );
+      if (queued) message.success('Solr reindex queued');
+      else message.info('A reindex is already queued or running');
+      void mutate();
+    } catch (e) {
+      message.error((e as Error).message);
+    }
+  };
+
   return (
     <Flex vertical gap={16}>
       <Flex justify="space-between" align="center" wrap gap={8}>
         <Typography.Title level={3} style={{ margin: 0 }}>
           Dashboard
         </Typography.Title>
-        <Button
-          type="primary"
-          icon={<PlayCircleOutlined />}
-          onClick={() => setRunFor([])}
-        >
-          Run scan
-        </Button>
+        <Space wrap>
+          <Popconfirm
+            title="Reindex Solr?"
+            description="Sends every product, category, manufacturer and attribute in the database to Solr again."
+            okText="Reindex"
+            disabled={reindexing}
+            onConfirm={reindex}
+          >
+            <Button
+              icon={<SyncOutlined spin={reindexing} />}
+              disabled={reindexing}
+            >
+              {reindexing ? 'Reindexing Solr' : 'Reindex Solr'}
+            </Button>
+          </Popconfirm>
+          <Button
+            type="primary"
+            icon={<PlayCircleOutlined />}
+            onClick={() => setRunFor([])}
+          >
+            Run scan
+          </Button>
+        </Space>
       </Flex>
 
       {!data.configsAvailable && (

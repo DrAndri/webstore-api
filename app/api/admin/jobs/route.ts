@@ -4,7 +4,7 @@ import { JOB_COLUMNS, toJob } from '../../../../utils/admin/overview';
 import { ScheduledMode } from '../../../../utils/admin/types';
 import { UpsertResult } from 'mariadb';
 
-const MODES = ['crawler', 'list', 'test'];
+const MODES = ['crawler', 'list', 'test', 'index'];
 const STATUSES = ['queued', 'running', 'succeeded', 'failed', 'cancelled'];
 
 // Job history, newest first

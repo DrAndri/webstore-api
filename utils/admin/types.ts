@@ -1,7 +1,8 @@
 // Types shared by the admin api routes and pages
 
-export type JobMode = 'crawler' | 'list' | 'test';
-export type ScheduledMode = Exclude<JobMode, 'test'>;
+// index reindexes everything in the database to Solr, it has no store
+export type JobMode = 'crawler' | 'list' | 'test' | 'index';
+export type ScheduledMode = Exclude<JobMode, 'test' | 'index'>;
 export type JobSource = 'cron' | 'manual' | 'startup';
 export type JobStatus =
   'queued' | 'running' | 'succeeded' | 'failed' | 'cancelled';
@@ -20,7 +21,8 @@ export type FieldError = (typeof FIELD_ERRORS)[number];
 export const MODE_LABELS: Record<JobMode, string> = {
   crawler: 'Full crawl',
   list: 'Active products',
-  test: 'Test'
+  test: 'Test',
+  index: 'Solr reindex'
 };
 
 export interface Job extends Record<FieldError, number> {

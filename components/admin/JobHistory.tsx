@@ -7,8 +7,7 @@ import {
   Flex,
   Popconfirm,
   Select,
-  Table,
-  Typography
+  Table
 } from 'antd';
 import Link from 'next/link';
 import { useState } from 'react';
@@ -19,7 +18,7 @@ import {
   MODE_LABELS,
   Overview
 } from '../../utils/admin/types';
-import { cancelJob } from './ActiveJobs';
+import { cancelJob, JobStore } from './ActiveJobs';
 import {
   fetchJson,
   formatDuration,
@@ -32,6 +31,27 @@ import { JobStatusTag } from './StatusTags';
 
 const percentOf = (value: number, total: number) =>
   total > 0 ? ` (${Math.round((value / total) * 100)}%)` : '';
+
+// What a scan of a store found
+const scanCounters = (job: Job) => [
+  {
+    label: 'Config commit',
+    children: job.configCommit?.slice(0, 7) ?? '–'
+  },
+  { label: 'Pages', children: formatNumber(job.totalRequests) },
+  { label: 'Products', children: formatNumber(job.totalProcessed) },
+  {
+    label: 'Failed pages',
+    children:
+      formatNumber(job.totalErrored) +
+      percentOf(job.totalErrored, job.totalRequests)
+  },
+  ...FIELD_ERRORS.map((field) => ({
+    label: `${FIELD_LABELS[field]} errors`,
+    children:
+      formatNumber(job[field]) + percentOf(job[field], job.totalProcessed)
+  }))
+];
 
 export function JobDetails({ job }: { job: Job }) {
   return (
@@ -50,29 +70,27 @@ export function JobDetails({ job }: { job: Job }) {
           { label: 'Queued', children: formatTime(job.queuedAt) },
           { label: 'Started', children: formatTime(job.startedAt) },
           { label: 'Finished', children: formatTime(job.finishedAt) },
-          {
-            label: 'Config commit',
-            children: job.configCommit?.slice(0, 7) ?? '–'
-          },
-          { label: 'Pages', children: formatNumber(job.totalRequests) },
-          { label: 'Products', children: formatNumber(job.totalProcessed) },
-          {
-            label: 'Failed pages',
-            children:
-              formatNumber(job.totalErrored) +
-              percentOf(job.totalErrored, job.totalRequests)
-          },
-          ...FIELD_ERRORS.map((field) => ({
-            label: `${FIELD_LABELS[field]} errors`,
-            children:
-              formatNumber(job[field]) +
-              percentOf(job[field], job.totalProcessed)
-          }))
+          ...(job.mode === 'index'
+            ? [
+                {
+                  label: 'Documents',
+                  children: formatNumber(job.totalRequests)
+                },
+                {
+                  label: 'Indexed',
+                  children:
+                    formatNumber(job.totalProcessed) +
+                    percentOf(job.totalProcessed, job.totalRequests)
+                }
+              ]
+            : scanCounters(job))
         ]}
       />
       {job.updateResult && (
         <Descriptions
-          title="Database changes"
+          title={
+            job.mode === 'index' ? 'Indexed documents' : 'Database changes'
+          }
           size="small"
           column={{ xs: 1, sm: 2, lg: 4 }}
           items={Object.entries(job.updateResult).map(([key, value]) => ({
@@ -171,10 +189,12 @@ export default function JobHistory({ storeId }: { storeId?: number }) {
           style={{ minWidth: 160 }}
           value={filters.mode}
           onChange={(value) => setFilter('mode', value)}
-          options={(['crawler', 'list', 'test'] as const).map((mode) => ({
-            value: mode,
-            label: MODE_LABELS[mode]
-          }))}
+          options={(['crawler', 'list', 'test', 'index'] as const).map(
+            (mode) => ({
+              value: mode,
+              label: MODE_LABELS[mode]
+            })
+          )}
         />
         <Select
           allowClear
@@ -235,16 +255,7 @@ export default function JobHistory({ storeId }: { storeId?: number }) {
             ? [
                 {
                   title: 'Store',
-                  render: (_: unknown, job: Job) =>
-                    job.storeId ? (
-                      <Link href={`/admin/stores/${job.storeId}`}>
-                        {job.storeName}
-                      </Link>
-                    ) : (
-                      <Typography.Text type="secondary">
-                        New store
-                      </Typography.Text>
-                    )
+                  render: (_: unknown, job: Job) => <JobStore job={job} />
                 }
               ]
             : []),
@@ -270,14 +281,17 @@ export default function JobHistory({ storeId }: { storeId?: number }) {
             title: 'Field errors',
             align: 'right',
             render: (_, job) =>
-              formatNumber(
-                FIELD_ERRORS.reduce((sum, field) => sum + job[field], 0)
-              )
+              job.mode === 'index'
+                ? '–'
+                : formatNumber(
+                    FIELD_ERRORS.reduce((sum, field) => sum + job[field], 0)
+                  )
           },
           {
             title: 'Failed pages',
             align: 'right',
-            render: (_, job) => formatNumber(job.totalErrored)
+            render: (_, job) =>
+              job.mode === 'index' ? '–' : formatNumber(job.totalErrored)
           },
           { title: 'By', render: (_, job) => job.requestedBy ?? job.source },
           {

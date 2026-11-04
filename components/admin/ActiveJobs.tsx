@@ -32,6 +32,16 @@ export const cancelJob = async (
   }
 };
 
+// The store of a job, a reindex covers all of them and a test can be of a
+// store that has not been created yet
+export function JobStore({ job }: { job: Job }) {
+  if (job.mode === 'index')
+    return <Typography.Text type="secondary">All stores</Typography.Text>;
+  if (!job.storeId)
+    return <Typography.Text type="secondary">New store</Typography.Text>;
+  return <Link href={`/admin/stores/${job.storeId}`}>{job.storeName}</Link>;
+}
+
 export default function ActiveJobs({
   jobs,
   onChange
@@ -59,9 +69,7 @@ export default function ActiveJobs({
       columns={[
         {
           title: 'Store',
-          render: (_, job) => (
-            <Link href={`/admin/stores/${job.storeId}`}>{job.storeName}</Link>
-          )
+          render: (_, job) => <JobStore job={job} />
         },
         { title: 'Scan', render: (_, job) => MODE_LABELS[job.mode] },
         {
@@ -86,7 +94,12 @@ export default function ActiveJobs({
         {
           title: 'Progress',
           render: (_, job) =>
-            job.status === 'running' ? (
+            job.status === 'running' && job.mode === 'index' ? (
+              <Typography.Text>
+                {formatNumber(job.totalProcessed)} of{' '}
+                {formatNumber(job.totalRequests)} documents indexed
+              </Typography.Text>
+            ) : job.status === 'running' ? (
               <Typography.Text>
                 {formatNumber(job.totalProcessed)} products from{' '}
                 {formatNumber(job.totalRequests)} pages
@@ -120,9 +133,11 @@ export default function ActiveJobs({
               {!job.cancelRequested && (
                 <Popconfirm
                   title={
-                    job.status === 'running'
-                      ? 'Stop this scan? Pages in progress finish first.'
-                      : 'Remove this scan from the queue?'
+                    job.status !== 'running'
+                      ? 'Remove this scan from the queue?'
+                      : job.mode === 'index'
+                        ? 'Stop the reindex? What is indexed so far stays in Solr.'
+                        : 'Stop this scan? Pages in progress finish first.'
                   }
                   onConfirm={() => cancelJob(job.id, message, onChange)}
                 >

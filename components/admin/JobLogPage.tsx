@@ -13,6 +13,9 @@ import { JobStatusTag } from './StatusTags';
 const isActive = (job?: Job) =>
   job?.status === 'queued' || job?.status === 'running';
 
+// The modules of the scraper that log a reindex
+const INDEX_LABELS = ['JobRunner', 'SQLStoreUpdater', 'Solr'];
+
 // A scan with its log
 export default function JobLogPage({ jobId }: { jobId: number }) {
   const { data: job, error } = useSWR<Job>(
@@ -24,23 +27,27 @@ export default function JobLogPage({ jobId }: { jobId: number }) {
   if (error) return <Alert type="error" showIcon title={error.message} />;
   if (!job) return <Spin style={{ display: 'block', marginTop: 64 }} />;
 
+  const isIndex = job.mode === 'index';
   const storeName = job.mode === 'test' ? `test-${job.id}` : job.storeName;
+  // The time the job ran, in ms, with a margin for lines logged around it
+  const logRange = job.startedAt
+    ? {
+        start: dayjs(job.startedAt).subtract(1, 'minute').valueOf(),
+        end: dayjs(job.finishedAt ?? undefined)
+          .add(2, 'minute')
+          .valueOf()
+      }
+    : undefined;
   // The scraper's own lines about the store and its jobs while the scan ran
   const appLogUrl =
-    job.startedAt &&
+    logRange &&
+    !isIndex &&
     `/admin/logs?${new URLSearchParams([
       ...(storeName ? [['label', storeName]] : []),
       ['label', 'JobRunner'],
       ['label', 'crawlee'],
-      ['start', String(dayjs(job.startedAt).subtract(1, 'minute').valueOf())],
-      [
-        'end',
-        String(
-          dayjs(job.finishedAt ?? undefined)
-            .add(2, 'minute')
-            .valueOf()
-        )
-      ]
+      ['start', String(logRange.start)],
+      ['end', String(logRange.end)]
     ])}`;
 
   return (
@@ -52,7 +59,7 @@ export default function JobLogPage({ jobId }: { jobId: number }) {
           <Button type="text" icon={<ArrowLeftOutlined />} />
         </Link>
         <Typography.Title level={3} style={{ margin: 0 }}>
-          Scan #{job.id}
+          {isIndex ? 'Reindex' : 'Scan'} #{job.id}
           {job.storeName ? ` · ${job.storeName}` : ''}
         </Typography.Title>
         <JobStatusTag job={job} />
@@ -78,15 +85,26 @@ export default function JobLogPage({ jobId }: { jobId: number }) {
         <JobDetails job={job} />
       )}
       <Typography.Title level={4} style={{ margin: 0 }}>
-        Scan log
+        {isIndex ? 'Log' : 'Scan log'}
       </Typography.Title>
-      <LogViewer
-        // Following stops when the scan is done
-        key={String(isActive(job))}
-        source="scan"
-        jobId={job.id}
-        running={isActive(job)}
-      />
+      {isIndex ? (
+        // A reindex has no log of its own, it is in the scraper's log
+        <LogViewer
+          key={String(isActive(job))}
+          source="app"
+          initialLabels={INDEX_LABELS}
+          // Live while it runs, the time it ran when it is done
+          initialRange={isActive(job) ? undefined : logRange}
+        />
+      ) : (
+        <LogViewer
+          // Following stops when the scan is done
+          key={String(isActive(job))}
+          source="scan"
+          jobId={job.id}
+          running={isActive(job)}
+        />
+      )}
     </Flex>
   );
 }
