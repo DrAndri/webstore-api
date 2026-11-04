@@ -31,7 +31,12 @@ export default function StoreList() {
           pagination={false}
           scroll={{ x: true }}
           columns={[
-            { title: 'Id', dataIndex: 'id', width: 60 },
+            {
+              title: 'Id',
+              sorter: (a, b) => a.id - b.id,
+              dataIndex: 'id',
+              width: 60
+            },
             {
               title: 'Store',
               sorter: (a, b) => a.name.localeCompare(b.name),
@@ -72,15 +77,27 @@ export default function StoreList() {
             },
             {
               title: 'Products',
+              sorter: (a, b) =>
+                (a.lastCrawl?.totalProcessed ?? 0) -
+                (b.lastCrawl?.totalProcessed ?? 0),
               align: 'right',
               render: (_, store) =>
                 formatNumber(store.lastCrawl?.totalProcessed)
             },
             {
               title: 'Last scan',
+              sorter: (a, b) =>
+                (a.lastJob?.finishedAt ?? '').localeCompare(
+                  b.lastJob?.finishedAt ?? ''
+                ),
               render: (_, store) => fromNow(store.lastJob?.finishedAt)
             },
-            { title: 'Added', dataIndex: 'createdDate' }
+            {
+              title: 'Added',
+              sorter: (a, b) =>
+                (a.createdDate ?? '').localeCompare(b.createdDate ?? ''),
+              dataIndex: 'createdDate'
+            }
           ]}
         />
       )}
