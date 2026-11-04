@@ -95,5 +95,9 @@
   "prices": {
     "invalidStart": "Invalid start date format",
     "invalidEnd": "Invalid end date format"
+  },
+  "settings": {
+    "notFound": "The scraper settings do not exist yet, run the scraperSettings migration",
+    "concurrencyRange": "The number of stores scanned at a time must be a whole number from {{min}} to {{max}}"
   }
 }

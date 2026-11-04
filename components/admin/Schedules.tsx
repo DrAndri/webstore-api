@@ -7,6 +7,7 @@ import {
   Col,
   Flex,
   Input,
+  InputNumber,
   Row,
   Spin,
   Switch,
@@ -16,7 +17,13 @@ import {
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
-import { CronDescription, Schedule } from '../../utils/admin/types';
+import {
+  CronDescription,
+  MAX_CONCURRENCY,
+  MIN_CONCURRENCY,
+  Schedule,
+  ScraperSettings
+} from '../../utils/admin/types';
 import { useFormat } from '../I18n/I18nProvider';
 import { fetchJson, sendJson } from './api';
 
@@ -27,6 +34,91 @@ const PRESETS = [
   { label: 'mondays', cron: '0 1 * * 1' },
   { label: 'twiceAWeek', cron: '0 1 * * 1,4' }
 ] as const;
+
+// How many stores the scraper scans at a time
+function ConcurrencyCard() {
+  const { message } = App.useApp();
+  const { t } = useTranslation('admin');
+  const format = useFormat();
+  const { data, error, mutate } = useSWR<ScraperSettings>(
+    '/api/admin/settings',
+    fetchJson
+  );
+  const [value, setValue] = useState<number | null>(null);
+  const [saving, setSaving] = useState(false);
+  const concurrency = value ?? data?.concurrency ?? null;
+  const changed = data !== undefined && concurrency !== data.concurrency;
+
+  const save = async () => {
+    if (concurrency === null) return;
+    setSaving(true);
+    try {
+      await mutate(
+        await sendJson<ScraperSettings>('/api/admin/settings', 'PUT', {
+          concurrency
+        }),
+        false
+      );
+      setValue(null);
+      message.success(t('concurrency.saved'));
+    } catch (e) {
+      message.error((e as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Card title={t('concurrency.title')}>
+      {error ? (
+        <Alert type="error" showIcon title={error.message} />
+      ) : !data ? (
+        <Spin />
+      ) : (
+        <Flex vertical gap={12}>
+          <Typography.Text type="secondary">
+            {t('concurrency.description')}
+          </Typography.Text>
+          <Flex gap={8} align="center" wrap>
+            <Typography.Text strong>{t('concurrency.label')}</Typography.Text>
+            <InputNumber
+              aria-label={t('concurrency.label')}
+              min={MIN_CONCURRENCY}
+              max={MAX_CONCURRENCY}
+              precision={0}
+              value={concurrency}
+              onChange={(next) => setValue(next)}
+              onPressEnter={() => void (changed && save())}
+            />
+            <Button disabled={!changed} onClick={() => setValue(null)}>
+              {t('concurrency.reset')}
+            </Button>
+            <Button
+              type="primary"
+              disabled={!changed || concurrency === null}
+              loading={saving}
+              onClick={save}
+            >
+              {t('concurrency.save')}
+            </Button>
+          </Flex>
+          {data.updatedAt && (
+            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+              {data.updatedBy
+                ? t('concurrency.changedBy', {
+                    changed: format.fromNow(data.updatedAt),
+                    user: data.updatedBy
+                  })
+                : t('concurrency.changed', {
+                    changed: format.fromNow(data.updatedAt)
+                  })}
+            </Typography.Text>
+          )}
+        </Flex>
+      )}
+    </Card>
+  );
+}
 
 function ScheduleCard({
   schedule,
@@ -182,10 +274,16 @@ export default function Schedules() {
   );
   if (error) return <Alert type="error" showIcon title={error.message} />;
   if (!data) return <Spin style={{ display: 'block', marginTop: 64 }} />;
-  if (data.length === 0)
-    return <Alert type="info" showIcon title={t('schedules.empty')} />;
   return (
     <Row gutter={[16, 16]}>
+      <Col xs={24}>
+        <ConcurrencyCard />
+      </Col>
+      {data.length === 0 && (
+        <Col xs={24}>
+          <Alert type="info" showIcon title={t('schedules.empty')} />
+        </Col>
+      )}
       {data.map((schedule) => (
         <Col xs={24} lg={12} key={schedule.mode}>
           <ScheduleCard

@@ -102,8 +102,9 @@ the `signIn` callback only when the provider verifies email addresses.
 
 The admin interface shows the health of the scraper and each store, running
 and past scans with error trends, lets you start and cancel scans, reindex
-Solr, edit the cron schedules, add and edit stores, and manage api users and
-admins.
+Solr, edit the cron schedules and how many stores are scanned at a time, add
+and edit stores, and manage api users and admins. These are only configured
+here, not with environment variables of the scraper.
 
 **Logs** shows the scraper's own log from Loki (the job runner, Solr, the
 scheduler, crawlee and the rest), filtered by level, by the label of the module
@@ -141,6 +142,9 @@ The admin interface and the scraper only talk through the database:
   log while it ran on its page. It needs the `index` value of
   `scrapeJobs.mode`, see `migrations/2026-11-04-solr-index-jobs.sql` in the
   scraper.
+- How many stores are scanned at a time is the `concurrency` of
+  `scraperSettings`, the scraper reads it every 5 seconds. It needs
+  `migrations/2026-11-04-scraper-settings.sql` in the scraper.
 - The schedules are rows in `scraperSchedules`, the scraper applies changes
   within 30 seconds.
 - The scraper reports in `scraperStatus` every 5 seconds.

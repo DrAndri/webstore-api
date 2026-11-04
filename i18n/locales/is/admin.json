@@ -275,5 +275,15 @@
     "reset": "Endurstilla",
     "save": "Vista",
     "empty": "Tímaáætlanirnar verða til þegar skraparinn ræsist fyrst með verkkeyraranum."
+  },
+  "concurrency": {
+    "title": "Samtímis skannanir",
+    "description": "Hve margar verslanir skraparinn skannar í einu. Ef talan er lækkuð klárast skannanir í gangi og nýjar bíða þar til pláss losnar. Endurskráning í Solr og prófanir á stillingum teljast ekki með.",
+    "label": "Verslanir í einu",
+    "saved": "Vistað, skraparinn notar þetta innan nokkurra sekúndna",
+    "changed": "Breytt {{changed}}",
+    "changedBy": "Breytt {{changed}} af {{user}}",
+    "save": "Vista",
+    "reset": "Endurstilla"
   }
 }

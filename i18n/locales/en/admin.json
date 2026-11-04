@@ -275,5 +275,15 @@
     "reset": "Reset",
     "save": "Save",
     "empty": "The schedules are created the first time the scraper starts with the job runner."
+  },
+  "concurrency": {
+    "title": "Concurrent scans",
+    "description": "How many stores the scraper scans at a time. Lowering it lets the running scans finish, new scans wait until there is room. A Solr reindex and config tests do not count.",
+    "label": "Stores at a time",
+    "saved": "Saved, the scraper applies it within a few seconds",
+    "changed": "Changed {{changed}}",
+    "changedBy": "Changed {{changed}} by {{user}}",
+    "save": "Save",
+    "reset": "Reset"
   }
 }

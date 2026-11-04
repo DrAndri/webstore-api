@@ -322,3 +322,14 @@ export interface LogsResponse {
   // Why a scan has no log yet
   note?: string;
 }
+
+// Stores the scraper scans at a time, set in the admin interface
+export const MIN_CONCURRENCY = 1;
+export const MAX_CONCURRENCY = 20;
+
+// The row of scraperSettings
+export interface ScraperSettings {
+  concurrency: number;
+  updatedAt: string | null;
+  updatedBy: string | null;
+}

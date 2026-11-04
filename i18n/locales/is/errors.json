@@ -95,5 +95,9 @@
   "prices": {
     "invalidStart": "Ógilt snið á upphafsdagsetningu",
     "invalidEnd": "Ógilt snið á lokadagsetningu"
+  },
+  "settings": {
+    "notFound": "Stillingar skrapara eru ekki til, keyrðu scraperSettings-uppfærsluna",
+    "concurrencyRange": "Fjöldi verslana sem eru skannaðar í einu verður að vera heiltala frá {{min}} til {{max}}"
   }
 }

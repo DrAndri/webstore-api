@@ -79,8 +79,14 @@ function ScraperCard({ overview }: { overview: Overview }) {
                 : t('dashboard.upSince', {
                     time: format.time(scraper.startedAt)
                   })}
-              {scraper.concurrency !== null &&
-                `, ${t('dashboard.concurrency', { count: scraper.concurrency })}`}
+              {scraper.concurrency !== null && (
+                <>
+                  ,{' '}
+                  <Link href="/admin/schedules">
+                    {t('dashboard.concurrency', { count: scraper.concurrency })}
+                  </Link>
+                </>
+              )}
             </Typography.Text>
           </div>
           <Typography.Text type="secondary" style={{ fontSize: 12 }}>
