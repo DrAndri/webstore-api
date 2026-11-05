@@ -6,8 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint .",
-    "prettier": "prettier --write \"pages/**/*\""
+    "lint": "eslint ."
   },
   "dependencies": {
     "@ant-design/icons": "6.3.4",
