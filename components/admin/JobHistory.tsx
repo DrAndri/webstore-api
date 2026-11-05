@@ -38,6 +38,11 @@ const scanCounters = (job: Job, t: TFunction<'admin'>, format: Format) => [
     children: job.configCommit?.slice(0, 7) ?? '–'
   },
   { label: t('jobs.pages'), children: format.number(job.totalRequests) },
+  {
+    label: t('jobs.requestQueue'),
+    children:
+      job.pendingRequests === null ? '–' : format.number(job.pendingRequests)
+  },
   { label: t('jobs.products'), children: format.number(job.totalProcessed) },
   {
     label: t('jobs.failedPages'),

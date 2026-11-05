@@ -203,6 +203,7 @@
     "title": "Scan history",
     "configCommit": "Config commit",
     "pages": "Pages",
+    "requestQueue": "Pages in queue",
     "products": "Products",
     "failedPages": "Failed pages",
     "queued": "Queued",

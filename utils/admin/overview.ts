@@ -19,7 +19,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 export const JOB_COLUMNS = `j.id, j.storeId, s.name AS storeName, j.mode, j.source, j.status, j.cancelRequested,
   j.requestedBy, j.queuedAt, j.startedAt, j.finishedAt, j.heartbeatAt, j.configCommit, j.totalRequests,
-  j.totalProcessed, j.totalErrored, ${FIELD_ERRORS.map((f) => `j.${f}`).join(', ')}, j.errorMessage, j.testUrl`;
+  j.totalProcessed, j.totalErrored, j.pendingRequests, ${FIELD_ERRORS.map((f) => `j.${f}`).join(', ')}, j.errorMessage, j.testUrl`;
 
 interface StoreRow {
   id: number;

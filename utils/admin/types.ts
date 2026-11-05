@@ -41,6 +41,9 @@ export interface Job extends Record<FieldError, number> {
   totalRequests: number;
   totalProcessed: number;
   totalErrored: number;
+  // Requests in the request queue of a scan not handled yet, as of the last
+  // heartbeat. Null for jobs that don't crawl and scans before it was saved.
+  pendingRequests: number | null;
   errorMessage: string | null;
   updateResult?: Record<string, number> | null;
   testUrl?: string | null;

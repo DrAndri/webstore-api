@@ -203,6 +203,7 @@
     "title": "Saga skannana",
     "configCommit": "Útgáfa stillinga",
     "pages": "Síður",
+    "requestQueue": "Síður í biðröð",
     "products": "Vörur",
     "failedPages": "Síður sem mistókust",
     "queued": "Í biðröð",
