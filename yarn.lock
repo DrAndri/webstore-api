@@ -3023,10 +3023,10 @@ html-parse-stringify@^4.0.1:
   resolved "https://registry.yarnpkg.com/html-parse-stringify/-/html-parse-stringify-4.0.1.tgz#7264be901df0fef8829eb04632191be0aa94f55e"
   integrity sha512-0zHsZJrK7S3K2aucXWL6ycoYJ/iNtIcFHC/nYQgFklPtrv5LpJctIiSCroWZWeuoXvuyFdzp6KzjJQ+OT5MfFw==
 
-i18next@26.7.1:
-  version "26.7.1"
-  resolved "https://registry.yarnpkg.com/i18next/-/i18next-26.7.1.tgz#33bc0c45e6be754f0141cbb9289187db27aac485"
-  integrity sha512-cX+3RRVczel/V2kCMTACckSGSpqgtWYEA6beXNYVms7dOQiHojdPYHD26lT4IKimNeoGWrLvtPgjftbRvmZJVw==
+i18next@26.7.2:
+  version "26.7.2"
+  resolved "https://registry.yarnpkg.com/i18next/-/i18next-26.7.2.tgz#56e7550d479f05d0150479fbb345e6c29b78bbd1"
+  integrity sha512-RsOY3BeaCDdkk52NeJSFAXELQ2rQXBO/tOub6L8ue2ICPfR/FRDWDOfEDg4xMPd1SqO5goVYQ6i72qWEUB/PPw==
 
 iconv-lite@^0.7.2:
   version "0.7.3"
@@ -3496,10 +3496,10 @@ lru-cache@^5.1.1:
   dependencies:
     yallist "^3.0.2"
 
-mariadb@3.5.4:
-  version "3.5.4"
-  resolved "https://registry.yarnpkg.com/mariadb/-/mariadb-3.5.4.tgz#ae58f9e6faf0d298f027b248a47ed7303c06cc7d"
-  integrity sha512-3m0vdfgRkjle5/9hHl4R7rlVvnDA7QfuFSNkdIAQNROWKOS0J3b9IQK9HaZSCGEVKiDUbFXFiINfC+cmR5P/aA==
+mariadb@3.5.5:
+  version "3.5.5"
+  resolved "https://registry.yarnpkg.com/mariadb/-/mariadb-3.5.5.tgz#8eb1c9971419c2b8a53090bc26d560c509e6b551"
+  integrity sha512-xvR622+h/ANbFvbi5SCkGnJWAFG2pGCUdSyISXXU3ObJ+P2X8KqdF8goCXquCD/lKnmqDeWfgTt1YY7dDI5i2Q==
   dependencies:
     "@types/geojson" "^7946.0.16"
     "@types/node" ">=20"
@@ -3832,10 +3832,10 @@ react-dom@^19.3.1:
   dependencies:
     scheduler "^0.28.0"
 
-react-i18next@17.1.12:
-  version "17.1.12"
-  resolved "https://registry.yarnpkg.com/react-i18next/-/react-i18next-17.1.12.tgz#babaed504eca720381c16b4f50cf58358c51c13f"
-  integrity sha512-Gf8riCKF/EmqQ8I1g0N5pJOLvJCkAXGAEkzOuRNHc/sBGL3dfE3WZ7+sDLrUo/kw/xdug3g48jo7M+s/SKf0HQ==
+react-i18next@17.1.13:
+  version "17.1.13"
+  resolved "https://registry.yarnpkg.com/react-i18next/-/react-i18next-17.1.13.tgz#00cb81fe874fd0b272c229c4c7ff93087fb705d6"
+  integrity sha512-ZxhOSlyKSKPtbUNPLwYMmE3w3bhoc0jaZJZ6bc7wGOT6cLbrbs//6m01HxCLtFdSjHvFpwFwoPhxxzIlHSs9cw==
   dependencies:
     "@babel/runtime" "^7.29.7"
     html-parse-stringify "^4.0.1"
