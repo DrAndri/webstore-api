@@ -10,8 +10,7 @@ import ThemeSwitch from '../Theme/ThemeSwitch';
 // Sign in and out and the language and theme switches for the public pages.
 // dark is for the dark page header.
 export default async function UserMenu({
-  returnTo,
-  dark = false
+  returnTo
 }: {
   returnTo: string;
   dark?: boolean;
@@ -21,28 +20,24 @@ export default async function UserMenu({
   if (!session?.user)
     return (
       <Flex gap={8} align="center">
-        <LanguageSwitch dark={dark} />
-        <ThemeSwitch dark={dark} />
+        <LanguageSwitch />
+        <ThemeSwitch />
         <Link href={`/login?returnTo=${encodeURIComponent(returnTo)}`}>
-          <Button ghost={dark}>{t('signIn')}</Button>
+          <Button>{t('signIn')}</Button>
         </Link>
       </Flex>
     );
   return (
     <Flex gap={8} align="center">
-      <LanguageSwitch dark={dark} />
-      <ThemeSwitch dark={dark} />
+      <LanguageSwitch />
+      <ThemeSwitch />
       {session.user.image && (
         <Avatar size="small" src={session.user.image} alt="" />
       )}
-      <Text style={dark ? { color: '#fff' } : undefined}>
-        {session.user.name ?? session.user.email}
-      </Text>
+      <Text>{session.user.name ?? session.user.email}</Text>
       <form action={signOutUser}>
         <input type="hidden" name="returnTo" value={returnTo} />
-        <Button ghost={dark} htmlType="submit">
-          {t('signOut')}
-        </Button>
+        <Button htmlType="submit">{t('signOut')}</Button>
       </form>
     </Flex>
   );

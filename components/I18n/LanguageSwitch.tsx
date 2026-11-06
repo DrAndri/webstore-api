@@ -6,13 +6,7 @@ import { useLanguage } from './I18nProvider';
 
 // Switches to the other language, shows the code of the one it switches to.
 // dark is for the dark page header.
-export default function LanguageSwitch({
-  dark = false,
-  type
-}: {
-  dark?: boolean;
-  type?: 'text';
-}) {
+export default function LanguageSwitch({ type }: { type?: 'text' }) {
   const { t } = useTranslation('common');
   const { language, setLanguage } = useLanguage();
   const next = LANGUAGES.find((other) => other !== language) ?? language;
@@ -22,7 +16,6 @@ export default function LanguageSwitch({
       <Button
         aria-label={label}
         lang={next}
-        ghost={dark}
         type={type}
         onClick={() => setLanguage(next)}
       >
