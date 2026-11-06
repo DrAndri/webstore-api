@@ -30,9 +30,9 @@ export default async function Page() {
           >
             <Search stores={stores} />
             <Link href="/search">
-              <Button ghost>{t('home.advancedSearch')}</Button>
+              <Button>{t('home.advancedSearch')}</Button>
             </Link>
-            <UserMenu returnTo="/" dark />
+            <UserMenu returnTo="/" />
           </Flex>
         </Header>
         <Layout style={{ height: '100vh' }}>

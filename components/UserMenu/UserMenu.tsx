@@ -8,13 +8,7 @@ import LanguageSwitch from '../I18n/LanguageSwitch';
 import ThemeSwitch from '../Theme/ThemeSwitch';
 
 // Sign in and out and the language and theme switches for the public pages.
-// dark is for the dark page header.
-export default async function UserMenu({
-  returnTo
-}: {
-  returnTo: string;
-  dark?: boolean;
-}) {
+export default async function UserMenu({ returnTo }: { returnTo: string }) {
   const session = await auth();
   const { t } = await getTranslation('common');
   if (!session?.user)
