@@ -8,6 +8,7 @@ import {
   Flex,
   Image,
   Skeleton,
+  Table,
   Tag,
   Typography
 } from 'antd';
@@ -16,7 +17,10 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
-import type { ProductDetails as Product } from '../../utils/product';
+import type {
+  ProductDetails as Product,
+  SameSkuProduct
+} from '../../utils/product';
 import { useFormat } from '../I18n/I18nProvider';
 import Description from './Description';
 import PriceHistory from './PriceHistory';
@@ -73,14 +77,98 @@ function CurrentPrice({ product }: { product: Product }) {
   );
 }
 
+const shownPrice = (product: SameSkuProduct) =>
+  product.salePrice ?? product.price;
+
+// The price of the SKU in each store that has it. Clicking a row of another
+// store opens its product.
+function SameSku({
+  product,
+  onOpenProduct
+}: {
+  product: Product;
+  onOpenProduct?: (id: string) => void;
+}) {
+  const { t } = useTranslation('site');
+  const format = useFormat();
+  const canOpen = (row: SameSkuProduct) =>
+    onOpenProduct !== undefined && row.id !== product.id;
+  return (
+    <Table<SameSkuProduct>
+      size="small"
+      rowKey="id"
+      pagination={false}
+      dataSource={product.sameSku}
+      onRow={(row) =>
+        canOpen(row)
+          ? {
+              style: { cursor: 'pointer' },
+              tabIndex: 0,
+              onClick: () => onOpenProduct!(row.id),
+              onKeyDown: (event) => {
+                if (event.key === 'Enter') onOpenProduct!(row.id);
+              }
+            }
+          : {}
+      }
+      columns={[
+        {
+          title: t('productDetails.sameSkuColumns.store'),
+          render: (_, row) => (
+            <Flex gap={4} wrap align="center">
+              <Typography.Text strong={row.id === product.id}>
+                {row.storeName}
+              </Typography.Text>
+              {row.id === product.id && (
+                <Tag>{t('productDetails.thisProduct')}</Tag>
+              )}
+            </Flex>
+          )
+        },
+        {
+          title: t('productDetails.sameSkuColumns.name'),
+          dataIndex: 'name',
+          render: (name: string | null) => name ?? '–'
+        },
+        {
+          title: t('productDetails.sameSkuColumns.price'),
+          align: 'right',
+          defaultSortOrder: 'ascend',
+          // Stores without a price go last
+          sorter: (a, b) =>
+            (shownPrice(a) ?? Infinity) - (shownPrice(b) ?? Infinity),
+          render: (_, row) => (
+            <Flex gap={4} justify="end" align="center" wrap>
+              {row.salePrice !== null && (
+                <Tag color="volcano" style={{ marginInlineEnd: 0 }}>
+                  {t('productDetails.sale')}
+                </Tag>
+              )}
+              {format.price(shownPrice(row))}
+            </Flex>
+          )
+        },
+        {
+          title: t('productDetails.sameSkuColumns.inStock'),
+          render: (_, row) =>
+            row.inStock === null ? '–' : row.inStock ? t('yes') : t('no')
+        }
+      ]}
+    />
+  );
+}
+
 // Everything known about a product of a store, with its price history.
-// actions are more buttons for the product.
+// actions are more buttons for the product. onOpenProduct opens another
+// product, the one with the same SKU in another store.
 export default function ProductDetails({
   id,
-  actions
+  actions,
+  onOpenProduct
 }: {
   id: string;
   actions?: (product: Product) => React.ReactNode;
+  onOpenProduct?: (id: string) => void;
 }) {
   const { t } = useTranslation('site');
   const format = useFormat();
@@ -128,11 +216,14 @@ export default function ProductDetails({
           <CurrentPrice product={product} />
           <Flex gap={8} wrap>
             {product.url && (
-              <a href={product.url} target="_blank" rel="noreferrer">
-                <Button icon={<ExportOutlined />}>
-                  {t('productDetails.viewInStore')}
-                </Button>
-              </a>
+              <Button
+                href={product.url}
+                target="_blank"
+                rel="noreferrer"
+                icon={<ExportOutlined />}
+              >
+                {t('productDetails.viewInStore')}
+              </Button>
             )}
             <Link href={`/?selectedProductIds=${product.id}`}>
               <Button icon={<LineChartOutlined />}>
@@ -195,6 +286,12 @@ export default function ProductDetails({
           }
         ]}
       />
+
+      {product.sameSku.length > 0 && (
+        <Card size="small" title={t('productDetails.sameSku')}>
+          <SameSku product={product} onOpenProduct={onOpenProduct} />
+        </Card>
+      )}
 
       <Card size="small" title={t('productDetails.priceHistory')}>
         <PriceHistory prices={product.prices} salePrices={product.salePrices} />

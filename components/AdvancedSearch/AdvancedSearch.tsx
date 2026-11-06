@@ -497,6 +497,7 @@ export default function AdvancedSearch({
         {productId && (
           <ProductDetails
             id={productId}
+            onOpenProduct={setProductId}
             actions={(product) => {
               const isSelected = selectedIds.includes(product.id);
               return (

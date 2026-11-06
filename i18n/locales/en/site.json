@@ -146,6 +146,14 @@
     "firstSeen": "First seen",
     "lastSeen": "Last seen",
     "lastChange": "Last changed",
+    "sameSku": "Same SKU in other stores",
+    "thisProduct": "This product",
+    "sameSkuColumns": {
+      "store": "Store",
+      "name": "Name",
+      "price": "Price",
+      "inStock": "In stock"
+    },
     "priceHistory": "Price history",
     "description": "Description",
     "showMore": "Show more",

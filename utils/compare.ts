@@ -1,5 +1,6 @@
 import { queryPool } from './mariadb';
 import { getLookups } from './search';
+import { productPageUrls } from './storeUrls';
 
 export { MAX_COMPARED } from './compareLimits';
 
@@ -111,8 +112,14 @@ export const compareProducts = async (
   const priceMap = byProduct(prices);
   const saleMap = byProduct(salePrices);
   const lowestMap = byProduct(lowest);
+  const urls = await productPageUrls(
+    products.map((product) => ({
+      storeId: Number(product.storeId),
+      url: product.url
+    }))
+  );
 
-  const result = products.map((product) => {
+  const result = products.map((product, index) => {
     const id = Number(product.id);
     const price = priceMap.get(id);
     const sale = saleMap.get(id);
@@ -129,7 +136,7 @@ export const compareProducts = async (
       ean: product.ean,
       image: product.image?.startsWith('http') ? product.image : null,
       description: product.description,
-      url: product.url?.startsWith('http') ? product.url : null,
+      url: urls[index],
       inStock: product.inStock === null ? null : !!product.inStock,
       manufacturer: product.manufacturer,
       category: product.categoryId

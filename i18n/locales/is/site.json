@@ -146,6 +146,14 @@
     "firstSeen": "Fyrst skráð",
     "lastSeen": "Síðast séð",
     "lastChange": "Síðast breytt",
+    "sameSku": "Sama vörunúmer í öðrum verslunum",
+    "thisProduct": "Þessi vara",
+    "sameSkuColumns": {
+      "store": "Verslun",
+      "name": "Heiti",
+      "price": "Verð",
+      "inStock": "Á lager"
+    },
     "priceHistory": "Verðsaga",
     "description": "Lýsing",
     "showMore": "Sýna meira",
