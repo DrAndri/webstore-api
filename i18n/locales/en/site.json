@@ -148,6 +148,8 @@
     "lastChange": "Last changed",
     "priceHistory": "Price history",
     "description": "Description",
+    "showMore": "Show more",
+    "showLess": "Show less",
     "attributes": "Attributes"
   },
   "priceHistory": {

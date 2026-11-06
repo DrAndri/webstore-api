@@ -18,6 +18,7 @@ import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import type { ProductDetails as Product } from '../../utils/product';
 import { useFormat } from '../I18n/I18nProvider';
+import Description from './Description';
 import PriceHistory from './PriceHistory';
 
 // messages are shown when the api gives no error of its own
@@ -201,11 +202,7 @@ export default function ProductDetails({
 
       {product.description && (
         <Card size="small" title={t('productDetails.description')}>
-          <Typography.Paragraph
-            ellipsis={{ rows: 6, expandable: 'collapsible' }}
-            style={{ whiteSpace: 'pre-line', margin: 0 }}
-            dangerouslySetInnerHTML={{ __html: product.description }}
-          />
+          <Description html={product.description} />
         </Card>
       )}
 

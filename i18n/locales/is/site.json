@@ -148,6 +148,8 @@
     "lastChange": "Síðast breytt",
     "priceHistory": "Verðsaga",
     "description": "Lýsing",
+    "showMore": "Sýna meira",
+    "showLess": "Sýna minna",
     "attributes": "Eiginleikar"
   },
   "priceHistory": {
