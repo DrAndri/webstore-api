@@ -4,6 +4,7 @@ import {
   CloseCircleOutlined,
   DatabaseOutlined,
   DownOutlined,
+  ExclamationCircleOutlined,
   PlayCircleOutlined,
   SyncOutlined
 } from '@ant-design/icons';
@@ -311,7 +312,7 @@ export default function Dashboard() {
         <Col xs={24} lg={14}>
           <Card size="small" style={{ height: '100%' }}>
             <Row gutter={[16, 16]}>
-              <Col xs={12} sm={8}>
+              <Col xs={12} sm={6}>
                 <Statistic
                   title={t('dashboard.running')}
                   value={running}
@@ -322,7 +323,7 @@ export default function Dashboard() {
                   }
                 />
               </Col>
-              <Col xs={12} sm={8}>
+              <Col xs={12} sm={6}>
                 <Statistic
                   title={t('dashboard.healthy')}
                   value={count('ok')}
@@ -333,14 +334,24 @@ export default function Dashboard() {
                   }
                 />
               </Col>
-              <Col xs={12} sm={8}>
+              <Col xs={12} sm={6}>
                 <Statistic
-                  title={t('dashboard.needAttention')}
-                  value={count('warning') + count('error')}
+                  title={t('healthLevels.warning')}
+                  value={count('warning')}
+                  prefix={
+                    <ExclamationCircleOutlined
+                      style={{ color: token.colorWarning }}
+                    />
+                  }
+                />
+              </Col>
+              <Col xs={12} sm={6}>
+                <Statistic
+                  title={t('healthLevels.error')}
+                  value={count('error')}
                   prefix={
                     <CloseCircleOutlined style={{ color: token.colorError }} />
                   }
-                  suffix={t('dashboard.failing', { count: count('error') })}
                 />
               </Col>
             </Row>
