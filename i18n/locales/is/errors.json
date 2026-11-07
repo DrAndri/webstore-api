@@ -48,8 +48,7 @@
   },
   "schedules": {
     "expressionTooLong": "Segðin er of löng",
-    "invalid": "Ógild tímaáætlun: {{errors}}",
-    "notFound": "Tímaáætlunin er ekki til enn, hún verður til þegar skannarinn ræsist"
+    "invalid": "Ógild tímaáætlun: {{errors}}"
   },
   "stores": {
     "notFound": "Verslunin fannst ekki",

@@ -48,8 +48,7 @@
   },
   "schedules": {
     "expressionTooLong": "The expression is too long",
-    "invalid": "Invalid schedule: {{errors}}",
-    "notFound": "The schedule does not exist yet, it is created when the scraper starts"
+    "invalid": "Invalid schedule: {{errors}}"
   },
   "stores": {
     "notFound": "Store not found",

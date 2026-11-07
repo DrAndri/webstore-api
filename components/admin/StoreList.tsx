@@ -11,6 +11,7 @@ import {
   Typography
 } from 'antd';
 import Link from 'next/link';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import { Overview, StoreStatus } from '../../utils/admin/types';
@@ -18,6 +19,7 @@ import { useFormat } from '../I18n/I18nProvider';
 import { fetchJson } from './api';
 import ReloadConfigButton from './ReloadConfigButton';
 import { HealthTag } from './StatusTags';
+import { ScheduleCell, ScheduleModal, ScheduleTarget } from './StoreSchedules';
 
 export default function StoreList() {
   const { t } = useTranslation('stores');
@@ -26,6 +28,12 @@ export default function StoreList() {
     '/api/admin/overview',
     fetchJson
   );
+  const [editing, setEditing] = useState<ScheduleTarget | null>(null);
+  const [editorOpen, setEditorOpen] = useState(false);
+  const edit = (target: ScheduleTarget) => {
+    setEditing(target);
+    setEditorOpen(true);
+  };
   return (
     <Flex vertical gap={16}>
       <Flex justify="space-between" align="center" wrap gap={8}>
@@ -85,15 +93,24 @@ export default function StoreList() {
                 )
             },
             {
-              title: t('list.columns.scheduledScans'),
-              render: (_, store) =>
-                store.scraperEnabled ? (
-                  t('list.on')
-                ) : (
-                  <Typography.Text type="secondary">
-                    {t('list.off')}
-                  </Typography.Text>
-                )
+              title: t('list.columns.fullCrawl'),
+              render: (_, store) => (
+                <ScheduleCell
+                  store={store}
+                  mode="crawler"
+                  onEdit={() => edit({ store, mode: 'crawler' })}
+                />
+              )
+            },
+            {
+              title: t('list.columns.activeProducts'),
+              render: (_, store) => (
+                <ScheduleCell
+                  store={store}
+                  mode="list"
+                  onEdit={() => edit({ store, mode: 'list' })}
+                />
+              )
             },
             {
               title: t('list.columns.publicSearch'),
@@ -132,6 +149,12 @@ export default function StoreList() {
           ]}
         />
       )}
+      <ScheduleModal
+        target={editing}
+        open={editorOpen}
+        onClose={() => setEditorOpen(false)}
+        onSaved={() => void mutate()}
+      />
     </Flex>
   );
 }

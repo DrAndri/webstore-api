@@ -146,8 +146,9 @@
     "configsFrom": "Configs from {{source}}",
     "configsFromAt": "Configs from {{source}} at {{commit}}",
     "unknownSource": "unknown",
-    "nextRun": "next {{time}} UTC",
-    "scheduleDisabled": "disabled",
+    "scheduled_one": "{{count}} store, next {{time}} UTC ({{store}})",
+    "scheduled_other": "{{count}} stores, next {{time}} UTC ({{store}})",
+    "noneScheduled": "no stores scheduled",
     "configErrors": "Some store configs do not load",
     "scanQueued": "Scan queued",
     "storeAlreadyQueued": "A scan of this store is already queued or running",
@@ -263,8 +264,8 @@
   "schedules": {
     "title": "Schedules",
     "descriptions": {
-      "crawler": "Crawls every enabled store from its start page and sitemaps. Finds new products, slow.",
-      "list": "Re-scrapes the product pages found in the last scan of each store. Keeps prices fresh, faster."
+      "crawler": "Crawls the store from its start page and sitemaps. Finds new products, slow.",
+      "list": "Re-scrapes the product pages found in the last scan of the store. Keeps prices fresh, faster."
     },
     "presets": {
       "nightly": "Every night at 04:00",
@@ -283,9 +284,19 @@
     "rejected": "The scraper rejected the schedule: {{error}}",
     "changed": "Last ran {{lastRun}}. Changed {{changed}}.",
     "changedBy": "Last ran {{lastRun}}. Changed {{changed}} by {{user}}.",
-    "reset": "Reset",
     "save": "Save",
-    "empty": "The schedules are created the first time the scraper starts with the job runner."
+    "modalTitle": "{{mode}} · {{store}}",
+    "edit": "Edit the {{mode}} schedule of {{store}}",
+    "enabledLabel": "Run on this schedule",
+    "next": "next {{time}}",
+    "notCreated": "Not created",
+    "notCreatedHelp": "The scraper creates this schedule with these settings within 30 seconds of the store being added, or save it now.",
+    "rejectedShort": "Rejected",
+    "storeOff": "Store off",
+    "storeScansOff": "Scheduled scans are off for this store, its schedules run once they are turned on on the store’s page.",
+    "cancel": "Cancel",
+    "perStore": "Each store has its own full crawl and active products schedules, they are edited on the stores page.",
+    "toStores": "Stores"
   },
   "concurrency": {
     "title": "Concurrent scans",

@@ -85,6 +85,9 @@ export interface StoreStatus {
   // scraper has not loaded it, so it needs to be reloaded
   configReloadNeeded: boolean;
   health: Health;
+  // The full crawl and active products schedules of the store, they run
+  // while scraperEnabled is on
+  schedules: Schedule[];
   activeJob?: Job;
   lastJob?: Job;
   lastCrawl?: Job;
@@ -126,7 +129,9 @@ export interface CronDescription {
   nextRuns: string[];
 }
 
+// A scan schedule of a store, a row of storeSchedules
 export interface Schedule extends CronDescription {
+  storeId: number;
   mode: ScheduledMode;
   cron: string;
   enabled: boolean;
@@ -138,7 +143,6 @@ export interface Schedule extends CronDescription {
 
 export interface Overview {
   scraper: ScraperInfo | null;
-  schedules: Schedule[];
   stores: StoreStatus[];
   activeJobs: Job[];
   configsAvailable: boolean;

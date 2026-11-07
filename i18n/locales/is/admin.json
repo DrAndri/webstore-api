@@ -146,8 +146,9 @@
     "configsFrom": "Stillingar frá: {{source}}",
     "configsFromAt": "Stillingar frá: {{source}}, útgáfa {{commit}}",
     "unknownSource": "óþekkt",
-    "nextRun": "næst {{time}} UTC",
-    "scheduleDisabled": "óvirk",
+    "scheduled_one": "{{count}} verslun, næst {{time}} UTC ({{store}})",
+    "scheduled_other": "{{count}} verslanir, næst {{time}} UTC ({{store}})",
+    "noneScheduled": "engar verslanir á áætlun",
     "configErrors": "Sumar stillingar verslana hlaðast ekki",
     "scanQueued": "Skönnun sett í biðröð",
     "storeAlreadyQueued": "Skönnun á þessari verslun er þegar í biðröð eða í gangi",
@@ -263,8 +264,8 @@
   "schedules": {
     "title": "Tímaáætlanir",
     "descriptions": {
-      "crawler": "Fer í gegnum allar virkar verslanir frá upphafssíðu og veftrjám. Finnur nýjar vörur, hægvirk.",
-      "list": "Skrapar aftur vörusíðurnar sem fundust í síðustu skönnun hverrar verslunar. Heldur verðum nýjum, fljótlegri."
+      "crawler": "Fer í gegnum verslunina frá upphafssíðu og veftrjám. Finnur nýjar vörur, hægvirk.",
+      "list": "Skrapar aftur vörusíðurnar sem fundust í síðustu skönnun verslunarinnar. Heldur verðum nýjum, fljótlegri."
     },
     "presets": {
       "nightly": "Á hverri nóttu kl. 04:00",
@@ -283,9 +284,19 @@
     "rejected": "Skraparinn hafnaði tímaáætluninni: {{error}}",
     "changed": "Síðasta keyrsla: {{lastRun}}. Breytt {{changed}}.",
     "changedBy": "Síðasta keyrsla: {{lastRun}}. Breytt {{changed}} af {{user}}.",
-    "reset": "Endurstilla",
     "save": "Vista",
-    "empty": "Tímaáætlanirnar verða til þegar skraparinn ræsist fyrst með verkkeyraranum."
+    "modalTitle": "{{mode}} · {{store}}",
+    "edit": "Breyta tímaáætlun fyrir {{mode}} hjá {{store}}",
+    "enabledLabel": "Keyra samkvæmt þessari tímaáætlun",
+    "next": "næst {{time}}",
+    "notCreated": "Ekki til",
+    "notCreatedHelp": "Skraparinn býr þessa tímaáætlun til með þessum stillingum innan 30 sekúndna frá því að verslunin var stofnuð, eða vistaðu hana núna.",
+    "rejectedShort": "Hafnað",
+    "storeOff": "Verslun óvirk",
+    "storeScansOff": "Áætlaðar skannanir eru óvirkar fyrir þessa verslun, tímaáætlanir hennar keyra þegar kveikt er á þeim á síðu verslunarinnar.",
+    "cancel": "Hætta við",
+    "perStore": "Hver verslun hefur sínar eigin tímaáætlanir fyrir heildarskönnun og virkar vörur, þeim er breytt á verslanasíðunni.",
+    "toStores": "Verslanir"
   },
   "concurrency": {
     "title": "Samtímis skannanir",

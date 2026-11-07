@@ -176,14 +176,20 @@ export const computeHealth = (
   };
 };
 
-// t is for the errors of invalid cron expressions
+// The scan schedules of every store, or of one store. t is for the errors of
+// invalid cron expressions. The overview only needs the next two runs, the
+// time of the next one and the interval of the full crawls.
 export const getSchedules = async (
-  t: TFunction<'admin'>
+  t: TFunction<'admin'>,
+  storeId?: number
 ): Promise<Schedule[]> => {
   const rows = await adminQuery<Record<string, unknown>[]>(
-    "SELECT mode, cron, enabled, updatedAt, updatedBy, lastRunAt, lastError FROM scraperSchedules ORDER BY FIELD(mode, 'crawler', 'list')"
+    `SELECT storeId, mode, cron, enabled, updatedAt, updatedBy, lastRunAt, lastError FROM storeSchedules
+     ${storeId === undefined ? '' : 'WHERE storeId = ?'} ORDER BY storeId, FIELD(mode, 'crawler', 'list')`,
+    storeId === undefined ? [] : [storeId]
   );
   return rows.map((row) => ({
+    storeId: row.storeId as number,
     mode: row.mode as Schedule['mode'],
     cron: row.cron as string,
     enabled: !!row.enabled,
@@ -191,8 +197,17 @@ export const getSchedules = async (
     updatedBy: row.updatedBy as string | null,
     lastRunAt: toIso(row.lastRunAt as Date | null),
     lastError: row.lastError as string | null,
-    ...describeCron(row.cron as string, t)
+    ...describeCron(row.cron as string, t, 2)
   }));
+};
+
+// The time between two full crawls of a store, undefined when they are not
+// scheduled
+const crawlInterval = (schedules: Schedule[]) => {
+  const crawl = schedules.find((s) => s.mode === 'crawler');
+  return crawl?.enabled && crawl.nextRuns.length >= 2
+    ? Date.parse(crawl.nextRuns[1]) - Date.parse(crawl.nextRuns[0])
+    : undefined;
 };
 
 // The health reasons and cron errors are in the language of t
@@ -249,13 +264,6 @@ export const getOverview = async (t: TFunction<'admin'>): Promise<Overview> => {
     !!scraper?.configSource?.startsWith('github:') &&
     status?.storeConfigs != null;
 
-  const crawlSchedule = schedules.find((s) => s.mode === 'crawler');
-  const crawlIntervalMs =
-    crawlSchedule?.enabled && crawlSchedule.nextRuns.length >= 2
-      ? Date.parse(crawlSchedule.nextRuns[1]) -
-        Date.parse(crawlSchedule.nextRuns[0])
-      : undefined;
-
   const jobs = recentJobs.map(toJob);
   const active = activeJobs.map(toJob);
 
@@ -269,6 +277,7 @@ export const getOverview = async (t: TFunction<'admin'>): Promise<Overview> => {
     const fileSha = configShas?.get(store.id);
     const hasConfig = configShas ? fileSha !== undefined : undefined;
     const loadedConfig = scraper?.storeConfigs[store.id] ?? null;
+    const storeSchedules = schedules.filter((s) => s.storeId === store.id);
     return {
       id: store.id,
       name: store.name,
@@ -288,8 +297,9 @@ export const getOverview = async (t: TFunction<'admin'>): Promise<Overview> => {
         finished,
         hasConfig,
         configError,
-        crawlIntervalMs
+        crawlInterval(storeSchedules)
       ),
+      schedules: storeSchedules,
       activeJob:
         active.find(
           (job) => job.storeId === store.id && job.status === 'running'
@@ -303,7 +313,6 @@ export const getOverview = async (t: TFunction<'admin'>): Promise<Overview> => {
 
   return {
     scraper,
-    schedules,
     stores: storeStatuses,
     activeJobs: active,
     configsAvailable: configShas !== undefined

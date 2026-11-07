@@ -47,8 +47,28 @@ import { HealthTag, JobStatusTag } from './StatusTags';
 
 const HEALTH_ORDER = { error: 0, warning: 1, unknown: 2, ok: 3, disabled: 4 };
 
+// The stores each kind of scan is scheduled for and the next scheduled scan
+const scheduledScans = (stores: Overview['stores'], mode: ScheduledMode) => {
+  const runs = stores.flatMap((store) =>
+    store.schedules
+      .filter(
+        (s) =>
+          s.mode === mode &&
+          s.enabled &&
+          s.valid &&
+          store.scraperEnabled &&
+          s.nextRuns.length > 0
+      )
+      .map((s) => ({ store: store.name, time: s.nextRuns[0] }))
+  );
+  runs.sort((a, b) => a.time.localeCompare(b.time));
+  return { count: runs.length, next: runs[0] };
+};
+
+const SCHEDULED_MODES: ScheduledMode[] = ['crawler', 'list'];
+
 function ScraperCard({ overview }: { overview: Overview }) {
-  const { scraper, schedules } = overview;
+  const { scraper, stores } = overview;
   const { t } = useTranslation('admin');
   const format = useFormat();
   return (
@@ -102,23 +122,27 @@ function ScraperCard({ overview }: { overview: Overview }) {
                   source: scraper.configSource ?? t('dashboard.unknownSource')
                 })}
           </Typography.Text>
-          {schedules.map((schedule) => (
-            <Typography.Text key={schedule.mode}>
-              {t(`modes.${schedule.mode}`)}:{' '}
-              {schedule.enabled ? (
-                <>
-                  <code>{schedule.cron}</code>,{' '}
-                  {t('dashboard.nextRun', {
-                    time: format.time(schedule.nextRuns[0])
-                  })}
-                </>
-              ) : (
-                <Typography.Text type="secondary">
-                  {t('dashboard.scheduleDisabled')}
-                </Typography.Text>
-              )}
-            </Typography.Text>
-          ))}
+          {SCHEDULED_MODES.map((mode) => {
+            const { count, next } = scheduledScans(stores, mode);
+            return (
+              <Typography.Text key={mode}>
+                {t(`modes.${mode}`)}:{' '}
+                {next ? (
+                  <Link href="/admin/stores">
+                    {t('dashboard.scheduled', {
+                      count,
+                      time: format.time(next.time),
+                      store: next.store
+                    })}
+                  </Link>
+                ) : (
+                  <Typography.Text type="secondary">
+                    {t('dashboard.noneScheduled')}
+                  </Typography.Text>
+                )}
+              </Typography.Text>
+            );
+          })}
           {scraper.configErrors.length > 0 && (
             <Alert
               type="error"
