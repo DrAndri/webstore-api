@@ -231,8 +231,6 @@ const crossFieldErrors = (
   if (config.type === 'crawler') {
     if (config.selectors.structuredData)
       fail('needsHttpcrawler', 'config.selectors.structuredData');
-    if (config.sitemapUrls?.length)
-      fail('needsHttpcrawler', 'config.sitemapUrls');
     if (!config.selectors.listPrice)
       fail('listPriceCrawler', 'config.selectors.listPrice');
   } else if (!config.selectors.listPrice && !config.selectors.structuredData) {

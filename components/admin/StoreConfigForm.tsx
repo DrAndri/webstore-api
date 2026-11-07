@@ -200,15 +200,13 @@ export default function StoreConfigForm({
         >
           {tags('https://example.is/vorur?PageSize=100')}
         </Form.Item>
-        {!browser && (
-          <Form.Item
-            name="sitemapUrls"
-            label={t('configForm.sitemaps')}
-            extra={t('configForm.sitemapsHelp')}
-          >
-            {tags('https://example.is/sitemap.xml')}
-          </Form.Item>
-        )}
+        <Form.Item
+          name="sitemapUrls"
+          label={t('configForm.sitemaps')}
+          extra={t('configForm.sitemapsHelp')}
+        >
+          {tags('https://example.is/sitemap.xml')}
+        </Form.Item>
         <Typography.Text strong>{t('configForm.productFeed')}</Typography.Text>
         <Typography.Paragraph type="secondary" style={{ fontSize: 12 }}>
           {t('configForm.productFeedHelp')}

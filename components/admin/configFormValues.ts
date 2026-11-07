@@ -149,7 +149,7 @@ export const fromFormValues = (
     urlWhitelist: values.urlWhitelist,
     urlBlacklist: values.urlBlacklist,
     startUrls: values.startUrls,
-    sitemapUrls: values.type === 'httpcrawler' ? values.sitemapUrls : undefined,
+    sitemapUrls: values.sitemapUrls,
     productFeed: values.productFeed as ProductFeed | undefined,
     scrollPagesToBottom:
       values.type === 'crawler' && values.scrollPagesToBottom
