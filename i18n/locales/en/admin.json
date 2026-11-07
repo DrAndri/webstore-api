@@ -240,7 +240,7 @@
     "filterBy": "Filter by {{label}}",
     "allLevels": "All levels",
     "allLabels": "All labels",
-    "allPages": "All pages",
+    "searchFor": "Search for {{page}}",
     "search": "Search the lines",
     "presets": {
       "15m": "15m",

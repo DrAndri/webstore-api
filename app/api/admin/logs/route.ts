@@ -29,7 +29,8 @@ export const GET = withAdmin(async (request): Promise<LogsResponse> => {
   if (labels.length > 50 || labels.some((label) => label.length > 2000))
     throw new HttpError(400, { key: 'logs.tooManyLabels' });
   const search = (params.get('search') ?? '').trim();
-  if (search.length > 200)
+  // Long enough for the url of a page, clicking a page searches for it
+  if (search.length > 2000)
     throw new HttpError(400, { key: 'logs.searchTooLong' });
   const limit = Math.min(
     MAX_LIMIT,

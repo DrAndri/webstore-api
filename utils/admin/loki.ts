@@ -62,7 +62,7 @@ export type LogSource =
 
 export interface LogFilters {
   levels: LogLevel[];
-  // The module label for the app log, the page for a scan
+  // The module labels, only the app log has them
   labels: string[];
   search: string;
 }
@@ -74,8 +74,6 @@ const selector = (from: LogSource, filters: LogFilters) => {
       : [`store=${quote(from.store)}`, `jobId=~${quote(`|${from.jobId}`)}`];
   if (filters.levels.length > 0 && filters.levels.length < LOG_LEVELS.length)
     matchers.push(`level=~${anyOf(filters.levels)}`);
-  if (from.source === 'scan' && filters.labels.length > 0)
-    matchers.push(`page=~${anyOf(filters.labels)}`);
   return `{${matchers.join(', ')}}`;
 };
 
@@ -180,15 +178,3 @@ export const appLabelCounts = async (
     .map((row) => ({ value: row.metric.module!, count: Number(row.value[1]) }))
     .sort((a, b) => b.count - a.count);
 };
-
-// The pages in the log of a scan
-export const scanPages = (
-  from: Extract<LogSource, { source: 'scan' }>,
-  start: bigint,
-  end: bigint
-) =>
-  lokiFetch<string[] | undefined>('label/page/values', {
-    query: selector(from, { levels: [], labels: [], search: '' }),
-    start: start.toString(),
-    end: end.toString()
-  }).then((values) => values ?? []);

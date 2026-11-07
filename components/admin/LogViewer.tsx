@@ -143,7 +143,11 @@ function LogLine({
               textOverflow: 'ellipsis',
               flexShrink: 0
             }}
-            title={t('logs.filterBy', { label: entry.label ?? entry.page })}
+            title={
+              entry.label
+                ? t('logs.filterBy', { label: entry.label })
+                : t('logs.searchFor', { page: entry.page })
+            }
             onClick={(event) => {
               event.stopPropagation();
               onLabel((entry.label ?? entry.page)!);
@@ -205,7 +209,6 @@ export default function LogViewer(props: LogViewerProps) {
   const [live, setLive] = useState(
     props.source === 'app' ? !props.initialRange : props.running
   );
-  const [pageSearch, setPageSearch] = useState('');
   const [reloads, setReloads] = useState(0);
   const [view, setView] = useState<View>();
   const [loadingOlder, setLoadingOlder] = useState(false);
@@ -357,31 +360,30 @@ export default function LogViewer(props: LogViewerProps) {
     }
   };
 
+  // Only the app log has labels to filter by
   const labelsUrl = (() => {
-    if (isApp) {
-      if (!view?.range) return null;
-      const params = new URLSearchParams({
-        source: 'app',
-        start: String(view.range.start)
-      });
-      if (view.range.end) params.set('end', String(view.range.end));
-      return `/api/admin/logs/labels?${params}`;
-    }
-    return `/api/admin/logs/labels?${new URLSearchParams({
-      source: 'scan',
-      job: String(props.jobId),
-      q: pageSearch
-    })}`;
+    if (!isApp || !view?.range) return null;
+    const params = new URLSearchParams({
+      source: 'app',
+      start: String(view.range.start)
+    });
+    if (view.range.end) params.set('end', String(view.range.end));
+    return `/api/admin/logs/labels?${params}`;
   })();
   const { data: labelOptions, isLoading: labelsLoading } = useSWR<
-    { value: string; count?: number }[]
+    { value: string; count: number }[]
   >(labelsUrl, fetchJson, {
     keepPreviousData: true,
     refreshInterval: following ? 15000 : 0
   });
 
-  const addLabel = (label: string) => {
-    if (!labels.includes(label)) setLabels([...labels, label]);
+  // A module label filters the app log, a page of a scan is searched for, the
+  // scraper writes it in the line
+  const onLabel = (label: string) => {
+    if (!isApp) {
+      setSearchInput(label);
+      setSearch(label);
+    } else if (!labels.includes(label)) setLabels([...labels, label]);
   };
 
   return (
@@ -396,43 +398,36 @@ export default function LogViewer(props: LogViewerProps) {
           onChange={setLevels}
           options={LOG_LEVELS.map((level) => ({ value: level, label: level }))}
         />
-        <Select
-          mode="multiple"
-          allowClear
-          showSearch={
-            isApp
-              ? { optionFilterProp: 'value' }
-              : { filterOption: false, onSearch: setPageSearch }
-          }
-          placeholder={isApp ? t('logs.allLabels') : t('logs.allPages')}
-          style={{ minWidth: 220, maxWidth: 480 }}
-          value={labels}
-          onChange={(value) => {
-            setLabels(value);
-            setPageSearch('');
-          }}
-          loading={labelsLoading}
-          notFoundContent={labelsLoading ? <Spin size="small" /> : undefined}
-          options={[
-            // Labels from the url or a clicked line may not be in the list
-            ...labels
-              .filter(
-                (label) =>
-                  !labelOptions?.some((option) => option.value === label)
-              )
-              .map((value) => ({ value })),
-            ...(labelOptions ?? [])
-          ].map((option: { value: string; count?: number }) => ({
-            value: option.value,
-            label:
-              option.count !== undefined
-                ? `${option.value} (${format.number(option.count)})`
-                : isApp
-                  ? option.value
-                  : shortPage(option.value),
-            title: option.value
-          }))}
-        />
+        {isApp && (
+          <Select
+            mode="multiple"
+            allowClear
+            showSearch={{ optionFilterProp: 'value' }}
+            placeholder={t('logs.allLabels')}
+            style={{ minWidth: 220, maxWidth: 480 }}
+            value={labels}
+            onChange={setLabels}
+            loading={labelsLoading}
+            notFoundContent={labelsLoading ? <Spin size="small" /> : undefined}
+            options={[
+              // Labels from the url or a clicked line may not be in the list
+              ...labels
+                .filter(
+                  (label) =>
+                    !labelOptions?.some((option) => option.value === label)
+                )
+                .map((value) => ({ value })),
+              ...(labelOptions ?? [])
+            ].map((option: { value: string; count?: number }) => ({
+              value: option.value,
+              label:
+                option.count !== undefined
+                  ? `${option.value} (${format.number(option.count)})`
+                  : option.value,
+              title: option.value
+            }))}
+          />
+        )}
         <Input.Search
           allowClear
           placeholder={t('logs.search')}
@@ -531,7 +526,7 @@ export default function LogViewer(props: LogViewerProps) {
         ) : (
           <div style={{ fontSize: 13, minHeight: 120 }}>
             {view?.entries.map((entry) => (
-              <LogLine key={entry.key} entry={entry} onLabel={addLabel} />
+              <LogLine key={entry.key} entry={entry} onLabel={onLabel} />
             ))}
           </div>
         )}

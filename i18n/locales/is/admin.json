@@ -240,7 +240,7 @@
     "filterBy": "Sía eftir {{label}}",
     "allLevels": "Öll stig",
     "allLabels": "Öll merki",
-    "allPages": "Allar síður",
+    "searchFor": "Leita að {{page}}",
     "search": "Leita í línunum",
     "presets": {
       "15m": "15 mín.",

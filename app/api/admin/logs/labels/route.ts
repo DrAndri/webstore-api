@@ -1,27 +1,15 @@
 import { withAdmin } from '../../../../../utils/admin/api';
-import { appLabelCounts, scanPages } from '../../../../../utils/admin/loki';
+import { appLabelCounts } from '../../../../../utils/admin/loki';
 import { resolveLogSource } from '../../../../../utils/admin/logs';
 
-const MAX_PAGES = 100;
-
-// The labels to filter a log by: the modules in the app log with their line
-// counts, or the pages in the log of a scan matching q
+// The module labels to filter the app log by, with their line counts. The log
+// of a scan has none, its pages are found with the search.
 export const GET = withAdmin(
-  async (request): Promise<{ value: string; count?: number }[]> => {
-    const params = request.nextUrl.searchParams;
-    const { from, start, end, notStarted } = await resolveLogSource(params);
-    if (notStarted) return [];
-    if (from.source === 'app') return appLabelCounts(start, end);
-
-    const q = (params.get('q') ?? '').trim().toLowerCase();
-    const pages = await scanPages(from, start, end);
-    return (
-      pages
-        .filter((page) => page.toLowerCase().includes(q))
-        // The summary of the scan first
-        .sort((a, b) => Number(b === 'Scan log') - Number(a === 'Scan log'))
-        .slice(0, MAX_PAGES)
-        .map((value) => ({ value }))
+  async (request): Promise<{ value: string; count: number }[]> => {
+    const { from, start, end, notStarted } = await resolveLogSource(
+      request.nextUrl.searchParams
     );
+    if (notStarted || from.source !== 'app') return [];
+    return appLabelCounts(start, end);
   }
 );
