@@ -14,6 +14,8 @@
       "added": "Bætt við"
     },
     "missing": "Vantar",
+    "reloadNeeded": "Ekki endurhlaðið",
+    "reloadNeededHelp": "Skraparinn notar eldri útgáfu af þessum stillingum eða hefur ekki hlaðið þær. Endurhladdu þær til að nota vistuðu útgáfuna.",
     "on": "Virkt",
     "off": "Óvirkt"
   },
@@ -36,6 +38,20 @@
       "scans": "Skannanir"
     }
   },
+  "reload": {
+    "store": "Endurhlaða stillingar",
+    "all": "Endurhlaða allar stillingar",
+    "storeReloaded": "Stillingarnar voru endurhlaðnar, skannanir nota þær héðan í frá",
+    "allReloaded": "Allar stillingar voru endurhlaðnar",
+    "storeFailed": "Stillingarnar hlóðust ekki, skraparinn heldur útgáfunni sem hann hlóð áður: {{error}}",
+    "allFailed": "Sumar stillingar hlóðust ekki, þær halda útgáfunni sem var hlaðin áður: {{error}}",
+    "notPickedUp": "Skraparinn hefur ekki tekið við endurhleðslunni. Hann endurhleður þegar hann kemst aftur í samband, athugaðu stjórnborðið.",
+    "loadedAt": "Skraparinn hlóð þessar stillingar {{time}}, útgáfa {{commit}}",
+    "loadedAtNoCommit": "Skraparinn hlóð þessar stillingar {{time}}",
+    "notLoaded": "Skraparinn hefur ekki hlaðið þessar stillingar",
+    "outdated": "Skraparinn notar eldri útgáfu af þessum stillingum. Endurhladdu þær til að nota vistuðu útgáfuna í skönnunum.",
+    "notLoadedYet": "Skraparinn hefur ekki hlaðið þessar stillingar. Endurhladdu þær til að skanna verslunina."
+  },
   "trends": {
     "configMarkers": "Brotalínur sýna breytingar á stillingum.",
     "days": "{{days}} d.",
@@ -54,7 +70,7 @@
     "openOnGithub": "Opna á GitHub",
     "noConfigFile": "Þessi verslun hefur enga stillingaskrá enn, hún verður til þegar þú vistar.",
     "fixSyntax": "Lagaðu málskipunarvillurnar áður en skipt er yfir í eyðublaðið",
-    "committed": "Útgáfan var vistuð, skraparinn notar hana frá og með næstu skönnun",
+    "committed": "Útgáfan var vistuð. Endurhladdu stillingarnar svo skraparinn noti hana.",
     "changes": "Breytingar",
     "invalid": "Stillingarnar eru ekki gildar",
     "unsaved": "Óvistaðar breytingar",
@@ -67,7 +83,7 @@
     "commitPlaceholder": "Hverju var breytt og hvers vegna"
   },
   "history": {
-    "restored": "Stillingarnar voru endurheimtar",
+    "restored": "Stillingarnar voru endurheimtar. Endurhladdu þær svo skraparinn noti þær.",
     "viewOnGithub": "Skoða á GitHub",
     "restoreConfirm": "Vista þessa útgáfu stillinganna sem nýja breytingu?",
     "restore": "Endurheimta þessa útgáfu",

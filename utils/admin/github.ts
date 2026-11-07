@@ -68,28 +68,30 @@ export const getConfigFile = async (
   return { text: decode(data.content), sha: data.sha };
 };
 
-let listCache: { at: number; ids: Set<number> } | undefined;
+let listCache: { at: number; shas: Map<number, string> } | undefined;
 
-// Ids of the stores with a config file, cached for a short while since the
-// dashboard polls
-export const listConfigIds = async (): Promise<Set<number> | undefined> => {
-  if (listCache && Date.now() - listCache.at < 30 * 1000) return listCache.ids;
+// The blob sha of each store's config file by store id, cached for a short
+// while since the dashboard polls
+export const listConfigs = async (): Promise<
+  Map<number, string> | undefined
+> => {
+  if (listCache && Date.now() - listCache.at < 30 * 1000) return listCache.shas;
   try {
-    const { status, data } = await github<{ name: string; type: string }[]>(
-      `contents/${configDir()}?ref=${encodeURIComponent(branch())}`
-    );
+    const { status, data } = await github<
+      { name: string; type: string; sha: string }[]
+    >(`contents/${configDir()}?ref=${encodeURIComponent(branch())}`);
     if (!data) throw githubError(status);
-    const ids = new Set(
-      data
-        .map((entry) => /^(\d+)\.jsonc$/.exec(entry.name)?.[1])
-        .filter((id): id is string => id !== undefined)
-        .map(Number)
-    );
-    listCache = { at: Date.now(), ids };
-    return ids;
+    const shas = new Map<number, string>();
+    for (const entry of data) {
+      const id = /^(\d+)\.jsonc$/.exec(entry.name)?.[1];
+      if (entry.type === 'file' && id !== undefined)
+        shas.set(Number(id), entry.sha);
+    }
+    listCache = { at: Date.now(), shas };
+    return shas;
   } catch (e) {
     console.error('Listing store configs failed', e);
-    return listCache?.ids;
+    return listCache?.shas;
   }
 };
 

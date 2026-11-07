@@ -34,6 +34,9 @@
     "selectStore": "Select at least one store",
     "alreadyFinished": "The job has already finished"
   },
+  "configReloads": {
+    "notFound": "Config reload not found"
+  },
   "logs": {
     "invalidLevel": "Invalid level",
     "tooManyLabels": "Too many labels",

@@ -64,6 +64,14 @@ export interface Health {
   reasons: string[];
 }
 
+// The config of a store as the scraper loaded it, sha is the git blob sha of
+// the file
+export interface LoadedStoreConfig {
+  sha: string;
+  commit: string | null;
+  loadedAt: string;
+}
+
 export interface StoreStatus {
   id: number;
   name: string;
@@ -72,6 +80,10 @@ export interface StoreStatus {
   createdDate: string | null;
   lastScanDate: string | null;
   hasConfig: boolean;
+  loadedConfig: LoadedStoreConfig | null;
+  // The config on GitHub differs from the one the scraper loaded, or the
+  // scraper has not loaded it, so it needs to be reloaded
+  configReloadNeeded: boolean;
   health: Health;
   activeJob?: Job;
   lastJob?: Job;
@@ -85,8 +97,27 @@ export interface ScraperInfo {
   hostname: string | null;
   concurrency: number | null;
   configSource: string | null;
+  // Commit and time of the last reload of every config
   configCommit: string | null;
+  configLoadedAt: string | null;
   configErrors: { file: string; message: string }[];
+  // By store id
+  storeConfigs: Record<string, LoadedStoreConfig>;
+}
+
+// A reload of the store configs in the scraper, storeId is null for a reload
+// of every config
+export type ConfigReloadStatus = 'queued' | 'succeeded' | 'failed';
+
+export interface ConfigReload {
+  id: number;
+  storeId: number | null;
+  status: ConfigReloadStatus;
+  requestedBy: string | null;
+  requestedAt: string;
+  finishedAt: string | null;
+  configCommit: string | null;
+  errorMessage: string | null;
 }
 
 export interface CronDescription {

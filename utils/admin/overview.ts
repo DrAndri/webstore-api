@@ -1,11 +1,12 @@
 import { TFunction } from 'i18next';
 import { adminQuery, parseJsonColumn } from './db';
 import { describeCron } from './cron';
-import { listConfigIds } from './github';
+import { listConfigs } from './github';
 import {
   FIELD_ERRORS,
   Health,
   Job,
+  LoadedStoreConfig,
   Overview,
   Schedule,
   ScraperInfo,
@@ -196,7 +197,7 @@ export const getSchedules = async (
 
 // The health reasons and cron errors are in the language of t
 export const getOverview = async (t: TFunction<'admin'>): Promise<Overview> => {
-  const [stores, recentJobs, activeJobs, statusRows, schedules, configIds] =
+  const [stores, recentJobs, activeJobs, statusRows, schedules, configShas] =
     await Promise.all([
       adminQuery<StoreRow[]>(
         'SELECT id, name, scraperEnabled, apiEnabled, createdDate, lastScanDate FROM stores ORDER BY name'
@@ -214,10 +215,10 @@ export const getOverview = async (t: TFunction<'admin'>): Promise<Overview> => {
          WHERE j.status IN ('queued', 'running') ORDER BY j.id`
       ),
       adminQuery<Record<string, unknown>[]>(
-        'SELECT startedAt, lastSeenAt, hostname, concurrency, configSource, configCommit, configErrors FROM scraperStatus WHERE id = 1'
+        'SELECT startedAt, lastSeenAt, hostname, concurrency, configSource, configCommit, configLoadedAt, configErrors, storeConfigs FROM scraperStatus WHERE id = 1'
       ),
       getSchedules(t),
-      listConfigIds()
+      listConfigs()
     ]);
 
   const status = statusRows[0];
@@ -232,11 +233,21 @@ export const getOverview = async (t: TFunction<'admin'>): Promise<Overview> => {
         concurrency: status.concurrency as number | null,
         configSource: status.configSource as string | null,
         configCommit: status.configCommit as string | null,
+        configLoadedAt: toIso(status.configLoadedAt as Date | null),
         configErrors:
           parseJsonColumn<ScraperInfo['configErrors']>(status.configErrors) ??
-          []
+          [],
+        storeConfigs:
+          parseJsonColumn<Record<string, LoadedStoreConfig>>(
+            status.storeConfigs
+          ) ?? {}
       }
     : null;
+  // A scraper that reads the configs in its image can not reload the ones on
+  // GitHub, and one that does not report them yet has not been updated
+  const comparesToGithub =
+    !!scraper?.configSource?.startsWith('github:') &&
+    status?.storeConfigs != null;
 
   const crawlSchedule = schedules.find((s) => s.mode === 'crawler');
   const crawlIntervalMs =
@@ -255,7 +266,9 @@ export const getOverview = async (t: TFunction<'admin'>): Promise<Overview> => {
     const configError = scraper?.configErrors.find(
       (e) => e.file === `${store.id}.jsonc`
     )?.message;
-    const hasConfig = configIds ? configIds.has(store.id) : undefined;
+    const fileSha = configShas?.get(store.id);
+    const hasConfig = configShas ? fileSha !== undefined : undefined;
+    const loadedConfig = scraper?.storeConfigs[store.id] ?? null;
     return {
       id: store.id,
       name: store.name,
@@ -264,6 +277,11 @@ export const getOverview = async (t: TFunction<'admin'>): Promise<Overview> => {
       createdDate: toDay(store.createdDate),
       lastScanDate: toDay(store.lastScanDate),
       hasConfig: hasConfig ?? true,
+      loadedConfig,
+      configReloadNeeded:
+        comparesToGithub &&
+        fileSha !== undefined &&
+        loadedConfig?.sha !== fileSha,
       health: computeHealth(
         t,
         store,
@@ -288,6 +306,6 @@ export const getOverview = async (t: TFunction<'admin'>): Promise<Overview> => {
     schedules,
     stores: storeStatuses,
     activeJobs: active,
-    configsAvailable: configIds !== undefined
+    configsAvailable: configShas !== undefined
   };
 };

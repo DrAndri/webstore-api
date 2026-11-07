@@ -1,29 +1,45 @@
 'use client';
 import { PlusOutlined } from '@ant-design/icons';
-import { Alert, Button, Flex, Spin, Table, Tag, Typography } from 'antd';
+import {
+  Alert,
+  Button,
+  Flex,
+  Spin,
+  Table,
+  Tag,
+  Tooltip,
+  Typography
+} from 'antd';
 import Link from 'next/link';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import { Overview, StoreStatus } from '../../utils/admin/types';
 import { useFormat } from '../I18n/I18nProvider';
 import { fetchJson } from './api';
+import ReloadConfigButton from './ReloadConfigButton';
 import { HealthTag } from './StatusTags';
 
 export default function StoreList() {
   const { t } = useTranslation('stores');
   const format = useFormat();
-  const { data, error } = useSWR<Overview>('/api/admin/overview', fetchJson);
+  const { data, error, mutate } = useSWR<Overview>(
+    '/api/admin/overview',
+    fetchJson
+  );
   return (
     <Flex vertical gap={16}>
       <Flex justify="space-between" align="center" wrap gap={8}>
         <Typography.Title level={3} style={{ margin: 0 }}>
           {t('list.title')}
         </Typography.Title>
-        <Link href="/admin/stores/new">
-          <Button type="primary" icon={<PlusOutlined />}>
-            {t('list.add')}
-          </Button>
-        </Link>
+        <Flex gap={8} wrap>
+          <ReloadConfigButton onReloaded={() => void mutate()} />
+          <Link href="/admin/stores/new">
+            <Button type="primary" icon={<PlusOutlined />}>
+              {t('list.add')}
+            </Button>
+          </Link>
+        </Flex>
       </Flex>
       {error && <Alert type="error" showIcon title={error.message} />}
       {!data && !error && <Spin />}
@@ -56,7 +72,14 @@ export default function StoreList() {
               title: t('list.columns.config'),
               render: (_, store) =>
                 store.hasConfig ? (
-                  <Tag>stores/{store.id}.jsonc</Tag>
+                  <Flex gap={4} wrap>
+                    <Tag>stores/{store.id}.jsonc</Tag>
+                    {store.configReloadNeeded && (
+                      <Tooltip title={t('list.reloadNeededHelp')}>
+                        <Tag color="warning">{t('list.reloadNeeded')}</Tag>
+                      </Tooltip>
+                    )}
+                  </Flex>
                 ) : (
                   <Tag color="error">{t('list.missing')}</Tag>
                 )

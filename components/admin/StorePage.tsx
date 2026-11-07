@@ -10,6 +10,7 @@ import {
   Spin,
   Switch,
   Tabs,
+  Tooltip,
   Typography
 } from 'antd';
 import Link from 'next/link';
@@ -20,6 +21,7 @@ import { useFormat } from '../I18n/I18nProvider';
 import { fetchJson, sendJson } from './api';
 import ConfigHistory from './ConfigHistory';
 import JobHistory from './JobHistory';
+import ReloadConfigButton from './ReloadConfigButton';
 import { HealthTag, JobStatusTag } from './StatusTags';
 import StoreConfigEditor from './StoreConfigEditor';
 import StoreTrends from './StoreTrends';
@@ -39,6 +41,7 @@ export default function StorePage({ storeId }: { storeId: number }) {
     { refreshInterval: 5000 }
   );
   const status = overview?.stores.find((store) => store.id === storeId);
+  const loaded = status?.loadedConfig;
 
   if (error) return <Alert type="error" showIcon title={error.message} />;
   if (!data) return <Spin style={{ display: 'block', marginTop: 64 }} />;
@@ -120,6 +123,25 @@ export default function StorePage({ storeId }: { storeId: number }) {
             />
             {t('page.publicSearch')}
           </Space>
+          <Tooltip
+            title={
+              loaded
+                ? loaded.commit
+                  ? t('reload.loadedAt', {
+                      time: format.fromNow(loaded.loadedAt),
+                      commit: loaded.commit.slice(0, 7)
+                    })
+                  : t('reload.loadedAtNoCommit', {
+                      time: format.fromNow(loaded.loadedAt)
+                    })
+                : t('reload.notLoaded')
+            }
+          >
+            <ReloadConfigButton
+              storeId={storeId}
+              onReloaded={() => void mutateOverview()}
+            />
+          </Tooltip>
           <Space.Compact>
             <Button
               type="primary"
@@ -155,6 +177,13 @@ export default function StorePage({ storeId }: { storeId: number }) {
               ))}
             </ul>
           }
+        />
+      )}
+      {status?.configReloadNeeded && (
+        <Alert
+          type="warning"
+          showIcon
+          title={loaded ? t('reload.outdated') : t('reload.notLoadedYet')}
         />
       )}
       <Tabs

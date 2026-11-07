@@ -14,6 +14,8 @@
       "added": "Added"
     },
     "missing": "Missing",
+    "reloadNeeded": "Not reloaded",
+    "reloadNeededHelp": "The scraper uses an older version of this config or has not loaded it. Reload it to use the saved version.",
     "on": "On",
     "off": "Off"
   },
@@ -36,6 +38,20 @@
       "scans": "Scans"
     }
   },
+  "reload": {
+    "store": "Reload config",
+    "all": "Reload all configs",
+    "storeReloaded": "Config reloaded, scans use it from now on",
+    "allReloaded": "All configs reloaded",
+    "storeFailed": "The config did not load, the scraper keeps the version it loaded before: {{error}}",
+    "allFailed": "Some configs did not load, they keep the version loaded before: {{error}}",
+    "notPickedUp": "The scraper has not picked up the reload. It reloads when it is back online, check the dashboard.",
+    "loadedAt": "The scraper loaded this config {{time}} at {{commit}}",
+    "loadedAtNoCommit": "The scraper loaded this config {{time}}",
+    "notLoaded": "The scraper has not loaded this config",
+    "outdated": "The scraper uses an older version of this config. Reload it to use the saved version in scans.",
+    "notLoadedYet": "The scraper has not loaded this config. Reload it to scan the store."
+  },
   "trends": {
     "configMarkers": "Dashed lines mark config changes.",
     "days": "{{days}} d",
@@ -54,7 +70,7 @@
     "openOnGithub": "Open on GitHub",
     "noConfigFile": "This store has no config file yet, saving creates it.",
     "fixSyntax": "Fix the syntax errors before switching to the form",
-    "committed": "Committed, the scraper uses it from the next scan",
+    "committed": "Committed. Reload the config so the scraper uses it.",
     "changes": "Changes",
     "invalid": "The config is not valid",
     "unsaved": "Unsaved changes",
@@ -67,7 +83,7 @@
     "commitPlaceholder": "What changed and why"
   },
   "history": {
-    "restored": "Config restored",
+    "restored": "Config restored. Reload the config so the scraper uses it.",
     "viewOnGithub": "View on GitHub",
     "restoreConfirm": "Commit this version of the config as a new change?",
     "restore": "Restore this version",

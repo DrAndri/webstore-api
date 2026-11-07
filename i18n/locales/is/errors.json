@@ -34,6 +34,9 @@
     "selectStore": "Veldu að minnsta kosti eina verslun",
     "alreadyFinished": "Verkinu er þegar lokið"
   },
+  "configReloads": {
+    "notFound": "Endurhleðslan fannst ekki"
+  },
   "logs": {
     "invalidLevel": "Ógilt stig",
     "tooManyLabels": "Of mörg merki",
