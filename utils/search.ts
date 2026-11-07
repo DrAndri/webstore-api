@@ -101,7 +101,13 @@ export const getLookups = () => {
 // Whether the products core has the advanced search fields, which the scraper
 // adds when it syncs the Solr schema
 let schema:
-  | { at: number; exact: boolean; attrIds: boolean; skuPrefix: boolean }
+  | {
+      at: number;
+      exact: boolean;
+      attrIds: boolean;
+      namePrefix: boolean;
+      skuPrefix: boolean;
+    }
   | undefined;
 
 const getSchemaSupport = async () => {
@@ -119,11 +125,18 @@ const getSchemaSupport = async () => {
         fields.has('sku_ci') &&
         body.dynamicFields.some((f) => f.name === 'attrci_*'),
       attrIds: fields.has('attrIds'),
+      namePrefix: fields.has('name_prefix'),
       skuPrefix: fields.has('sku_prefix')
     };
   } catch (e) {
     console.error('Reading the Solr schema failed', e);
-    schema = { at: Date.now(), exact: false, attrIds: false, skuPrefix: false };
+    schema = {
+      at: Date.now(),
+      exact: false,
+      attrIds: false,
+      namePrefix: false,
+      skuPrefix: false
+    };
   }
   return schema;
 };
@@ -311,10 +324,20 @@ export const search = async (
     // Words only, operators in the free text are escaped
     params.set('q', q.split(/\s+/).map(escapeTerm).join(' '));
     params.set('defType', 'edismax');
-    // sku matches the whole sku, sku_prefix the start of it
+    // name and sku match whole words and skus, name_prefix and sku_prefix the
+    // start of them, so fart finds fartölva, ranked below a whole word
     params.set(
       'qf',
-      `name^3 sku^4 ${support.skuPrefix ? 'sku_prefix^2 ' : ''}ean^4 description^0.5`
+      [
+        'name^3',
+        support.namePrefix && 'name_prefix^1.5',
+        'sku^4',
+        support.skuPrefix && 'sku_prefix^2',
+        'ean^4',
+        'description^0.5'
+      ]
+        .filter(Boolean)
+        .join(' ')
     );
     params.set('mm', '100%');
   } else {

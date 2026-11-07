@@ -229,3 +229,7 @@ Exact whole value matching needs the `name_ci`, `sku_ci` and `attrci_*` fields
 in the products core, which **Sync Solr schema** on the admin dashboard adds.
 Until the products are reindexed, matching is word by word and attribute values are case
 sensitive.
+
+The search box of the advanced search also matches the start of words in the
+name through `name_prefix`, so `fart` finds `fartölva`, ranked below products
+with the whole word. It is used once the products core has that field.

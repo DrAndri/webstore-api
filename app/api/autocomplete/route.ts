@@ -1,5 +1,4 @@
 import { withApiAccess } from '../../../utils/apiAccess';
-import { escapeRegExp } from 'lodash';
 import {
   AutocompleteDoc,
   HIGHLIGHT_END,
@@ -81,7 +80,9 @@ const getMatches = (
 
 export const POST = withApiAccess(async (request: Request) => {
   const searchSolr = async (safeTerm: string, term: string) => {
-    const response = await querySolrAutocomplete('products', `*:"${safeTerm}"`);
+    // A phrase in the qf fields of the handler. Not *:"…", edismax reads *: as
+    // a wildcard of its own, matching every word and sku that ends with a colon
+    const response = await querySolrAutocomplete('products', `"${safeTerm}"`);
     return {
       total: response.response.numFound,
       results: response.response.docs
@@ -95,7 +96,8 @@ export const POST = withApiAccess(async (request: Request) => {
 
   const body = await request.json();
   const term = typeof body.term === 'string' ? body.term.trim() : '';
-  const safeTerm = escapeRegExp(term);
+  // Only a backslash and a quote are special inside a phrase
+  const safeTerm = term.replace(/[\\"]/g, '\\$&');
 
   if (!safeTerm) {
     return Response.json({ total: 0, results: [] });
