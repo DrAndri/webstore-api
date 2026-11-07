@@ -207,6 +207,11 @@ Search conditions are `{ field, op, value, value2? }` where `field` is `name`,
 `startsWith`, `endsWith`, `exact`, `between` or `is`. See
 `utils/searchFields.ts`.
 
+Autocomplete matches each word of the term anywhere in the name or the sku, so
+`fart` finds `Fartölva` and `1000XM` finds `WH1000XM6B.CE7`. Whole words and
+skus rank above their starts, and those above a match in the middle. It
+searches the `name` and `sku` fields with wildcards, so it needs no reindex.
+
 Autocomplete answers `{ total, results }`, where `total` is how many products
 matched and `results` has the first 10. Each result has `matches`, the parts of
 its `name` or `sku` the term matched, as `[start, end)` offsets into that

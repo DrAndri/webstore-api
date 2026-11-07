@@ -8,13 +8,60 @@ import {
 } from '../../../utils/solr';
 import { AutocompleteMatch, AutocompleteResult } from '../../../types';
 
+type Range = [start: number, end: number];
+
+// Letters ASCIIFoldingFilter folds to more than one letter or to another letter
+// without an accent
+const FOLDED: Record<string, string> = {
+  þ: 'th',
+  æ: 'ae',
+  ð: 'd',
+  ø: 'o',
+  œ: 'oe',
+  ß: 'ss',
+  đ: 'd',
+  ł: 'l'
+};
+
+// The value lower cased and without accents, like Solr indexes the name, with
+// the offsets in the value where each folded character starts and ends
+const fold = (value: string) => {
+  let text = '';
+  const starts: number[] = [];
+  const ends: number[] = [];
+  let offset = 0;
+  for (const char of value) {
+    const lower = char.toLowerCase();
+    const folded =
+      FOLDED[lower] ?? lower.normalize('NFD').replace(/\p{M}/gu, '');
+    for (let i = 0; i < folded.length; i++) {
+      starts.push(offset);
+      ends.push(offset + char.length);
+    }
+    text += folded;
+    offset += char.length;
+  }
+  return { text, starts, ends };
+};
+
+// Where the longest of the words is in the value, as offsets into the value
+const findLongest = (value: string, words: string[]): Range | undefined => {
+  const folded = fold(value);
+  let found: Range | undefined;
+  let longest = 0;
+  for (const word of words) {
+    const index = folded.text.indexOf(word);
+    if (index < 0 || word.length <= longest) continue;
+    longest = word.length;
+    found = [folded.starts[index], folded.ends[index + word.length - 1]];
+  }
+  return found;
+};
+
 // The offsets of the marked parts of a highlighted value, or nothing when the
 // highlight is not the whole value
-const markedRanges = (
-  highlighted: string,
-  value: string
-): AutocompleteMatch['ranges'] => {
-  const ranges: AutocompleteMatch['ranges'] = [];
+const markedRanges = (highlighted: string, value: string): Range[] => {
+  const ranges: Range[] = [];
   let offset = 0;
   let start = 0;
   for (const char of highlighted) {
@@ -25,29 +72,34 @@ const markedRanges = (
   return offset === value.length ? ranges : [];
 };
 
-// Solr marks the whole words a prefix matched, and words next to each other as
-// one range. Each word is marked on its own and only the typed part is kept of
-// a word that starts with one of the words of the term.
-const typedParts = (
-  ranges: AutocompleteMatch['ranges'],
-  value: string,
-  term: string
-): AutocompleteMatch['ranges'] => {
-  const typed = term.toLowerCase().split(/\s+/).filter(Boolean);
-  return ranges.flatMap(([start, end]) =>
+// Solr marks the whole words a word of the term is part of, and words next to
+// each other as one range. Each word is marked on its own and only the typed
+// part is kept, or the whole word when no word of the term is in it, like fart
+// and 9 of fart-9.
+const typedParts = (ranges: Range[], value: string, words: string[]) =>
+  ranges.flatMap(([start, end]) =>
     [...value.slice(start, end).matchAll(/\S+/g)].map(
-      ({ 0: word, index }): [number, number] => {
+      ({ 0: word, index }): Range => {
         const wordStart = start + index;
-        const longest = Math.max(
-          0,
-          ...typed
-            .filter((t) => word.toLowerCase().startsWith(t))
-            .map((t) => t.length)
-        );
-        return [wordStart, wordStart + (longest || word.length)];
+        const [from, to] = findLongest(word, words) ?? [0, word.length];
+        return [wordStart + from, wordStart + to];
       }
     )
   );
+
+// The parts of the sku the whole term or its words are, ordered and merged
+const skuParts = (sku: string, term: string, words: string[]) => {
+  const ranges = [term, ...words]
+    .map((part) => findLongest(sku, [part]))
+    .filter((range): range is Range => range !== undefined)
+    .sort((a, b) => a[0] - b[0] || b[1] - a[1]);
+  const merged: Range[] = [];
+  for (const [start, end] of ranges) {
+    const last = merged[merged.length - 1];
+    if (last && start <= last[1]) last[1] = Math.max(last[1], end);
+    else merged.push([start, end]);
+  }
+  return merged;
 };
 
 const getMatches = (
@@ -55,42 +107,57 @@ const getMatches = (
   term: string,
   highlighting: SolrAutocompleteResponse['highlighting']
 ): AutocompleteMatch[] => {
-  const highlights = highlighting?.[doc.id] ?? {};
+  const folded = fold(term).text;
+  const words = folded.split(/\s+/).filter(Boolean);
   const matches: AutocompleteMatch[] = [];
-  // name_prefix matches every word name does and the prefixes too, name is
-  // used until the products are reindexed with name_prefix
-  const namePrefix = highlights.name_prefix?.[0];
-  const name = namePrefix ?? highlights.name?.[0];
+  const name = highlighting?.[doc.id]?.name?.[0];
   if (name) {
-    const marked = markedRanges(name, doc.name);
-    const ranges = namePrefix ? typedParts(marked, doc.name, term) : marked;
+    const ranges = typedParts(markedRanges(name, doc.name), doc.name, words);
     if (ranges.length > 0) matches.push({ field: 'name', ranges });
   }
-  const sku = highlights.sku_prefix?.[0] ?? highlights.sku?.[0];
-  if (sku) {
-    // The sku is matched as a whole value or its prefixes, so Solr marks all
-    // of it. The part that matched is the term.
-    const ranges = doc.sku.toLowerCase().startsWith(term.toLowerCase())
-      ? [[0, term.length] as [number, number]]
-      : markedRanges(sku, doc.sku);
-    if (ranges.length > 0) matches.push({ field: 'sku', ranges });
-  }
+  const sku = skuParts(doc.sku, folded, words);
+  if (sku.length > 0) matches.push({ field: 'sku', ranges: sku });
   return matches;
 };
 
 // Only a backslash and a quote are special inside a phrase
 const quote = (value: string) => `"${value.replace(/[\\"]/g, '\\$&')}"`;
+// Every character the query parser reads as syntax, so the value is one term
+const escape = (value: string) =>
+  value.replace(/[+\-&|!(){}[\]^"~*?:\\/\s]/g, '\\$&');
 
-// The whole term as a phrase, for a sku with spaces in it, or each of its words
-// anywhere in the name, so fart 15 finds Fartölva Lenovo 15. The words are
-// prefixes through name_prefix and quoted so a typed AND or OR is a word. Not
-// *:"…", edismax reads *: as a wildcard of its own, matching every word and sku
-// that ends with a colon.
+// A word as a whole word or sku, the start of one or anywhere in one, ranked in
+// that order and a sku above a name. One letter only matches the start of a
+// word, anywhere would match almost every product.
+const wordQuery = (word: string) => {
+  const escaped = escape(word);
+  const anywhere = word.length > 1;
+  return `(${[
+    `sku:${quote(word)}^8`,
+    `sku:${escaped}*^4`,
+    anywhere && `sku:*${escaped}*^2`,
+    `name:${quote(word)}^4`,
+    `name:${escaped}*^2`,
+    anywhere && `name:*${escaped}*`
+  ]
+    .filter(Boolean)
+    .join(' OR ')})`;
+};
+
+// Each word of the term in the name or the sku, so fart finds Fartölva, 1000XM
+// finds WH1000XM6B.CE7 and sony 1000xm finds Sony headphones with that sku.
+// A term with spaces also matches a sku with those spaces. The wildcards search
+// name and sku, the fields every products core has, so the matching needs no
+// reindex. The term is lower cased so a typed AND, OR or NOT is a word.
 const autocompleteQuery = (term: string) => {
-  const words = term.split(/\s+/);
-  return words.length === 1
-    ? quote(term)
-    : `${quote(term)} OR (${words.map(quote).join(' AND ')})`;
+  const lower = term.toLowerCase();
+  const words = lower.split(/\s+/);
+  if (words.length === 1) return wordQuery(lower);
+  return [
+    `sku:${quote(lower)}^8`,
+    `sku:*${escape(lower)}*^2`,
+    `(${words.map(wordQuery).join(' AND ')})`
+  ].join(' OR ');
 };
 
 export const POST = withApiAccess(async (request: Request) => {
