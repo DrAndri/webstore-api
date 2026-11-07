@@ -151,7 +151,14 @@
     "next": "Next",
     "createStore": "Create store",
     "added": "{{name}} was added",
-    "configSaveFailed": "The store was created but saving its config failed. Save it again from the config tab."
+    "configSaveFailed": "The store was created but saving its config failed. Save it again from the config tab.",
+    "existingFound": "A config for store {{storeId}} is already committed",
+    "existingInvalid": "It has problems. Fix them in the scraper repository and check again:",
+    "checkAgain": "Check again",
+    "useExisting": "Use it",
+    "usingExisting": "The store gets id {{storeId}} and uses the committed config",
+    "dontUseExisting": "Write a new config",
+    "existingCommitInfo": "The store uses the config that is already committed, nothing is committed now. It can be edited later on the config tab."
   },
   "configForm": {
     "required": "{{label}} is required",

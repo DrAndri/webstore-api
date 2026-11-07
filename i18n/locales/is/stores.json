@@ -151,7 +151,14 @@
     "next": "Áfram",
     "createStore": "Stofna verslun",
     "added": "{{name}} var bætt við",
-    "configSaveFailed": "Verslunin var stofnuð en ekki tókst að vista stillingarnar hennar. Vistaðu þær aftur á stillingaflipanum."
+    "configSaveFailed": "Verslunin var stofnuð en ekki tókst að vista stillingarnar hennar. Vistaðu þær aftur á stillingaflipanum.",
+    "existingFound": "Stillingar fyrir verslun {{storeId}} eru þegar í kóðasafninu",
+    "existingInvalid": "Í þeim eru villur. Lagaðu þær í kóðasafni skraparans og athugaðu aftur:",
+    "checkAgain": "Athuga aftur",
+    "useExisting": "Nota þær",
+    "usingExisting": "Verslunin fær auðkennið {{storeId}} og notar stillingarnar í kóðasafninu",
+    "dontUseExisting": "Búa til nýjar stillingar",
+    "existingCommitInfo": "Verslunin notar stillingarnar sem eru þegar í kóðasafninu og engu er bætt við það núna. Þeim má breyta síðar á stillingaflipanum."
   },
   "configForm": {
     "required": "Reiturinn „{{label}}“ má ekki vera tómur",

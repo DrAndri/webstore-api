@@ -57,7 +57,9 @@
     "enterProductUrl": "Sláðu inn slóð á vörusíðu",
     "urlNotOnSite": "Slóðin verður að vera á {{site}}",
     "textRequired": "text vantar",
-    "commitMessage": "Skrifaðu lýsingu á breytingunni"
+    "commitMessage": "Skrifaðu lýsingu á breytingunni",
+    "configNotFound": "{{path}} fannst ekki í kóðasafni skraparans",
+    "idTaken": "Verslun með auðkennið {{id}} er þegar til"
   },
   "github": {
     "repoNotSet": "GITHUB_CONFIG_REPO er ekki stillt",

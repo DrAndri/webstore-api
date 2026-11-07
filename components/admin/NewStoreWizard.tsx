@@ -1,5 +1,5 @@
 'use client';
-import { ArrowLeftOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, FileTextOutlined } from '@ant-design/icons';
 import {
   Alert,
   App,
@@ -18,12 +18,13 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import useSWR from 'swr';
 import {
   pruneConfig,
   validateStoreConfig
 } from '../../utils/admin/storeConfig';
-import { WebshopCrawlerOptions } from '../../utils/admin/types';
-import { sendJson } from './api';
+import { NextStore, WebshopCrawlerOptions } from '../../utils/admin/types';
+import { fetchJson, sendJson } from './api';
 import ConfigTester from './ConfigTester';
 import StoreConfigForm, {
   ConfigFormValues,
@@ -72,6 +73,16 @@ const STEPS: {
   }
 ];
 
+type ExistingConfig = NextStore & {
+  config: NonNullable<NextStore['config']> & { value: WebshopCrawlerOptions };
+};
+
+// With a committed config only the name is entered before testing
+const EXISTING_STEPS: typeof STEPS = [
+  { key: 'store', sections: [], fields: ['name'] },
+  STEPS[STEPS.length - 1]
+];
+
 // Most stores have JSON-LD, so a new config starts from that
 const INITIAL_CONFIG: Partial<WebshopCrawlerOptions> = {
   type: 'httpcrawler',
@@ -87,17 +98,30 @@ export default function NewStoreWizard() {
   const [step, setStep] = useState(0);
   const [creating, setCreating] = useState(false);
   const [, setVersion] = useState(0);
+  // The config committed for the id the store will get, checked again when
+  // the window gets focus so a config committed meanwhile shows up
+  const {
+    data: nextStore,
+    mutate: checkNextStore,
+    isValidating: checkingNextStore
+  } = useSWR<NextStore>('/api/admin/stores/next', fetchJson);
+  // Kept as it was when chosen, the api checks it again on create
+  const [existing, setExisting] = useState<ExistingConfig>();
+  const steps = existing ? EXISTING_STEPS : STEPS;
+  const lastStep = step === steps.length - 1;
 
   const draftConfig = () => {
+    if (existing) return existing.config.value;
     const values = form.getFieldsValue(true) as WizardValues;
     return pruneConfig(fromFormValues(values, 0)) as WebshopCrawlerOptions;
   };
+  // A committed config is only offered when it is valid
   const errors =
-    step === STEPS.length - 1 ? validateStoreConfig(draftConfig(), t) : [];
+    lastStep && !existing ? validateStoreConfig(draftConfig(), t) : [];
 
   const next = async () => {
     try {
-      await form.validateFields(STEPS[step].fields, { recursive: true });
+      await form.validateFields(steps[step].fields, { recursive: true });
       setStep(step + 1);
     } catch {
       // The form shows the errors
@@ -117,7 +141,9 @@ export default function NewStoreWizard() {
           name: values.name,
           scraperEnabled: values.scraperEnabled,
           apiEnabled: values.apiEnabled,
-          config
+          ...(existing
+            ? { existingConfig: { storeId: existing.storeId } }
+            : { config })
         }
       );
       // The warning of the api is always that saving the config failed
@@ -140,7 +166,7 @@ export default function NewStoreWizard() {
       </Typography.Title>
       <Steps
         current={step}
-        items={STEPS.map(({ key }) => ({
+        items={steps.map(({ key }) => ({
           title: t(`wizard.steps.${key}`),
           content: t(`wizard.steps.${key}Content`)
         }))}
@@ -156,7 +182,7 @@ export default function NewStoreWizard() {
         onValuesChange={() => setVersion((v) => v + 1)}
       >
         <Row gutter={[16, 16]}>
-          <Col xs={24} xl={step === STEPS.length - 1 ? 12 : 24}>
+          <Col xs={24} xl={lastStep ? 12 : 24}>
             {step === 0 && (
               <Card size="small" style={{ marginBottom: 16 }}>
                 <Form.Item
@@ -175,6 +201,15 @@ export default function NewStoreWizard() {
                 </Form.Item>
               </Card>
             )}
+            {step === 0 && (
+              <CommittedConfig
+                nextStore={nextStore}
+                existing={existing}
+                checking={checkingNextStore}
+                onCheck={() => checkNextStore()}
+                onUse={setExisting}
+              />
+            )}
             {step === 1 && (
               <Alert
                 type="info"
@@ -184,8 +219,30 @@ export default function NewStoreWizard() {
               />
             )}
             {/* Kept mounted so values survive moving between steps */}
-            <StoreConfigForm form={form} sections={STEPS[step].sections} />
-            {step === STEPS.length - 1 && (
+            <StoreConfigForm form={form} sections={steps[step].sections} />
+            {lastStep && existing && (
+              <Card
+                size="small"
+                style={{ marginBottom: 16 }}
+                title={
+                  <Typography.Link href={existing.fileUrl} target="_blank">
+                    <FileTextOutlined /> {existing.configPath}
+                  </Typography.Link>
+                }
+              >
+                <pre
+                  style={{
+                    margin: 0,
+                    maxHeight: 400,
+                    overflow: 'auto',
+                    fontSize: 12
+                  }}
+                >
+                  {existing.config.text}
+                </pre>
+              </Card>
+            )}
+            {lastStep && (
               <Card size="small" title={t('wizard.create')}>
                 <Flex vertical gap={12}>
                   {errors.length > 0 ? (
@@ -203,7 +260,9 @@ export default function NewStoreWizard() {
                     />
                   ) : (
                     <Typography.Text type="secondary">
-                      {t('wizard.commitInfo')}
+                      {existing
+                        ? t('wizard.existingCommitInfo')
+                        : t('wizard.commitInfo')}
                     </Typography.Text>
                   )}
                   <Flex gap={8} align="center">
@@ -230,11 +289,15 @@ export default function NewStoreWizard() {
               </Card>
             )}
           </Col>
-          {step === STEPS.length - 1 && (
+          {lastStep && (
             <Col xs={24} xl={12}>
               <ConfigTester
                 storeId={null}
-                startUrl={form.getFieldValue('startUrl')}
+                startUrl={
+                  existing
+                    ? existing.config.value.startUrl
+                    : form.getFieldValue('startUrl')
+                }
                 getConfig={() => {
                   if (errors.length > 0) {
                     message.error(t('tester.fixConfigFirst'));
@@ -251,7 +314,7 @@ export default function NewStoreWizard() {
         <Button disabled={step === 0} onClick={() => setStep(step - 1)}>
           {t('wizard.previous')}
         </Button>
-        {step < STEPS.length - 1 ? (
+        {!lastStep ? (
           <Button type="primary" onClick={next}>
             {t('wizard.next')}
           </Button>
@@ -267,5 +330,87 @@ export default function NewStoreWizard() {
         )}
       </Flex>
     </Flex>
+  );
+}
+
+// Offers the config that is already committed for the id the store will get
+function CommittedConfig({
+  nextStore,
+  existing,
+  checking,
+  onCheck,
+  onUse
+}: {
+  nextStore?: NextStore;
+  existing?: ExistingConfig;
+  checking: boolean;
+  onCheck: () => void;
+  onUse: (existing?: ExistingConfig) => void;
+}) {
+  const { t } = useTranslation('stores');
+  if (existing)
+    return (
+      <Alert
+        type="success"
+        showIcon
+        style={{ marginBottom: 16 }}
+        title={t('wizard.usingExisting', { storeId: existing.storeId })}
+        description={
+          <Typography.Link href={existing.fileUrl} target="_blank">
+            {existing.configPath}
+          </Typography.Link>
+        }
+        action={
+          <Button size="small" onClick={() => onUse(undefined)}>
+            {t('wizard.dontUseExisting')}
+          </Button>
+        }
+      />
+    );
+  const config = nextStore?.config;
+  if (!nextStore || !config) return null;
+  const valid = config.value !== undefined && config.errors.length === 0;
+  return (
+    <Alert
+      type={valid ? 'info' : 'warning'}
+      showIcon
+      style={{ marginBottom: 16 }}
+      title={t('wizard.existingFound', { storeId: nextStore.storeId })}
+      description={
+        <Flex vertical gap={4}>
+          <span>
+            <Typography.Link href={nextStore.fileUrl} target="_blank">
+              {nextStore.configPath}
+            </Typography.Link>
+            {config.value?.startUrl && ` · ${config.value.startUrl}`}
+          </span>
+          {!valid && (
+            <>
+              {t('wizard.existingInvalid')}
+              <ul style={{ margin: 0, paddingLeft: 16 }}>
+                {config.errors.map((error) => (
+                  <li key={error}>{error}</li>
+                ))}
+              </ul>
+            </>
+          )}
+        </Flex>
+      }
+      action={
+        valid ? (
+          <Button
+            size="small"
+            type="primary"
+            onClick={() => onUse(nextStore as ExistingConfig)}
+          >
+            {t('wizard.useExisting')}
+          </Button>
+        ) : (
+          <Button size="small" loading={checking} onClick={onCheck}>
+            {t('wizard.checkAgain')}
+          </Button>
+        )
+      }
+    />
   );
 }

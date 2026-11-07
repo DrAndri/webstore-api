@@ -183,6 +183,20 @@ export interface StoreDetails {
   legacyHistoryUrl: string;
 }
 
+// The id the next store gets, and its config when one is already committed
+export interface NextStore {
+  storeId: number;
+  configPath: string;
+  fileUrl: string;
+  config: {
+    text: string;
+    sha: string;
+    // Without a value the file does not parse
+    value?: WebshopCrawlerOptions;
+    errors: string[];
+  } | null;
+}
+
 // Mirrors WebshopCrawlerOptions in webstore-scraper/types/db-types.d.ts
 
 export interface WebshopCrawlerOptions {

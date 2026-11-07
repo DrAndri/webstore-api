@@ -57,7 +57,9 @@
     "enterProductUrl": "Enter the url of a product page",
     "urlNotOnSite": "The url must be on {{site}}",
     "textRequired": "text is required",
-    "commitMessage": "Describe the change in the commit message"
+    "commitMessage": "Describe the change in the commit message",
+    "configNotFound": "{{path}} was not found in the scraper repository",
+    "idTaken": "A store with id {{id}} already exists"
   },
   "github": {
     "repoNotSet": "GITHUB_CONFIG_REPO is not set",
