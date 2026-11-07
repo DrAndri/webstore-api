@@ -36,10 +36,11 @@ export interface ConfigFormValues {
   selectors: Omit<ProductSelectors, 'sku' | 'structuredData' | 'attributes'> & {
     attributes?: AttributeSelectors;
   };
-  skuSource: 'css' | 'url' | 'attribute';
+  skuSource: 'css' | 'url' | 'attribute' | 'json';
   skuCss?: string;
   skuUrl?: { delimiter?: string; index?: string };
   skuAttribute?: { selector?: string; attribute?: string };
+  skuJson?: { selector?: string; path?: string };
   useStructuredData: boolean;
   structuredData?: {
     source: 'jsonld' | 'nextdata';
@@ -67,12 +68,7 @@ export const toFormValues = (
     scrollPagesToBottom: config.scrollPagesToBottom,
     menuClicker: config.menuClicker,
     selectors: { ...selectors, attributes },
-    skuSource:
-      typeof sku === 'object'
-        ? sku.source === 'url'
-          ? 'url'
-          : 'attribute'
-        : 'css',
+    skuSource: typeof sku === 'object' ? sku.source : 'css',
     skuCss: typeof sku === 'string' ? sku : undefined,
     skuUrl:
       typeof sku === 'object' && sku.source === 'url'
@@ -81,6 +77,10 @@ export const toFormValues = (
     skuAttribute:
       typeof sku === 'object' && sku.source === 'attribute'
         ? { selector: sku.selector, attribute: sku.attribute }
+        : undefined,
+    skuJson:
+      typeof sku === 'object' && sku.source === 'json'
+        ? { selector: sku.selector, path: sku.path }
         : undefined,
     useStructuredData: structuredData !== undefined,
     structuredData: structuredData && {
@@ -121,7 +121,13 @@ export const fromFormValues = (
             selector: values.skuAttribute?.selector ?? '',
             attribute: values.skuAttribute?.attribute ?? ''
           }
-        : values.skuCss;
+        : values.skuSource === 'json'
+          ? {
+              source: 'json' as const,
+              selector: values.skuJson?.selector ?? '',
+              path: values.skuJson?.path ?? ''
+            }
+          : values.skuCss;
   const structuredData =
     values.useStructuredData && values.structuredData
       ? {

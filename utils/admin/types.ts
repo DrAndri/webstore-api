@@ -191,6 +191,12 @@ export type ProductSelector =
       source: 'attribute';
       selector: string;
       attribute: string;
+    }
+  | {
+      // A dot path in the JSON text of an element, matched in the whole page
+      source: 'json';
+      selector: string;
+      path: string;
     };
 
 export const STRUCTURED_DATA_FIELDS = [

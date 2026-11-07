@@ -97,6 +97,12 @@ const skuRule: Rule = (value, path, fail) => {
       selector: { rule: str({ nonEmpty: true }), required: true },
       attribute: { rule: str({ nonEmpty: true }), required: true }
     })(value, path, fail);
+  if (isObject(value) && value.source === 'json')
+    return object({
+      source: { rule: oneOf(['json']), required: true },
+      selector: { rule: str({ nonEmpty: true }), required: true },
+      path: { rule: str({ nonEmpty: true }), required: true }
+    })(value, path, fail);
   fail('sku', path);
 };
 

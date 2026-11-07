@@ -52,7 +52,13 @@ const STEPS: {
   {
     key: 'productPages',
     sections: ['structured', 'selectors', 'attributes', 'sanitizers'],
-    fields: [['selectors'], ['skuUrl'], ['skuAttribute'], ['skuSanitizers']]
+    fields: [
+      ['selectors'],
+      ['skuUrl'],
+      ['skuAttribute'],
+      ['skuJson'],
+      ['skuSanitizers']
+    ]
   },
   {
     key: 'crawling',

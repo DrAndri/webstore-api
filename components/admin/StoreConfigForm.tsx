@@ -431,7 +431,8 @@ export default function StoreConfigForm({
             options={[
               { value: 'css', label: t('configForm.skuCss') },
               { value: 'url', label: t('configForm.skuUrl') },
-              { value: 'attribute', label: t('configForm.skuAttribute') }
+              { value: 'attribute', label: t('configForm.skuAttribute') },
+              { value: 'json', label: t('configForm.skuJson') }
             ]}
           />
         </Form.Item>
@@ -471,6 +472,28 @@ export default function StoreConfigForm({
               rules={[{ required: true }]}
             >
               <Input style={{ ...mono, width: 160 }} placeholder="data-sku" />
+            </Form.Item>
+          </Flex>
+        ) : skuSource === 'json' ? (
+          <Flex gap={8} wrap>
+            <Form.Item
+              name={['skuJson', 'selector']}
+              label={t('configForm.element')}
+              rules={[{ required: true }]}
+              extra={t('configForm.skuJsonHelp')}
+            >
+              <Input
+                style={{ ...mono, width: 260 }}
+                placeholder="#ProductJson-product-template"
+              />
+            </Form.Item>
+            <Form.Item
+              name={['skuJson', 'path']}
+              label={t('configForm.jsonPath')}
+              rules={[{ required: true }]}
+              extra={t('configForm.jsonPathHelp')}
+            >
+              <Input style={{ ...mono, width: 160 }} placeholder="id" />
             </Form.Item>
           </Flex>
         ) : (
