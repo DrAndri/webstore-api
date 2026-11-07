@@ -50,7 +50,6 @@ export function TokenModal({
             t={t}
             i18nKey="tokenModal.howToSend"
             components={{ code: <code /> }}
-            shouldUnescape
           />
         </Typography.Text>
       </Flex>
