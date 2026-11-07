@@ -44,6 +44,8 @@ export const querySolrAutocomplete = async (
 ) => {
   const params = {
     q: query,
+    // Every part of a word, FART-9 is fart and 9 in the name
+    'q.op': 'AND',
     //TODO: remove when I've updated the core
     fl: 'id,storeId,name,sku',
     // What the query matched in each result

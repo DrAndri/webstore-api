@@ -78,11 +78,27 @@ const getMatches = (
   return matches;
 };
 
+// Only a backslash and a quote are special inside a phrase
+const quote = (value: string) => `"${value.replace(/[\\"]/g, '\\$&')}"`;
+
+// The whole term as a phrase, for a sku with spaces in it, or each of its words
+// anywhere in the name, so fart 15 finds Fartölva Lenovo 15. The words are
+// prefixes through name_prefix and quoted so a typed AND or OR is a word. Not
+// *:"…", edismax reads *: as a wildcard of its own, matching every word and sku
+// that ends with a colon.
+const autocompleteQuery = (term: string) => {
+  const words = term.split(/\s+/);
+  return words.length === 1
+    ? quote(term)
+    : `${quote(term)} OR (${words.map(quote).join(' AND ')})`;
+};
+
 export const POST = withApiAccess(async (request: Request) => {
-  const searchSolr = async (safeTerm: string, term: string) => {
-    // A phrase in the qf fields of the handler. Not *:"…", edismax reads *: as
-    // a wildcard of its own, matching every word and sku that ends with a colon
-    const response = await querySolrAutocomplete('products', `"${safeTerm}"`);
+  const searchSolr = async (term: string) => {
+    const response = await querySolrAutocomplete(
+      'products',
+      autocompleteQuery(term)
+    );
     return {
       total: response.response.numFound,
       results: response.response.docs
@@ -96,13 +112,11 @@ export const POST = withApiAccess(async (request: Request) => {
 
   const body = await request.json();
   const term = typeof body.term === 'string' ? body.term.trim() : '';
-  // Only a backslash and a quote are special inside a phrase
-  const safeTerm = term.replace(/[\\"]/g, '\\$&');
 
-  if (!safeTerm) {
+  if (!term) {
     return Response.json({ total: 0, results: [] });
   }
-  return searchSolr(safeTerm, term)
+  return searchSolr(term)
     .then((response) => {
       return Response.json(response);
     })
