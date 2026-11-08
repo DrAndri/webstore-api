@@ -27,6 +27,8 @@
     "summary_other": "Síðasta skönnun {{lastScan}} · {{products}} vörur í síðustu heildarskönnun",
     "scheduledScans": "Áætlaðar skannanir",
     "publicSearch": "Opinber leit",
+    "scanLog": "Atvikaskrá skönnunar",
+    "scanLogHelp": "Skrá hverja síðu sem skannanir verslunarinnar heimsækja. Kveiktu á þessu meðan verið er að laga verslunina, það bætir mörgum línum í atvikaskrána. Skannanir sem eru í gangi halda stillingunni sem þær byrjuðu með.",
     "runFullCrawl": "Keyra heildarskönnun",
     "rescrapeActive": "Skanna virkar vörur aftur",
     "moreScans": "Fleiri skannanir",

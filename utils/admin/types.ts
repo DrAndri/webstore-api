@@ -174,6 +174,8 @@ export interface StoreDetails {
     name: string;
     scraperEnabled: boolean;
     apiEnabled: boolean;
+    // Scans of the store log every page to the scan log
+    loggingEnabled: boolean;
     createdDate: string | null;
     lastScanDate: string | null;
   };

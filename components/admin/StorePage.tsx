@@ -123,6 +123,15 @@ export default function StorePage({ storeId }: { storeId: number }) {
             />
             {t('page.publicSearch')}
           </Space>
+          <Tooltip title={t('page.scanLogHelp')}>
+            <Space>
+              <Switch
+                checked={store.loggingEnabled}
+                onChange={(loggingEnabled) => update({ loggingEnabled })}
+              />
+              {t('page.scanLog')}
+            </Space>
+          </Tooltip>
           <Tooltip
             title={
               loaded

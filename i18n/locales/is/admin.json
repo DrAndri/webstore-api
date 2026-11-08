@@ -258,7 +258,7 @@
     "olderNotLoaded": "eldri línum ekki hlaðið",
     "following": "fylgist með nýjum línum",
     "noLines": "Engar línur",
-    "noLinesScan": "Engar línur. Skannanir skrá síður aðeins með ENABLE_SCRAPER_LOGGING=true.",
+    "noLinesScan": "Engar línur. Skannanir skrá síður aðeins þegar kveikt er á atvikaskrá skönnunar fyrir verslunina.",
     "loadOlder": "Hlaða eldri línum"
   },
   "schedules": {

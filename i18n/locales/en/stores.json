@@ -27,6 +27,8 @@
     "summary_other": "Last scan {{lastScan}} · {{products}} products in the last full crawl",
     "scheduledScans": "Scheduled scans",
     "publicSearch": "Public search",
+    "scanLog": "Scan log",
+    "scanLogHelp": "Log every page the scans of this store visit. Turn it on while fixing the store, it adds many lines to the log. Scans that are running keep the setting they started with.",
     "runFullCrawl": "Run full crawl",
     "rescrapeActive": "Re-scrape active products",
     "moreScans": "More scans",

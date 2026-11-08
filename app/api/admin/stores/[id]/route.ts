@@ -22,13 +22,14 @@ interface StoreRow {
   name: string;
   scraperEnabled: number;
   apiEnabled: number;
+  loggingEnabled: number;
   createdDate: Date | null;
   lastScanDate: Date | null;
 }
 
 const getStore = async (id: number) => {
   const [store] = await adminQuery<StoreRow[]>(
-    'SELECT id, name, scraperEnabled, apiEnabled, createdDate, lastScanDate FROM stores WHERE id = ?',
+    'SELECT id, name, scraperEnabled, apiEnabled, loggingEnabled, createdDate, lastScanDate FROM stores WHERE id = ?',
     [id]
   );
   if (!store) throw new HttpError(404, { key: 'stores.notFound' });
@@ -36,6 +37,7 @@ const getStore = async (id: number) => {
     ...store,
     scraperEnabled: !!store.scraperEnabled,
     apiEnabled: !!store.apiEnabled,
+    loggingEnabled: !!store.loggingEnabled,
     createdDate: store.createdDate?.toISOString().slice(0, 10) ?? null,
     lastScanDate: store.lastScanDate?.toISOString().slice(0, 10) ?? null
   };
@@ -58,13 +60,14 @@ export const GET = withAdmin<Context>(
   }
 );
 
-// Renames the store or turns scraping and the public api on or off
+// Renames the store or turns scraping, the public api or scan logging on or off
 export const PATCH = withAdmin<Context>(async (request, { params }) => {
   const id = parseId((await params).id);
   const body = await readJson<{
     name?: string;
     scraperEnabled?: boolean;
     apiEnabled?: boolean;
+    loggingEnabled?: boolean;
   }>(request);
   const updates: string[] = [];
   const values: unknown[] = [];
@@ -75,7 +78,11 @@ export const PATCH = withAdmin<Context>(async (request, { params }) => {
     updates.push('name = ?');
     values.push(name);
   }
-  for (const flag of ['scraperEnabled', 'apiEnabled'] as const) {
+  for (const flag of [
+    'scraperEnabled',
+    'apiEnabled',
+    'loggingEnabled'
+  ] as const) {
     if (body[flag] !== undefined) {
       if (typeof body[flag] !== 'boolean')
         throw new HttpError(400, {

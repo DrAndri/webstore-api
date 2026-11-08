@@ -109,6 +109,7 @@ export interface Store {
   lastScanDate: Date;
   scraperEnabled: boolean;
   apiEnabled: boolean;
+  loggingEnabled: boolean;
 }
 
 export interface ProductPrice {

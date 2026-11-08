@@ -114,8 +114,8 @@ LogQL query to open the same log in Grafana.
 
 The scraper labels the log of a scan with the id of its job. Older scans are
 found by the store and the time they ran, so two scans of a store running at
-the same time show each other's lines. Scans log their pages only with
-`ENABLE_SCRAPER_LOGGING=true` in the scraper.
+the same time show each other's lines. Scans log their pages only when
+**Scan log** is on for the store on its page, it is off for new stores.
 
 ### Security
 

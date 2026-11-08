@@ -258,7 +258,7 @@
     "olderNotLoaded": "older lines not loaded",
     "following": "following new lines",
     "noLines": "No lines",
-    "noLinesScan": "No lines. Scans log pages only with ENABLE_SCRAPER_LOGGING=true.",
+    "noLinesScan": "No lines. Scans log their pages only when Scan log is on for the store.",
     "loadOlder": "Load older lines"
   },
   "schedules": {
