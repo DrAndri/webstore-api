@@ -1,5 +1,9 @@
 import { Price } from '../types';
-import { ComparedProduct, compareProducts } from './compare';
+import {
+  ComparedProduct,
+  compareProducts,
+  summarizePriceHistory
+} from './compare';
 import { queryPool } from './mariadb';
 
 export interface ProductDetails extends ComparedProduct {
@@ -45,6 +49,10 @@ interface PriceRow {
   end: Date;
 }
 
+interface HistoryRow extends PriceRow {
+  sale: number;
+}
+
 const toPrice = (row: PriceRow): Price => ({
   price: row.price,
   start: row.start.toISOString().slice(0, 10),
@@ -53,20 +61,22 @@ const toPrice = (row: PriceRow): Price => ({
 
 const day = (date: Date) => date.toISOString().slice(0, 10);
 
-// The products with the SKU in the stores of the public search. The unique
-// index on (storeId, sku) finds them store by store.
-const sameSkuProducts = async (sku: string): Promise<SameSkuProduct[]> => {
+// The products with the SKU of the product in the stores of the public search,
+// the product included. The unique index on (storeId, sku) finds them store by
+// store.
+const sameSkuProducts = async (id: number): Promise<SameSkuProduct[]> => {
   const rows = await queryPool<SameSkuRow[]>(
     `SELECT p.id, p.storeId, s.name AS storeName, p.name, p.inStock, s.lastScanDate,
        pr.price, pr.end AS priceEnd, sp.price AS salePrice, sp.end AS saleEnd
-     FROM stores s JOIN products p ON p.storeId = s.id AND p.sku = ?
+     FROM stores s JOIN products p ON p.storeId = s.id
+       AND p.sku = (SELECT sku FROM products WHERE id = ?)
      LEFT JOIN prices pr ON pr.productId = p.id
        AND pr.start = (SELECT MAX(start) FROM prices WHERE productId = p.id)
      LEFT JOIN salePrices sp ON sp.productId = p.id
        AND sp.start = (SELECT MAX(start) FROM salePrices WHERE productId = p.id)
      WHERE s.apiEnabled = true
      ORDER BY s.name`,
-    [sku]
+    [id]
   );
   if (rows.length < 2) return [];
   return rows.map((row) => {
@@ -88,23 +98,34 @@ const sameSkuProducts = async (sku: string): Promise<SameSkuProduct[]> => {
   });
 };
 
-// A product of a store in the public search with its whole price history
+// A product of a store in the public search with its whole price history. The
+// current and lowest prices come from the history, so the product, its history
+// and the products with the same SKU are all read at the same time.
 export const productDetails = async (
   id: number
 ): Promise<ProductDetails | undefined> => {
-  const [[product], prices, salePrices] = await Promise.all([
-    compareProducts([id]),
-    queryPool<PriceRow[]>(
-      'SELECT price, start, end FROM prices WHERE productId = ? ORDER BY start',
-      [id]
+  const history = queryPool<HistoryRow[]>(
+    `SELECT 0 AS sale, price, start, end FROM prices WHERE productId = ?
+     UNION ALL
+     SELECT 1 AS sale, price, start, end FROM salePrices WHERE productId = ?
+     ORDER BY start`,
+    [id, id]
+  ).then((rows) => ({
+    prices: rows.filter((row) => !Number(row.sale)),
+    salePrices: rows.filter((row) => Number(row.sale))
+  }));
+  const [{ prices, salePrices }, [product], sameSku] = await Promise.all([
+    history,
+    compareProducts(
+      [id],
+      history.then(
+        ({ prices, salePrices }) =>
+          new Map([[id, summarizePriceHistory(prices, salePrices)]])
+      )
     ),
-    queryPool<PriceRow[]>(
-      'SELECT price, start, end FROM salePrices WHERE productId = ? ORDER BY start',
-      [id]
-    )
+    sameSkuProducts(id)
   ]);
   if (!product) return undefined;
-  const sameSku = await sameSkuProducts(product.sku);
   const ends = [...prices, ...salePrices].map((row) => toPrice(row).end);
   return {
     ...product,
