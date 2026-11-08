@@ -268,10 +268,15 @@
       "list": "Skrapar aftur vörusíðurnar sem fundust í síðustu skönnun verslunarinnar. Heldur verðum nýjum, fljótlegri."
     },
     "presets": {
-      "nightly": "Á hverri nóttu kl. 04:00",
-      "every6Hours": "Á 6 klukkustunda fresti",
-      "mondays": "Á mánudögum kl. 01:00",
-      "twiceAWeek": "Tvisvar í viku"
+      "days": "Á nokkurra daga fresti",
+      "weekly": "Vikulega",
+      "monthly": "Einu sinni í mánuði",
+      "everyBefore": "Á",
+      "everyAfter": "daga fresti",
+      "everyHelp": "Talið frá 1. hvers mánaðar, svo síðasta bilið í mánuðinum getur verið styttra",
+      "dayBefore": "Mánaðardagur",
+      "dayAfter": "",
+      "dayHelp": "Mánuðum án þessa dags er sleppt"
     },
     "saved": "Vistað, skraparinn tekur breytinguna í notkun innan 30 sekúndna",
     "on": "Virkt",

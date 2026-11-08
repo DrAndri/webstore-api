@@ -268,10 +268,15 @@
       "list": "Re-scrapes the product pages found in the last scan of the store. Keeps prices fresh, faster."
     },
     "presets": {
-      "nightly": "Every night at 04:00",
-      "every6Hours": "Every 6 hours",
-      "mondays": "Mondays at 01:00",
-      "twiceAWeek": "Twice a week"
+      "days": "Every few days",
+      "weekly": "Weekly",
+      "monthly": "Once a month",
+      "everyBefore": "Every",
+      "everyAfter": "days",
+      "everyHelp": "Counted from the 1st of each month, so the last gap of a month can be shorter",
+      "dayBefore": "On day",
+      "dayAfter": "of the month",
+      "dayHelp": "Months without this day are skipped"
     },
     "saved": "Saved, the scraper applies it within 30 seconds",
     "on": "On",

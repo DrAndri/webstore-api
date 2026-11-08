@@ -4,8 +4,10 @@ import {
   Alert,
   App,
   Button,
+  Checkbox,
   Flex,
   Input,
+  InputNumber,
   Modal,
   Switch,
   Tag,
@@ -24,19 +26,175 @@ import {
 import { useFormat } from '../I18n/I18nProvider';
 import { fetchJson, sendJson } from './api';
 
-// The labels are schedules.presets.<label> in the admin namespace
-const PRESETS = [
-  { label: 'nightly', cron: '0 4 * * *' },
-  { label: 'every6Hours', cron: '0 */6 * * *' },
-  { label: 'mondays', cron: '0 1 * * 1' },
-  { label: 'twiceAWeek', cron: '0 1 * * 1,4' }
-] as const;
-
 // What the scraper gives a store that has no schedules yet
 const DEFAULT_CRON: Record<ScheduledMode, string> = {
   crawler: '0 1 * * 1',
   list: '0 4 * * *'
 };
+
+// A schedule the preset controls can show and edit. The labels are
+// schedules.presets.<kind> in the admin namespace.
+type Preset =
+  | { kind: 'days'; every: number }
+  | { kind: 'weekly'; weekdays: number[] }
+  | { kind: 'monthly'; day: number };
+
+const PRESET_DEFAULTS: Preset[] = [
+  { kind: 'days', every: 1 },
+  { kind: 'weekly', weekdays: [1] },
+  { kind: 'monthly', day: 1 }
+];
+
+// Monday first, cron counts Sunday as 0
+const WEEKDAYS = [1, 2, 3, 4, 5, 6, 0];
+
+// Splits a cron expression into its time of day fields (the optional seconds,
+// minute and hour) and the preset its day fields match, if any. The time is
+// null when it is not a fixed time of day, like every 6 hours.
+function parseCron(cron: string): {
+  time: string[] | null;
+  preset: Preset | null;
+} {
+  const fields = cron.trim().split(/\s+/);
+  if (fields.length !== 5 && fields.length !== 6) {
+    return { time: null, preset: null };
+  }
+  const time = fields.slice(0, -3);
+  const [dayOfMonth, month, dayOfWeek] = fields.slice(-3);
+  const fixedTime = time.every((field) => /^\d+$/.test(field));
+  if (!fixedTime || month !== '*') {
+    return { time: fixedTime ? time : null, preset: null };
+  }
+  let preset: Preset | null = null;
+  if (dayOfWeek === '*') {
+    const step = /^\*(?:\/(\d+))?$/.exec(dayOfMonth);
+    if (step) preset = { kind: 'days', every: Number(step[1] ?? 1) };
+    else if (/^\d+$/.test(dayOfMonth)) {
+      preset = { kind: 'monthly', day: Number(dayOfMonth) };
+    }
+  } else if (dayOfMonth === '*' && /^[0-7](,[0-7])*$/.test(dayOfWeek)) {
+    const weekdays = dayOfWeek.split(',').map((day) => Number(day) % 7);
+    preset = { kind: 'weekly', weekdays: [...new Set(weekdays)] };
+  }
+  return { time, preset };
+}
+
+function presetCron(time: string[], preset: Preset): string {
+  const days =
+    preset.kind === 'days'
+      ? [preset.every === 1 ? '*' : `*/${preset.every}`, '*', '*']
+      : preset.kind === 'weekly'
+        ? [
+            '*',
+            '*',
+            WEEKDAYS.filter((day) => preset.weekdays.includes(day)).join(',')
+          ]
+        : [String(preset.day), '*', '*'];
+  return [...time, ...days].join(' ');
+}
+
+// Picks how often a schedule runs, at the time of day of its cron expression
+function PresetPicker({
+  cron,
+  defaultCron,
+  onChange
+}: {
+  cron: string;
+  defaultCron: string;
+  onChange: (cron: string) => void;
+}) {
+  const { t } = useTranslation('admin');
+  const format = useFormat();
+  const { time, preset } = parseCron(cron);
+  const set = (next: Preset) =>
+    onChange(presetCron(time ?? parseCron(defaultCron).time!, next));
+  const weekdayName = (day: number) =>
+    new Intl.DateTimeFormat(format.locale, {
+      weekday: 'short',
+      timeZone: 'UTC'
+    }).format(new Date(Date.UTC(2025, 0, 5 + day))); // 5 January 2025 was a Sunday
+
+  return (
+    <Flex vertical gap={8}>
+      <Flex gap={4} wrap>
+        {PRESET_DEFAULTS.map((defaults) => (
+          <Tag.CheckableTag
+            key={defaults.kind}
+            checked={preset?.kind === defaults.kind}
+            onChange={() => preset?.kind !== defaults.kind && set(defaults)}
+          >
+            {t(`schedules.presets.${defaults.kind}`)}
+          </Tag.CheckableTag>
+        ))}
+      </Flex>
+      {preset?.kind === 'days' && (
+        <>
+          <Flex gap={8} align="center">
+            <Typography.Text>
+              {t('schedules.presets.everyBefore')}
+            </Typography.Text>
+            <InputNumber
+              min={1}
+              max={31}
+              precision={0}
+              value={preset.every}
+              onChange={(every) => every && set({ kind: 'days', every })}
+              style={{ width: 72 }}
+            />
+            <Typography.Text>
+              {t('schedules.presets.everyAfter')}
+            </Typography.Text>
+          </Flex>
+          {preset.every > 1 && (
+            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+              {t('schedules.presets.everyHelp')}
+            </Typography.Text>
+          )}
+        </>
+      )}
+      {preset?.kind === 'weekly' && (
+        <Checkbox.Group
+          value={preset.weekdays}
+          options={WEEKDAYS.map((day) => ({
+            value: day,
+            label: weekdayName(day)
+          }))}
+          onChange={(weekdays) =>
+            weekdays.length > 0 && set({ kind: 'weekly', weekdays })
+          }
+        />
+      )}
+      {preset?.kind === 'monthly' && (
+        <>
+          <Flex gap={8} align="center">
+            <Typography.Text>
+              {t('schedules.presets.dayBefore')}
+            </Typography.Text>
+            <InputNumber
+              min={1}
+              max={31}
+              precision={0}
+              value={preset.day}
+              onChange={(day) => day && set({ kind: 'monthly', day })}
+              style={{ width: 72 }}
+            />
+            {/* Empty in languages that only need the label in front */}
+            {t('schedules.presets.dayAfter') && (
+              <Typography.Text>
+                {t('schedules.presets.dayAfter')}
+              </Typography.Text>
+            )}
+          </Flex>
+          {preset.day > 28 && (
+            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+              {t('schedules.presets.dayHelp')}
+            </Typography.Text>
+          )}
+        </>
+      )}
+    </Flex>
+  );
+}
 
 export interface ScheduleTarget {
   store: StoreStatus;
@@ -189,17 +347,11 @@ function ScheduleForm({
           {t('schedules.cronHelp')}
         </Typography.Text>
       </div>
-      <Flex gap={4} wrap>
-        {PRESETS.map((preset) => (
-          <Tag.CheckableTag
-            key={preset.cron}
-            checked={cron === preset.cron}
-            onChange={() => setCron(preset.cron)}
-          >
-            {t(`schedules.presets.${preset.label}`)}
-          </Tag.CheckableTag>
-        ))}
-      </Flex>
+      <PresetPicker
+        cron={cron}
+        defaultCron={DEFAULT_CRON[mode]}
+        onChange={setCron}
+      />
       {preview && !preview.valid && (
         <Alert type="error" showIcon title={preview.errors.join(', ')} />
       )}
