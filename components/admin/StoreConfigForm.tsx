@@ -8,6 +8,7 @@ import {
   Form,
   FormInstance,
   Input,
+  InputNumber,
   Radio,
   Row,
   Select,
@@ -235,6 +236,13 @@ export default function StoreConfigForm({
           extra={t('configForm.sitemapsHelp')}
         >
           {tags('https://example.is/sitemap.xml')}
+        </Form.Item>
+        <Form.Item
+          name="maxRequestsPerMinute"
+          label={t('configForm.maxRequestsPerMinute')}
+          extra={t('configForm.maxRequestsPerMinuteHelp')}
+        >
+          <InputNumber min={1} max={600} precision={0} placeholder="60" />
         </Form.Item>
         <Typography.Text strong>{t('configForm.productFeed')}</Typography.Text>
         <Typography.Paragraph type="secondary" style={{ fontSize: 12 }}>

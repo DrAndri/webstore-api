@@ -222,6 +222,8 @@ export interface WebshopCrawlerOptions {
   startUrls?: string[];
   sitemapUrls?: string[];
   productFeed?: ProductFeed;
+  // Pages requested a minute, 60 when unset
+  maxRequestsPerMinute?: number;
   scrollPagesToBottom?: boolean;
   menuClicker?: string;
 }

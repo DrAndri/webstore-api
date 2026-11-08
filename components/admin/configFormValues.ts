@@ -34,6 +34,8 @@ export interface ConfigFormValues {
   startUrls?: string[];
   sitemapUrls?: string[];
   productFeed?: Partial<ProductFeed>;
+  // An emptied number input is null
+  maxRequestsPerMinute?: number | null;
   scrollPagesToBottom?: boolean;
   menuClicker?: string;
   selectors: Omit<ProductSelectors, 'sku' | 'structuredData' | 'attributes'> & {
@@ -75,6 +77,7 @@ export const toFormValues = (
     startUrls: config.startUrls,
     sitemapUrls: config.sitemapUrls,
     productFeed: config.productFeed,
+    maxRequestsPerMinute: config.maxRequestsPerMinute,
     scrollPagesToBottom: config.scrollPagesToBottom,
     menuClicker: config.menuClicker,
     selectors: { ...selectors, attributes },
@@ -173,6 +176,7 @@ export const fromFormValues = (
     startUrls: values.startUrls,
     sitemapUrls: values.sitemapUrls,
     productFeed: values.productFeed as ProductFeed | undefined,
+    maxRequestsPerMinute: values.maxRequestsPerMinute ?? undefined,
     scrollPagesToBottom:
       values.type === 'crawler' && values.scrollPagesToBottom
         ? true

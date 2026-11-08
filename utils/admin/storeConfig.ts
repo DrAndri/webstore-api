@@ -38,6 +38,18 @@ const bool: Rule = (value, path, fail) => {
   if (typeof value !== 'boolean') fail('boolean', path);
 };
 
+const int =
+  (min: number, max: number): Rule =>
+  (value, path, fail) => {
+    if (
+      typeof value !== 'number' ||
+      !Number.isInteger(value) ||
+      value < min ||
+      value > max
+    )
+      fail('integerRange', path, { min, max });
+  };
+
 const oneOf =
   (values: readonly unknown[]): Rule =>
   (value, path, fail) => {
@@ -187,6 +199,7 @@ const configRule = object({
   keepQueryParams: { rule: arrayOf(str({ nonEmpty: true })) },
   startUrls: { rule: arrayOf(str({ url: true })) },
   sitemapUrls: { rule: arrayOf(str({ url: true })) },
+  maxRequestsPerMinute: { rule: int(1, 600) },
   productFeed: {
     rule: object({
       // Absolute or relative to the start url
