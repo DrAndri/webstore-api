@@ -6,28 +6,20 @@ declare global {
   var pool: Pool | undefined;
 }
 
+// One pool for the whole server, kept on globalThis. Route handlers are bundled
+// separately and the dev server reloads modules, so a module variable would
+// open a pool of its own in each bundle and on each reload.
 const getPool = () => {
-  if (process.env.NODE_ENV === 'production') {
-    return mariadb.createPool({
+  if (!global.pool) {
+    global.pool = mariadb.createPool({
       host: process.env.MARIADB_HOST,
       user: process.env.MARIADB_USER,
       password: process.env.MARIADB_PASSWORD,
       database: process.env.MARIADB_DATABASE,
       connectionLimit: 10
     });
-  } else {
-    // Use global to prevent multiple pools during hot-reloading
-    if (!global.pool) {
-      global.pool = mariadb.createPool({
-        host: process.env.MARIADB_HOST,
-        user: process.env.MARIADB_USER,
-        password: process.env.MARIADB_PASSWORD,
-        database: process.env.MARIADB_DATABASE,
-        connectionLimit: 10
-      });
-    }
-    return global.pool;
   }
+  return global.pool;
 };
 
 const pool = getPool();
