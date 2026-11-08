@@ -28,6 +28,9 @@ export interface ConfigFormValues {
   productPageIdentifier: string;
   urlWhitelist?: string[];
   urlBlacklist?: string[];
+  // keepQueryParams unset, [] or a list of parameters
+  queryParams: 'all' | 'none' | 'some';
+  keepQueryParams?: string[];
   startUrls?: string[];
   sitemapUrls?: string[];
   productFeed?: Partial<ProductFeed>;
@@ -62,6 +65,13 @@ export const toFormValues = (
     productPageIdentifier: config.productPageIdentifier ?? '',
     urlWhitelist: config.urlWhitelist,
     urlBlacklist: config.urlBlacklist,
+    queryParams:
+      config.keepQueryParams === undefined
+        ? 'all'
+        : config.keepQueryParams.length === 0
+          ? 'none'
+          : 'some',
+    keepQueryParams: config.keepQueryParams,
     startUrls: config.startUrls,
     sitemapUrls: config.sitemapUrls,
     productFeed: config.productFeed,
@@ -154,6 +164,12 @@ export const fromFormValues = (
     productPageIdentifier: values.productPageIdentifier,
     urlWhitelist: values.urlWhitelist,
     urlBlacklist: values.urlBlacklist,
+    keepQueryParams:
+      values.queryParams === 'none'
+        ? []
+        : values.queryParams === 'some'
+          ? values.keepQueryParams
+          : undefined,
     startUrls: values.startUrls,
     sitemapUrls: values.sitemapUrls,
     productFeed: values.productFeed as ProductFeed | undefined,

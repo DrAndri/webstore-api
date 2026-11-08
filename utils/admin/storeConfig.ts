@@ -184,6 +184,7 @@ const configRule = object({
   },
   urlWhitelist: { rule: arrayOf(str({ nonEmpty: true })) },
   urlBlacklist: { rule: arrayOf(str({ nonEmpty: true })) },
+  keepQueryParams: { rule: arrayOf(str({ nonEmpty: true })) },
   startUrls: { rule: arrayOf(str({ url: true })) },
   sitemapUrls: { rule: arrayOf(str({ url: true })) },
   productFeed: {
@@ -198,6 +199,16 @@ const configRule = object({
             fail('productUrlField', path);
         },
         required: true
+      },
+      // Dot path to the number of pages, {page} in url is each page number
+      pageCount: { rule: str({ nonEmpty: true }) },
+      // Reads the feed once per item of this list, e.g. once per category
+      feedList: {
+        rule: object({
+          url: { rule: str({ nonEmpty: true }), required: true },
+          // Unset when the response is the list
+          items: optionalString
+        })
       }
     })
   },
@@ -234,6 +245,15 @@ const crossFieldErrors = (
 ) => {
   if (storeId !== undefined && config.storeId !== storeId)
     fail('storeIdMismatch', 'config.storeId', { storeId });
+  const feed = config.productFeed;
+  if (feed?.pageCount !== undefined && !feed.url.includes('{page}'))
+    fail('feedPagePlaceholder', 'config.productFeed.url');
+  // The feed url is filled with the fields of each list item
+  if (
+    feed?.feedList &&
+    !/\{\w+(:\d+)?\}/.test(feed.url.replaceAll('{page}', ''))
+  )
+    fail('feedListField', 'config.productFeed.url');
   if (config.type === 'crawler') {
     if (config.selectors.structuredData)
       fail('needsHttpcrawler', 'config.selectors.structuredData');
@@ -284,6 +304,10 @@ const isEmpty = (value: unknown) =>
   (Array.isArray(value) && value.length === 0) ||
   (isObject(value) && Object.keys(value).length === 0);
 
+// Settings where an empty list is a value, keepQueryParams: [] removes the
+// whole query string
+const emptyListSettings = ['keepQueryParams'];
+
 // Removes the empty values a form leaves behind, unless the original config had
 // that setting
 export const pruneConfig = (value: unknown, original?: unknown): unknown => {
@@ -307,7 +331,9 @@ export const pruneConfig = (value: unknown, original?: unknown): unknown => {
     const pruned = pruneConfig(child, originalObject[key]);
     const keep =
       !isEmpty(pruned) ||
-      (pruned !== undefined && pruned !== null && key in originalObject);
+      (pruned !== undefined &&
+        pruned !== null &&
+        (key in originalObject || emptyListSettings.includes(key)));
     if (keep) result[key] = pruned;
   }
   return result;

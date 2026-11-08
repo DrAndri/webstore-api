@@ -208,6 +208,9 @@ export interface WebshopCrawlerOptions {
   productPageIdentifier: string;
   urlWhitelist?: string[];
   urlBlacklist?: string[];
+  // Query parameters kept on links before they are queued, [] removes the
+  // whole query string, unset keeps all of them
+  keepQueryParams?: string[];
   startUrls?: string[];
   sitemapUrls?: string[];
   productFeed?: ProductFeed;
@@ -219,6 +222,13 @@ export interface ProductFeed {
   url: string;
   items: string;
   productUrl: string;
+  pageCount?: string;
+  feedList?: ProductFeedList;
+}
+
+export interface ProductFeedList {
+  url: string;
+  items?: string;
 }
 
 export interface ProductSanitizers {

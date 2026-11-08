@@ -74,6 +74,7 @@ export default function StoreConfigForm({
   const skuSource = Form.useWatch('skuSource', form);
   const useStructuredData = Form.useWatch('useStructuredData', form);
   const useAttributes = Form.useWatch('useAttributes', form);
+  const queryParams = Form.useWatch('queryParams', form);
   const browser = type === 'crawler';
   const show = (section: ConfigSection) =>
     !sections || sections.includes(section);
@@ -194,6 +195,34 @@ export default function StoreConfigForm({
           {tags('/blogg')}
         </Form.Item>
         <Form.Item
+          name="queryParams"
+          label={t('configForm.queryParams')}
+          extra={t('configForm.queryParamsHelp')}
+        >
+          <Radio.Group
+            options={[
+              { value: 'all', label: t('configForm.queryParamsAll') },
+              { value: 'none', label: t('configForm.queryParamsNone') },
+              { value: 'some', label: t('configForm.queryParamsSome') }
+            ]}
+          />
+        </Form.Item>
+        {queryParams === 'some' && (
+          <Form.Item
+            name="keepQueryParams"
+            label={t('configForm.keepQueryParams')}
+            extra={t('configForm.keepQueryParamsHelp')}
+            rules={[
+              {
+                required: true,
+                message: t('configForm.keepQueryParamsRequired')
+              }
+            ]}
+          >
+            {tags('page')}
+          </Form.Item>
+        )}
+        <Form.Item
           name="startUrls"
           label={t('configForm.startUrls')}
           extra={t('configForm.startUrlsHelp')}
@@ -229,6 +258,27 @@ export default function StoreConfigForm({
           name={['productFeed', 'productUrl']}
           label={t('configForm.feedProductUrl')}
           extra={t('configForm.feedProductUrlHelp')}
+        >
+          <Input style={mono} allowClear />
+        </Form.Item>
+        <Form.Item
+          name={['productFeed', 'pageCount']}
+          label={t('configForm.feedPageCount')}
+          extra={t('configForm.feedPageCountHelp')}
+        >
+          <Input style={mono} allowClear />
+        </Form.Item>
+        <Form.Item
+          name={['productFeed', 'feedList', 'url']}
+          label={t('configForm.feedListUrl')}
+          extra={t('configForm.feedListUrlHelp')}
+        >
+          <Input style={mono} allowClear />
+        </Form.Item>
+        <Form.Item
+          name={['productFeed', 'feedList', 'items']}
+          label={t('configForm.feedListItems')}
+          extra={t('configForm.feedListItemsHelp')}
         >
           <Input style={mono} allowClear />
         </Form.Item>
