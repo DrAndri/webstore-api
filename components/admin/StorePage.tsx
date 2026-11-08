@@ -16,7 +16,11 @@ import {
 import Link from 'next/link';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
-import { Overview, ScheduledMode, StoreDetails } from '../../utils/admin/types';
+import {
+  ScheduledMode,
+  StoreDetails,
+  StoreStatus
+} from '../../utils/admin/types';
 import { useFormat } from '../I18n/I18nProvider';
 import { fetchJson, sendJson } from './api';
 import ConfigHistory from './ConfigHistory';
@@ -35,12 +39,11 @@ export default function StorePage({ storeId }: { storeId: number }) {
     fetchJson,
     { revalidateOnFocus: false }
   );
-  const { data: overview, mutate: mutateOverview } = useSWR<Overview>(
-    '/api/admin/overview',
+  const { data: status, mutate: mutateStatus } = useSWR<StoreStatus>(
+    `/api/admin/stores/${storeId}/status`,
     fetchJson,
     { refreshInterval: 5000 }
   );
-  const status = overview?.stores.find((store) => store.id === storeId);
   const loaded = status?.loadedConfig;
 
   if (error) return <Alert type="error" showIcon title={error.message} />;
@@ -55,7 +58,7 @@ export default function StorePage({ storeId }: { storeId: number }) {
         changes
       );
       void mutate({ ...data, store: updated }, false);
-      void mutateOverview();
+      void mutateStatus();
     } catch (e) {
       message.error((e as Error).message);
     }
@@ -73,7 +76,7 @@ export default function StorePage({ storeId }: { storeId: number }) {
       );
       if (queued) message.success(t('page.scanQueued'));
       else message.info(t('page.alreadyQueued'));
-      void mutateOverview();
+      void mutateStatus();
     } catch (e) {
       message.error((e as Error).message);
     }
@@ -148,7 +151,7 @@ export default function StorePage({ storeId }: { storeId: number }) {
           >
             <ReloadConfigButton
               storeId={storeId}
-              onReloaded={() => void mutateOverview()}
+              onReloaded={() => void mutateStatus()}
             />
           </Tooltip>
           <Space.Compact>

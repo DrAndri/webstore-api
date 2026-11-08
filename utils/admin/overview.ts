@@ -17,6 +17,11 @@ import {
 const SCRAPER_OFFLINE_AFTER_MS = 60 * 1000;
 const STALE_WITHOUT_SCHEDULE_DAYS = 14;
 const DAY_MS = 24 * 60 * 60 * 1000;
+// The finished jobs of each store the health is computed from
+const RECENT_JOBS_PER_STORE = 12;
+// How far back the recent jobs are looked for first, so the overview does not
+// read every job ever run
+const RECENT_JOBS_DAYS = 90;
 
 export const JOB_COLUMNS = `j.id, j.storeId, s.name AS storeName, j.mode, j.source, j.status, j.cancelRequested,
   j.requestedBy, j.queuedAt, j.startedAt, j.finishedAt, j.heartbeatAt, j.configCommit, j.totalRequests,
@@ -210,31 +215,79 @@ const crawlInterval = (schedules: Schedule[]) => {
     : undefined;
 };
 
-// The health reasons and cron errors are in the language of t
-export const getOverview = async (t: TFunction<'admin'>): Promise<Overview> => {
+// The last finished jobs of each store, of the last RECENT_JOBS_DAYS days or
+// of the given stores
+const lastFinishedJobs = async (
+  filter: { recent: true; storeId?: number } | { storeIds: number[] }
+) => {
+  const conditions = [
+    "j.mode <> 'test'",
+    "j.status IN ('succeeded', 'failed', 'cancelled')"
+  ];
+  const values: unknown[] = [];
+  if ('recent' in filter) {
+    // Jobs are numbered in the order they are queued. The first job of the
+    // period is found with the index on queuedAt, and the jobs from it on are
+    // read by id. MariaDB reads the whole table for a condition on queuedAt
+    // that matches more than a small part of it.
+    const [{ fromId }] = await adminQuery<{ fromId: number | null }[]>(
+      'SELECT MIN(id) AS fromId FROM scrapeJobs WHERE queuedAt >= UTC_TIMESTAMP() - INTERVAL ? DAY',
+      [RECENT_JOBS_DAYS]
+    );
+    if (fromId === null) return [];
+    conditions.push('j.id >= ?');
+    values.push(fromId);
+    if (filter.storeId !== undefined) {
+      conditions.push('j.storeId = ?');
+      values.push(filter.storeId);
+    }
+  } else {
+    conditions.push('j.storeId IN (?)');
+    values.push(filter.storeIds);
+  }
+  return adminQuery<Record<string, unknown>[]>(
+    `SELECT * FROM (
+       SELECT ${JOB_COLUMNS}, ROW_NUMBER() OVER (PARTITION BY j.storeId ORDER BY j.id DESC) AS rowNumber
+       FROM scrapeJobs j JOIN stores s ON s.id = j.storeId
+       WHERE ${conditions.join(' AND ')}
+     ) recent WHERE rowNumber <= ?`,
+    [...values, RECENT_JOBS_PER_STORE]
+  );
+};
+
+// The health reasons and cron errors are in the language of t. With a storeId
+// only that store is in stores and activeJobs.
+export const getOverview = async (
+  t: TFunction<'admin'>,
+  storeId?: number
+): Promise<Overview> => {
+  const forStore = storeId === undefined ? '' : 'AND j.storeId = ?';
+  const storeValues = storeId === undefined ? [] : [storeId];
   const [stores, recentJobs, activeJobs, statusRows, schedules, configShas] =
     await Promise.all([
       adminQuery<StoreRow[]>(
-        'SELECT id, name, scraperEnabled, apiEnabled, createdDate, lastScanDate FROM stores ORDER BY name'
+        `SELECT id, name, scraperEnabled, apiEnabled, createdDate, lastScanDate FROM stores
+         ${storeId === undefined ? '' : 'WHERE id = ?'} ORDER BY name`,
+        storeValues
       ),
-      // The last finished jobs of each store
-      adminQuery<Record<string, unknown>[]>(
-        `SELECT * FROM (
-           SELECT ${JOB_COLUMNS}, ROW_NUMBER() OVER (PARTITION BY j.storeId ORDER BY j.id DESC) AS rowNumber
-           FROM scrapeJobs j JOIN stores s ON s.id = j.storeId
-           WHERE j.mode <> 'test' AND j.status IN ('succeeded', 'failed', 'cancelled')
-         ) recent WHERE rowNumber <= 12`
-      ),
+      lastFinishedJobs({ recent: true, storeId }),
       adminQuery<Record<string, unknown>[]>(
         `SELECT ${JOB_COLUMNS} FROM scrapeJobs j LEFT JOIN stores s ON s.id = j.storeId
-         WHERE j.status IN ('queued', 'running') ORDER BY j.id`
+         WHERE j.status IN ('queued', 'running') ${forStore} ORDER BY j.id`,
+        storeValues
       ),
       adminQuery<Record<string, unknown>[]>(
         'SELECT startedAt, lastSeenAt, hostname, concurrency, configSource, configCommit, configLoadedAt, configErrors, storeConfigs FROM scraperStatus WHERE id = 1'
       ),
-      getSchedules(t),
+      getSchedules(t, storeId),
       listConfigs()
     ]);
+  // A store not scanned for RECENT_JOBS_DAYS still shows its last jobs
+  const withoutRecent = stores
+    .map((store) => store.id)
+    .filter((id) => !recentJobs.some((job) => job.storeId === id));
+  if (withoutRecent.length > 0)
+    recentJobs.push(...(await lastFinishedJobs({ storeIds: withoutRecent })));
 
   const status = statusRows[0];
   const scraper: ScraperInfo | null = status
