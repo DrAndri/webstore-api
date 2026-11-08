@@ -24,6 +24,8 @@ import { useFormat } from '../I18n/I18nProvider';
 import { fetchJson } from './api';
 
 const POLL_INTERVAL_MS = 3000;
+// How often the line counts of the labels are refreshed while following
+const LABEL_REFRESH_MS = 5 * 60 * 1000;
 const PAGE_SIZE = 300;
 // Following the log live drops the oldest lines past this
 const MAX_LIVE_ENTRIES = 5000;
@@ -374,7 +376,10 @@ export default function LogViewer(props: LogViewerProps) {
     { value: string; count: number }[]
   >(labelsUrl, fetchJson, {
     keepPreviousData: true,
-    refreshInterval: following ? 15000 : 0
+    // Counting the lines of each label reads the whole range, the counts only
+    // fill the filter, so they are not refreshed with every poll
+    refreshInterval: following ? LABEL_REFRESH_MS : 0,
+    revalidateOnFocus: false
   });
 
   // A module label filters the app log, a page of a scan is searched for, the
