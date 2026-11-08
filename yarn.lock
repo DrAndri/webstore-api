@@ -3696,10 +3696,10 @@ react-dom@^19.3.1:
   dependencies:
     scheduler "^0.28.0"
 
-react-i18next@18.0.0:
-  version "18.0.0"
-  resolved "https://registry.yarnpkg.com/react-i18next/-/react-i18next-18.0.0.tgz#b507497edbb7996849b337bb838569529bd40b7e"
-  integrity sha512-xXq/pcuMRwrW4iH0If/RjbPH3zuEqWVtaw4PjDsG54vx0FTook7aS3kop7DXy3g66wHkYUji8l7ZBrA8kfj67Q==
+react-i18next@18.0.1:
+  version "18.0.1"
+  resolved "https://registry.yarnpkg.com/react-i18next/-/react-i18next-18.0.1.tgz#b235e41a7f8549a37cd6d2251b025fac07feba9d"
+  integrity sha512-kPWXI0E/lrPj3+/umcKNzYZVnWmEedLiamMzDIHfbs+5ANf6yzvlZsjKou8f7kaGkfMMDLIZBejV+4aSN1CyBw==
   dependencies:
     html-parse-stringify "^4.0.1"
 
