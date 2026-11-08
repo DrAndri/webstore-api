@@ -40,8 +40,8 @@ export const PUT = withAdmin<Context>(async (request, { params, user }) => {
     });
 
   try {
-    // The scraper creates the rows of new stores within 30 seconds, until then
-    // the schedule is created here
+    // Stores get their schedules when they are created, a store added another
+    // way gets the schedule here
     await adminQuery(
       `INSERT INTO storeSchedules (storeId, mode, cron, enabled, updatedAt, updatedBy)
        VALUES (?, ?, ?, ?, UTC_TIMESTAMP(), ?)

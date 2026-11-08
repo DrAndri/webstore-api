@@ -6,6 +6,12 @@ export type JobMode = 'crawler' | 'list' | 'test' | 'index' | 'schema';
 export type ScheduledMode = Exclude<JobMode, 'test' | 'index' | 'schema'>;
 export type SolrJobMode = Extract<JobMode, 'index' | 'schema'>;
 
+// The schedules a new store gets, turned off. Evaluated in UTC.
+export const DEFAULT_SCHEDULES: Record<ScheduledMode, string> = {
+  crawler: '0 1 * * 1',
+  list: '0 4 * * *'
+};
+
 // The jobs that work on Solr instead of a store, one runs at a time
 export const isSolrJob = (mode: JobMode): mode is SolrJobMode =>
   mode === 'index' || mode === 'schema';

@@ -152,9 +152,9 @@ The admin interface and the scraper only talk through the database:
   `migrations/2026-11-04-scraper-settings.sql` in the scraper.
 - Each store has a full crawl and an active products schedule, rows in
   `storeSchedules` edited on the stores page. A schedule runs while it and
-  **Scheduled scans** of the store are on. The scraper creates the schedules of
-  new stores and applies changes within 30 seconds. It needs
-  `migrations/2026-11-07-store-schedules.sql` in the scraper.
+  **Scheduled scans** of the store are on. A new store gets both schedules,
+  turned off, when it is created. The scraper applies changes within 30
+  seconds.
 - The scraper reports in `scraperStatus` every 5 seconds.
 - The logs are read from Loki, which the scraper sends them to every 5
   seconds. The browser never talks to Loki, the admin api builds the queries.

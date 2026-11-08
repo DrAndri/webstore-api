@@ -295,7 +295,7 @@
     "enabledLabel": "Keyra samkvæmt þessari tímaáætlun",
     "next": "næst {{time}}",
     "notCreated": "Ekki til",
-    "notCreatedHelp": "Skraparinn býr þessa tímaáætlun til með þessum stillingum innan 30 sekúndna frá því að verslunin var stofnuð, eða vistaðu hana núna.",
+    "notCreatedHelp": "Þessi verslun er ekki með þessa tímaáætlun. Vistaðu hana til að búa hana til með þessum stillingum.",
     "rejectedShort": "Hafnað",
     "storeOff": "Verslun óvirk",
     "storeScansOff": "Áætlaðar skannanir eru óvirkar fyrir þessa verslun, tímaáætlanir hennar keyra þegar kveikt er á þeim á síðu verslunarinnar.",

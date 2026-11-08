@@ -1,4 +1,4 @@
-import mariadb, { Pool } from 'mariadb';
+import mariadb, { Pool, PoolConnection } from 'mariadb';
 
 declare global {
   var adminPool: Pool | undefined;
@@ -26,6 +26,25 @@ const getAdminPool = () => {
 
 export const adminQuery = <T>(sql: string, values?: unknown[]): Promise<T> =>
   getAdminPool().query<T>(sql, values);
+
+// Runs the queries of run in one transaction, which is rolled back when run
+// throws
+export const adminTransaction = async <T>(
+  run: (connection: PoolConnection) => Promise<T>
+): Promise<T> => {
+  const connection = await getAdminPool().getConnection();
+  try {
+    await connection.beginTransaction();
+    const result = await run(connection);
+    await connection.commit();
+    return result;
+  } catch (e) {
+    await connection.rollback();
+    throw e;
+  } finally {
+    await connection.release();
+  }
+};
 
 // JSON columns are returned as strings by MariaDB
 export const parseJsonColumn = <T>(value: unknown): T | null => {

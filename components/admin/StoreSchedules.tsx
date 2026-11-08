@@ -19,18 +19,13 @@ import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import {
   CronDescription,
+  DEFAULT_SCHEDULES,
   Schedule,
   ScheduledMode,
   StoreStatus
 } from '../../utils/admin/types';
 import { useFormat } from '../I18n/I18nProvider';
 import { fetchJson, sendJson } from './api';
-
-// What the scraper gives a store that has no schedules yet
-const DEFAULT_CRON: Record<ScheduledMode, string> = {
-  crawler: '0 1 * * 1',
-  list: '0 4 * * *'
-};
 
 // A schedule the preset controls can show and edit. The labels are
 // schedules.presets.<kind> in the admin namespace.
@@ -276,8 +271,8 @@ function ScheduleForm({
   const { t } = useTranslation('admin');
   const format = useFormat();
   const schedule = store.schedules.find((s) => s.mode === mode);
-  const initialCron = schedule?.cron ?? DEFAULT_CRON[mode];
-  const initialEnabled = schedule?.enabled ?? true;
+  const initialCron = schedule?.cron ?? DEFAULT_SCHEDULES[mode];
+  const initialEnabled = schedule?.enabled ?? false;
   const [cron, setCron] = useState(initialCron);
   const [enabled, setEnabled] = useState(initialEnabled);
   const [saving, setSaving] = useState(false);
@@ -291,7 +286,7 @@ function ScheduleForm({
     fetchJson,
     { keepPreviousData: true }
   );
-  // A schedule the scraper has not created yet is saved as it is shown
+  // A schedule that does not exist yet is saved as it is shown
   const changed =
     !schedule || cron.trim() !== initialCron || enabled !== initialEnabled;
 
@@ -349,7 +344,7 @@ function ScheduleForm({
       </div>
       <PresetPicker
         cron={cron}
-        defaultCron={DEFAULT_CRON[mode]}
+        defaultCron={DEFAULT_SCHEDULES[mode]}
         onChange={setCron}
       />
       {preview && !preview.valid && (

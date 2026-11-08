@@ -5,7 +5,7 @@ import {
   readJson,
   withAdmin
 } from '../../../../utils/admin/api';
-import { adminQuery } from '../../../../utils/admin/db';
+import { adminQuery, adminTransaction } from '../../../../utils/admin/db';
 import {
   configPath,
   getConfigFile,
@@ -16,7 +16,10 @@ import {
   newConfigText,
   validateStoreConfig
 } from '../../../../utils/admin/storeConfig';
-import { WebshopCrawlerOptions } from '../../../../utils/admin/types';
+import {
+  DEFAULT_SCHEDULES,
+  WebshopCrawlerOptions
+} from '../../../../utils/admin/types';
 import { UpsertResult } from 'mariadb';
 import { invalidatePublicStores } from '../../../../utils/stores';
 
@@ -24,6 +27,34 @@ const invalidConfig = (errors: string[]) =>
   new HttpError(400, {
     key: 'invalidConfig',
     values: { errors: errors.join(', ') }
+  });
+
+// Inserts the store with the default schedules, turned off. Without an id the
+// database picks one. Returns the id of the store.
+const insertStore = (
+  id: number | undefined,
+  name: string,
+  scraperEnabled: boolean,
+  apiEnabled: boolean,
+  email: string
+) =>
+  adminTransaction(async (connection) => {
+    const result = await connection.query<UpsertResult>(
+      'INSERT INTO stores (id, name, createdDate, scraperEnabled, apiEnabled) VALUES (?, ?, CURRENT_DATE, ?, ?)',
+      [id ?? null, name, scraperEnabled, apiEnabled]
+    );
+    const storeId = id ?? Number(result.insertId);
+    await connection.batch(
+      `INSERT INTO storeSchedules (storeId, mode, cron, enabled, updatedAt, updatedBy)
+       VALUES (?, ?, ?, FALSE, UTC_TIMESTAMP(), ?)`,
+      Object.entries(DEFAULT_SCHEDULES).map(([mode, cron]) => [
+        storeId,
+        mode,
+        cron,
+        email
+      ])
+    );
+    return storeId;
   });
 
 // Creates the store and commits its config. The store id is only known after
@@ -81,9 +112,12 @@ export const POST = withAdmin(async (request, { user }) => {
     );
     if (taken) throw idTaken;
     try {
-      await adminQuery<UpsertResult>(
-        'INSERT INTO stores (id, name, createdDate, scraperEnabled, apiEnabled) VALUES (?, ?, CURRENT_DATE, ?, ?)',
-        [existingId, name, !!body.scraperEnabled, !!body.apiEnabled]
+      await insertStore(
+        existingId,
+        name,
+        !!body.scraperEnabled,
+        !!body.apiEnabled,
+        user.email
       );
     } catch (e) {
       // Another store got the id since the check
@@ -94,11 +128,13 @@ export const POST = withAdmin(async (request, { user }) => {
     return { id: existingId };
   }
 
-  const result = await adminQuery<UpsertResult>(
-    'INSERT INTO stores (name, createdDate, scraperEnabled, apiEnabled) VALUES (?, CURRENT_DATE, ?, ?)',
-    [name, !!body.scraperEnabled, !!body.apiEnabled]
+  const storeId = await insertStore(
+    undefined,
+    name,
+    !!body.scraperEnabled,
+    !!body.apiEnabled,
+    user.email
   );
-  const storeId = Number(result.insertId);
   // The website lists the stores in the public search
   invalidatePublicStores();
 
