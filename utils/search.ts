@@ -145,6 +145,9 @@ const getSchemaSupport = async () => {
   return schema;
 };
 
+// Whether the products core has the active field, which the schema sync adds
+export const hasActiveField = async () => (await getSchemaSupport()).active;
+
 // Query building
 
 // Escapes a term for the standard query parser, including whitespace so a

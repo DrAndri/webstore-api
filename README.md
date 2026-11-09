@@ -196,7 +196,7 @@ to `X-Forwarded-For`.
 
 | Endpoint                       | Method | Body or query                                            |
 | ------------------------------ | ------ | -------------------------------------------------------- |
-| `/api/autocomplete`            | POST   | `{ term }`                                               |
+| `/api/autocomplete`            | POST   | `{ term, includeInactive? }`                             |
 | `/api/prices`                  | POST   | `{ productIds, start?, end? }`                           |
 | `/api/search`                  | POST   | `{ q?, conditions?, filters?, sort?, page?, pageSize? }` |
 | `/api/search/attributes`       | GET    | `?q=` attribute name                                     |
@@ -220,6 +220,10 @@ Autocomplete matches each word of the term anywhere in the name or the sku, so
 `fart` finds `Fartölva` and `1000XM` finds `WH1000XM6B.CE7`. Whole words and
 skus rank above their starts, and those above a match in the middle. It
 searches the `name` and `sku` fields with wildcards, so it needs no reindex.
+
+Autocomplete leaves out the products their store no longer sells, `active` is
+`false`, unless `includeInactive` is `true`. Products indexed before the
+`active` field was added are kept until a reindex sets it.
 
 Autocomplete answers `{ total, results }`, where `total` is how many products
 matched and `results` has the first 10. Each result has `matches`, the parts of

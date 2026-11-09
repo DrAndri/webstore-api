@@ -7,6 +7,7 @@ import {
   SolrAutocompleteResponse
 } from '../../../utils/solr';
 import { AutocompleteMatch, AutocompleteResult } from '../../../types';
+import { hasActiveField } from '../../../utils/search';
 
 type Range = [start: number, end: number];
 
@@ -161,10 +162,15 @@ const autocompleteQuery = (term: string) => {
 };
 
 export const POST = withApiAccess(async (request: Request) => {
-  const searchSolr = async (term: string) => {
+  const searchSolr = async (term: string, includeInactive: boolean) => {
+    // Products a store no longer sells are left out unless asked for. A product
+    // indexed before the active field was added has no value and is kept.
+    const filterQueries =
+      !includeInactive && (await hasActiveField()) ? ['-active:false'] : [];
     const response = await querySolrAutocomplete(
       'products',
-      autocompleteQuery(term)
+      autocompleteQuery(term),
+      filterQueries
     );
     return {
       total: response.response.numFound,
@@ -183,7 +189,7 @@ export const POST = withApiAccess(async (request: Request) => {
   if (!term) {
     return Response.json({ total: 0, results: [] });
   }
-  return searchSolr(term)
+  return searchSolr(term, body.includeInactive === true)
     .then((response) => {
       return Response.json(response);
     })

@@ -32,7 +32,8 @@ export const solrUrl = (path: string) =>
 
 export const querySolrAutocomplete = async (
   collection: string,
-  query: string
+  query: string,
+  filterQueries: string[] = []
 ) => {
   const params = {
     q: query,
@@ -55,7 +56,9 @@ export const querySolrAutocomplete = async (
     'hl.tag.pre': HIGHLIGHT_START,
     'hl.tag.post': HIGHLIGHT_END
   };
-  const queryString = new URLSearchParams(params).toString();
+  const searchParams = new URLSearchParams(params);
+  for (const fq of filterQueries) searchParams.append('fq', fq);
+  const queryString = searchParams.toString();
   const response = await fetch(
     solrUrl(`${collection}/autocomplete?${queryString}`)
   );
