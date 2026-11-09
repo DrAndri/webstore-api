@@ -126,7 +126,4 @@ export interface SearchResponse {
   total: number;
   products: SearchProduct[];
   facets: Facet[];
-  // False until the products core has the fields added for the advanced
-  // search, matching is then approximate
-  exactMatching: boolean;
 }

@@ -145,7 +145,11 @@ The admin interface and the scraper only talk through the database:
 - **Sync Solr schema** on the dashboard adds a `schema` job, the scraper brings
   the schemas of the Solr cores in line with its `solr-configsets` and, when
   asked, queues a reindex if a schema changed. It no longer does this when it
-  starts, so run it after deploying a schema change. It needs
+  starts. The api does not check which fields the products core has, a search
+  that uses a missing field fails. So when a release needs new fields, deploy
+  the scraper's `solr-configsets`, run the sync, and only then deploy the api.
+  The sync only adds fields, so the running api is not affected. Do this for
+  every Solr the api is pointed at, local and staging included. It needs
   `migrations/2026-11-04-solr-schema-jobs.sql` in the scraper.
 - How many stores are scanned at a time is the `concurrency` of
   `scraperSettings`, the scraper reads it every 5 seconds. It needs
@@ -214,7 +218,7 @@ Search filters are the selected facet values, `{ <key>: [values] }`, where the
 key is `storeId`, `manufacturerId`, `categoryId`, `inStock`, `active`, `price`
 or `attr_<attributeId>`. `active` is `true` for products seen in the last scan
 of their store and `false` for the ones a store no longer sells. It needs the
-`active` field in the products core: sync the Solr schema and reindex.
+`active` field in the products core.
 
 Autocomplete matches each word of the term anywhere in the name or the sku, so
 `fart` finds `Fartölva` and `1000XM` finds `WH1000XM6B.CE7`. Whole words and
@@ -243,10 +247,9 @@ value:
 In the advanced search, clicking a product opens its details and price history
 in a drawer. The product id is kept in the url as `product`.
 
-Exact whole value matching needs the `name_ci`, `sku_ci` and `attrci_*` fields
-in the products core, which **Sync Solr schema** on the admin dashboard adds.
-Until the products are reindexed, matching is word by word and attribute values are case
-sensitive.
+Conditions match whole values on the `name_ci`, `sku_ci` and `attrci_*` fields
+of the products core, and the attribute facets come from `attrIds`. Products
+indexed before those fields were added have no values in them until a reindex.
 
 The search box of the advanced search also matches the start of words in the
 name through `name_prefix`, so `fart` finds `fartölva`, ranked below products

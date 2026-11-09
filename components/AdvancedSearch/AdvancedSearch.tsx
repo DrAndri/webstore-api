@@ -294,13 +294,6 @@ export default function AdvancedSearch({
         </Flex>
       </Card>
 
-      {data && !data.exactMatching && conditions.length > 0 && (
-        <Alert
-          type="info"
-          showIcon
-          title={t('advancedSearch.inexactMatching')}
-        />
-      )}
       {error && <Alert type="error" showIcon title={error.message} />}
 
       <Row gutter={[16, 16]}>

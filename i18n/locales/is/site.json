@@ -90,7 +90,6 @@
     "title": "Ítarleg leit",
     "backToPriceHistory": "Til baka í verðsögu",
     "placeholder": "Leitaðu í heiti, vörunúmeri, strikamerki og lýsingu",
-    "inexactMatching": "Leitarvélin hefur ekki verið uppfærð enn, skilyrði á heiti og vörunúmeri eru borin saman orð fyrir orð og eiginleikar eru hástafanæmir.",
     "found_one": "{{total}} vara fannst",
     "found_other": "{{total}} vörur fundust",
     "filters": "Síur",

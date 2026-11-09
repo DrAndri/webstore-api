@@ -98,56 +98,6 @@ export const getLookups = () => {
   return lookups.value;
 };
 
-// Whether the products core has the advanced search fields, which the scraper
-// adds when it syncs the Solr schema
-let schema:
-  | {
-      at: number;
-      exact: boolean;
-      attrIds: boolean;
-      namePrefix: boolean;
-      skuPrefix: boolean;
-      // Whether a product was seen in the last scan of its store
-      active: boolean;
-    }
-  | undefined;
-
-const getSchemaSupport = async () => {
-  if (schema && Date.now() - schema.at < 5 * 60 * 1000) return schema;
-  try {
-    const response = await fetch(productsUrl('schema'), { cache: 'no-store' });
-    const { schema: body } = (await response.json()) as {
-      schema: { fields: { name: string }[]; dynamicFields: { name: string }[] };
-    };
-    const fields = new Set(body.fields.map((f) => f.name));
-    schema = {
-      at: Date.now(),
-      exact:
-        fields.has('name_ci') &&
-        fields.has('sku_ci') &&
-        body.dynamicFields.some((f) => f.name === 'attrci_*'),
-      attrIds: fields.has('attrIds'),
-      namePrefix: fields.has('name_prefix'),
-      skuPrefix: fields.has('sku_prefix'),
-      active: fields.has('active')
-    };
-  } catch (e) {
-    console.error('Reading the Solr schema failed', e);
-    schema = {
-      at: Date.now(),
-      exact: false,
-      attrIds: false,
-      namePrefix: false,
-      skuPrefix: false,
-      active: false
-    };
-  }
-  return schema;
-};
-
-// Whether the products core has the active field, which the schema sync adds
-export const hasActiveField = async () => (await getSchemaSupport()).active;
-
 // Query building
 
 // Escapes a term for the standard query parser, including whitespace so a
@@ -180,10 +130,7 @@ const parseDate = (value: string | undefined, endOfDay: boolean) => {
   return `${value}T${endOfDay ? '23:59:59' : '00:00:00'}Z`;
 };
 
-const conditionClause = (
-  condition: SearchCondition,
-  exact: boolean
-): string | undefined => {
+const conditionClause = (condition: SearchCondition): string | undefined => {
   if (typeof condition?.field !== 'string')
     throw new SearchError({ key: 'search.invalidCondition' });
   const { field, op } = condition;
@@ -215,29 +162,13 @@ const conditionClause = (
   if (field === 'ean')
     return `ean:${op === 'exact' ? quote(value) : wildcard(op, escapeTerm(value))}`;
 
+  // Keyword fields that are lowercased and accent folded, wildcards included
   const attribute = ATTRIBUTE_FIELD.exec(field);
-  if (exact) {
-    // Keyword fields that are lowercased and accent folded, wildcards included
-    const target = attribute ? `attrci_${attribute[1]}` : `${field}_ci`;
-    return `${target}:${op === 'exact' ? quote(value) : wildcard(op, escapeTerm(value))}`;
-  }
-  // Before those fields exist: attribute values are case sensitive strings, name
-  // and sku are matched word by word
-  if (attribute)
-    return `${field}:${op === 'exact' ? quote(value) : wildcard(op, escapeTerm(value))}`;
-  if (op === 'exact') return `${field}:${quote(value)}`;
-  const words = value
-    .split(/\s+/)
-    .map((word) => wildcard(op, escapeTerm(word)));
-  return `${field}:(${words.join(' AND ')})`;
+  const target = attribute ? `attrci_${attribute[1]}` : `${field}_ci`;
+  return `${target}:${op === 'exact' ? quote(value) : wildcard(op, escapeTerm(value))}`;
 };
 
-// hasActive is whether the products core has the active field yet
-const filterQuery = (
-  key: string,
-  values: string[],
-  hasActive: boolean
-): string => {
+const filterQuery = (key: string, values: string[]): string => {
   const tag = `{!tag=f_${key}}`;
   if (key === 'storeId' || key === 'manufacturerId' || key === 'categoryId') {
     const ids = values.map(Number).filter(Number.isInteger);
@@ -245,7 +176,7 @@ const filterQuery = (
       throw new SearchError({ key: 'search.invalidFilter' });
     return `${tag}${key}:(${ids.join(' OR ')})`;
   }
-  if (key === 'inStock' || (key === 'active' && hasActive))
+  if (key === 'inStock' || key === 'active')
     return `${tag}${key}:(${values.map((v) => (v === 'false' ? 'false' : 'true')).join(' OR ')})`;
   if (key === 'price') {
     const ranges = values.map((value) => {
@@ -305,10 +236,8 @@ export const search = async (
   request: SearchRequest,
   { t, format }: SearchLabels
 ): Promise<SearchResponse> => {
-  const [{ stores, manufacturers, categories, attributes }, support] =
-    await Promise.all([getLookups(), getSchemaSupport()]);
-  if (stores.size === 0)
-    return { total: 0, products: [], facets: [], exactMatching: support.exact };
+  const { stores, manufacturers, categories, attributes } = await getLookups();
+  if (stores.size === 0) return { total: 0, products: [], facets: [] };
 
   if (request.conditions !== undefined && !Array.isArray(request.conditions))
     throw new SearchError({ key: 'search.invalidConditions' });
@@ -321,13 +250,13 @@ export const search = async (
     throw new SearchError({ key: 'search.invalidSearch' });
   const conditions = (request.conditions ?? []).slice(0, MAX_CONDITIONS);
   const clauses = conditions
-    .map((condition) => conditionClause(condition, support.exact))
+    .map(conditionClause)
     .filter((clause): clause is string => clause !== undefined);
   const filters = Object.entries(request.filters ?? {}).filter(
     ([, values]) => Array.isArray(values) && values.length > 0
   );
   const filterQueries = filters.map(([key, values]) =>
-    filterQuery(key, values.slice(0, 50).map(String), support.active)
+    filterQuery(key, values.slice(0, 50).map(String))
   );
 
   const params = new URLSearchParams();
@@ -340,16 +269,7 @@ export const search = async (
     // start of them, so fart finds fartölva, ranked below a whole word
     params.set(
       'qf',
-      [
-        'name^3',
-        support.namePrefix && 'name_prefix^1.5',
-        'sku^4',
-        support.skuPrefix && 'sku_prefix^2',
-        'ean^4',
-        'description^0.5'
-      ]
-        .filter(Boolean)
-        .join(' ')
+      'name^3 name_prefix^1.5 sku^4 sku_prefix^2 ean^4 description^0.5'
     );
     params.set('mm', '100%');
   } else {
@@ -384,7 +304,7 @@ export const search = async (
   params.append('facet.field', '{!ex=f_manufacturerId}manufacturerId');
   params.append('facet.field', '{!ex=f_categoryId}categoryId');
   params.append('facet.field', '{!ex=f_inStock}inStock');
-  if (support.active) params.append('facet.field', '{!ex=f_active}active');
+  params.append('facet.field', '{!ex=f_active}active');
   params.set('f.manufacturerId.facet.limit', '100');
   params.set('f.categoryId.facet.limit', '100');
   for (const range of PRICE_RANGES)
@@ -392,19 +312,14 @@ export const search = async (
       'facet.query',
       `{!ex=f_price key=price_${priceRangeKey(range)}}${priceRangeQuery(range)}`
     );
-  if (support.attrIds) {
-    params.append('facet.field', 'attrIds');
-    params.set('f.attrIds.facet.limit', String(ATTRIBUTE_FACETS));
-  }
+  params.append('facet.field', 'attrIds');
+  params.set('f.attrIds.facet.limit', String(ATTRIBUTE_FACETS));
 
   const result = await querySolr(params);
   const fields = result.facet_counts?.facet_fields ?? {};
 
   // The attributes most products in the result have, and the ones filtered on
-  let attributeIds = pairs(fields.attrIds).map(({ value }) => Number(value));
-  if (!support.attrIds && result.response.numFound > 0) {
-    attributeIds = await sampleAttributeIds(params);
-  }
+  const attributeIds = pairs(fields.attrIds).map(({ value }) => Number(value));
   for (const [key] of filters) {
     const id = ATTRIBUTE_FIELD.exec(key)?.[1];
     if (id && !attributeIds.includes(Number(id))) attributeIds.push(Number(id));
@@ -519,29 +434,8 @@ export const search = async (
   return {
     total: result.response.numFound,
     products,
-    facets,
-    exactMatching: support.exact
+    facets
   };
-};
-
-// Before attrIds is indexed, the attributes of the first products stand in
-const sampleAttributeIds = async (base: URLSearchParams) => {
-  const params = new URLSearchParams(base);
-  params.set('rows', '200');
-  params.set('start', '0');
-  params.set('fl', 'attr_*');
-  params.set('facet', 'false');
-  const { response } = await querySolr(params);
-  const counts = new Map<number, number>();
-  for (const doc of response.docs)
-    for (const key of Object.keys(doc)) {
-      const id = ATTRIBUTE_FIELD.exec(key)?.[1];
-      if (id) counts.set(Number(id), (counts.get(Number(id)) ?? 0) + 1);
-    }
-  return [...counts.entries()]
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, ATTRIBUTE_FACETS)
-    .map(([id]) => id);
 };
 
 const attributeFacetValues = async (base: URLSearchParams, ids: number[]) => {

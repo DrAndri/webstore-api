@@ -90,7 +90,6 @@
     "title": "Advanced search",
     "backToPriceHistory": "Back to price history",
     "placeholder": "Search names, SKUs, barcodes and descriptions",
-    "inexactMatching": "The search engine has not been updated yet: conditions on the name and SKU are matched word by word, and attributes are case sensitive.",
     "found_one": "{{total}} product found",
     "found_other": "{{total}} products found",
     "filters": "Filters",
