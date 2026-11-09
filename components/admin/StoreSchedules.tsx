@@ -11,9 +11,12 @@ import {
   Modal,
   Switch,
   Tag,
+  TimePicker,
   Tooltip,
   Typography
 } from 'antd';
+import dayjs from 'dayjs';
+import { TFunction } from 'i18next';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
@@ -74,6 +77,59 @@ function parseCron(cron: string): {
   return { time, preset };
 }
 
+// Sets the time of day of an expression, keeping its day fields. Seconds are
+// kept when they are a fixed second, otherwise they become 0.
+function setCronTime(cron: string, hour: number, minute: number): string {
+  const fields = cron.trim().split(/\s+/);
+  const time = [String(minute), String(hour)];
+  if (fields.length === 6) {
+    time.unshift(/^\d+$/.test(fields[0]) ? fields[0] : '0');
+  }
+  return [...time, ...fields.slice(-3)].join(' ');
+}
+
+const weekdayName = (locale: string, day: number) =>
+  new Intl.DateTimeFormat(locale, {
+    weekday: 'short',
+    timeZone: 'UTC'
+  }).format(new Date(Date.UTC(2025, 0, 5 + day))); // 5 January 2025 was a Sunday
+
+// The time of day fields as HH:mm, or HH:mm:ss when the second is not 0
+function timeOfDay(time: string[]): string {
+  const [second, minute, hour] = time.length === 3 ? time : ['0', ...time];
+  const pad = (value: string) => value.padStart(2, '0');
+  return Number(second) === 0
+    ? `${pad(hour)}:${pad(minute)}`
+    : `${pad(hour)}:${pad(minute)}:${pad(second)}`;
+}
+
+// A schedule in words, such as "Every Mon at 01:00", or null when it is not
+// one the presets can show
+function describeSchedule(
+  cron: string,
+  t: TFunction<'admin'>,
+  locale: string
+): string | null {
+  const { time, preset } = parseCron(cron);
+  if (!time || !preset) return null;
+  const at = timeOfDay(time);
+  if (preset.kind === 'days') {
+    return preset.every === 1
+      ? t('schedules.summary.daily', { time: at })
+      : t('schedules.summary.everyDays', { every: preset.every, time: at });
+  }
+  if (preset.kind === 'weekly') {
+    if (preset.weekdays.length === 7) {
+      return t('schedules.summary.daily', { time: at });
+    }
+    const days = WEEKDAYS.filter((day) => preset.weekdays.includes(day))
+      .map((day) => weekdayName(locale, day))
+      .join(', ');
+    return t('schedules.summary.weekly', { days, time: at });
+  }
+  return t('schedules.summary.monthly', { day: preset.day, time: at });
+}
+
 function presetCron(time: string[], preset: Preset): string {
   const days =
     preset.kind === 'days'
@@ -103,11 +159,6 @@ function PresetPicker({
   const { time, preset } = parseCron(cron);
   const set = (next: Preset) =>
     onChange(presetCron(time ?? parseCron(defaultCron).time!, next));
-  const weekdayName = (day: number) =>
-    new Intl.DateTimeFormat(format.locale, {
-      weekday: 'short',
-      timeZone: 'UTC'
-    }).format(new Date(Date.UTC(2025, 0, 5 + day))); // 5 January 2025 was a Sunday
 
   return (
     <Flex vertical gap={8}>
@@ -152,7 +203,7 @@ function PresetPicker({
           value={preset.weekdays}
           options={WEEKDAYS.map((day) => ({
             value: day,
-            label: weekdayName(day)
+            label: weekdayName(format.locale, day)
           }))}
           onChange={(weekdays) =>
             weekdays.length > 0 && set({ kind: 'weekly', weekdays })
@@ -191,69 +242,152 @@ function PresetPicker({
   );
 }
 
+// Picks the time of day of a schedule, in UTC like the scraper runs it. Empty
+// when the expression has no fixed time of day, like every 6 hours. Picking a
+// time then makes it run once on each of its days.
+function TimeOfDayPicker({
+  cron,
+  onChange
+}: {
+  cron: string;
+  onChange: (cron: string) => void;
+}) {
+  const { t } = useTranslation('admin');
+  const fields = cron.trim().split(/\s+/);
+  const { time } = parseCron(cron);
+  const [hour, minute] = time ? time.slice(-2).reverse().map(Number) : [];
+  const value =
+    time && hour < 24 && minute < 60
+      ? dayjs().hour(hour).minute(minute).second(0)
+      : null;
+  return (
+    <Flex gap={8} align="center" wrap>
+      <Typography.Text strong>{t('schedules.timeLabel')}</Typography.Text>
+      <TimePicker
+        aria-label={t('schedules.timeLabel')}
+        format="HH:mm"
+        value={value}
+        disabled={fields.length !== 5 && fields.length !== 6}
+        placeholder={t('schedules.timeVaries')}
+        allowClear={false}
+        needConfirm={false}
+        showNow={false}
+        onChange={(next) =>
+          next && onChange(setCronTime(cron, next.hour(), next.minute()))
+        }
+        style={{ width: 180 }}
+      />
+    </Flex>
+  );
+}
+
 export interface ScheduleTarget {
   store: StoreStatus;
   mode: ScheduledMode;
 }
 
-// A schedule in the stores table, opens the editor
+// A schedule in the stores table, with a switch that turns it on or off and a
+// link that opens the editor. Turning on a schedule the store does not have
+// yet creates it with the default expression.
 export function ScheduleCell({
   store,
   mode,
-  onEdit
-}: ScheduleTarget & { onEdit: () => void }) {
+  onEdit,
+  onSaved
+}: ScheduleTarget & {
+  onEdit: () => void;
+  onSaved: (schedules: Schedule[]) => void;
+}) {
+  const { message } = App.useApp();
   const { t } = useTranslation('admin');
   const format = useFormat();
+  const [saving, setSaving] = useState(false);
   const schedule = store.schedules.find((s) => s.mode === mode);
   const runs = schedule?.enabled && store.scraperEnabled && schedule.valid;
+  const label = schedule && describeSchedule(schedule.cron, t, format.locale);
+
+  const toggle = async (enabled: boolean) => {
+    setSaving(true);
+    try {
+      onSaved(
+        await sendJson<Schedule[]>(
+          `/api/admin/stores/${store.id}/schedules`,
+          'PUT',
+          { mode, cron: schedule?.cron ?? DEFAULT_SCHEDULES[mode], enabled }
+        )
+      );
+    } catch (e) {
+      message.error((e as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
-    <Flex vertical align="start">
-      <Button
-        type="link"
+    <Flex gap={8} align="start">
+      <Switch
         size="small"
-        style={{ padding: 0, height: 'auto' }}
-        onClick={onEdit}
-        aria-label={t('schedules.edit', {
+        checked={schedule?.enabled ?? false}
+        loading={saving}
+        onChange={(enabled) => void toggle(enabled)}
+        aria-label={t('schedules.toggle', {
           mode: t(`modes.${mode}`),
           store: store.name
         })}
-      >
-        {schedule ? (
-          <Typography.Text
-            code
-            type={runs ? undefined : 'secondary'}
-            style={{ whiteSpace: 'nowrap' }}
+        style={{ marginTop: 2 }}
+      />
+      <Flex vertical align="start">
+        <Tooltip
+          title={schedule && `${t('schedules.cronLabel')}: ${schedule.cron}`}
+        >
+          <Button
+            type="link"
+            size="small"
+            style={{ padding: 0, height: 'auto' }}
+            onClick={onEdit}
+            aria-label={t('schedules.edit', {
+              mode: t(`modes.${mode}`),
+              store: store.name
+            })}
           >
-            {schedule.cron}
-          </Typography.Text>
-        ) : (
-          <Typography.Text type="secondary">
-            {t('schedules.notCreated')}
-          </Typography.Text>
-        )}
-        <EditOutlined />
-      </Button>
-      {schedule?.lastError ? (
-        <Tooltip title={t('schedules.rejected', { error: schedule.lastError })}>
-          <Tag color="error">{t('schedules.rejectedShort')}</Tag>
+            {schedule ? (
+              <Typography.Text
+                code={!label}
+                type={runs ? undefined : 'secondary'}
+                style={{ whiteSpace: 'nowrap' }}
+              >
+                {label ?? schedule.cron}
+              </Typography.Text>
+            ) : (
+              <Typography.Text type="secondary">
+                {t('schedules.notCreated')}
+              </Typography.Text>
+            )}
+            <EditOutlined />
+          </Button>
         </Tooltip>
-      ) : schedule && !schedule.enabled ? (
-        <Tag>{t('schedules.off')}</Tag>
-      ) : schedule && !store.scraperEnabled ? (
-        <Tooltip title={t('schedules.storeScansOff')}>
-          <Tag>{t('schedules.storeOff')}</Tag>
-        </Tooltip>
-      ) : (
-        runs && (
-          <Tooltip title={format.time(schedule.nextRuns[0])}>
-            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-              {t('schedules.next', {
-                time: format.fromNow(schedule.nextRuns[0])
-              })}
-            </Typography.Text>
+        {schedule?.lastError ? (
+          <Tooltip
+            title={t('schedules.rejected', { error: schedule.lastError })}
+          >
+            <Tag color="error">{t('schedules.rejectedShort')}</Tag>
           </Tooltip>
-        )
-      )}
+        ) : schedule?.enabled && !store.scraperEnabled ? (
+          <Tooltip title={t('schedules.storeScansOff')}>
+            <Tag>{t('schedules.storeOff')}</Tag>
+          </Tooltip>
+        ) : (
+          runs && (
+            <Tooltip title={format.time(schedule.nextRuns[0])}>
+              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                {t('schedules.next', {
+                  time: format.fromNow(schedule.nextRuns[0])
+                })}
+              </Typography.Text>
+            </Tooltip>
+          )
+        )}
+      </Flex>
     </Flex>
   );
 }
@@ -347,6 +481,7 @@ function ScheduleForm({
         defaultCron={DEFAULT_SCHEDULES[mode]}
         onChange={setCron}
       />
+      <TimeOfDayPicker cron={cron} onChange={setCron} />
       {preview && !preview.valid && (
         <Alert type="error" showIcon title={preview.errors.join(', ')} />
       )}

@@ -7,6 +7,7 @@
       "store": "Verslun",
       "health": "Ástand",
       "config": "Stillingar",
+      "scheduledScans": "Áætlaðar skannanir",
       "fullCrawl": "Heildarskönnun",
       "activeProducts": "Virkar vörur",
       "publicSearch": "Opinber leit",
@@ -17,8 +18,7 @@
     "missing": "Vantar",
     "reloadNeeded": "Ekki endurhlaðið",
     "reloadNeededHelp": "Skraparinn notar eldri útgáfu af þessum stillingum eða hefur ekki hlaðið þær. Endurhladdu þær til að nota vistuðu útgáfuna.",
-    "on": "Virkt",
-    "off": "Óvirkt"
+    "toggle": "{{setting}} fyrir {{store}}"
   },
   "page": {
     "back": "Verslanir",

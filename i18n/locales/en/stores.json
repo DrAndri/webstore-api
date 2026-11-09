@@ -7,6 +7,7 @@
       "store": "Store",
       "health": "Health",
       "config": "Config",
+      "scheduledScans": "Scheduled scans",
       "fullCrawl": "Full crawl",
       "activeProducts": "Active products",
       "publicSearch": "Public search",
@@ -17,8 +18,7 @@
     "missing": "Missing",
     "reloadNeeded": "Not reloaded",
     "reloadNeededHelp": "The scraper uses an older version of this config or has not loaded it. Reload it to use the saved version.",
-    "on": "On",
-    "off": "Off"
+    "toggle": "{{setting}} for {{store}}"
   },
   "page": {
     "back": "Stores",

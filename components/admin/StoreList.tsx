@@ -2,9 +2,11 @@
 import { PlusOutlined } from '@ant-design/icons';
 import {
   Alert,
+  App,
   Button,
   Flex,
   Spin,
+  Switch,
   Table,
   Tag,
   Tooltip,
@@ -14,12 +16,58 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
-import { Overview, StoreStatus } from '../../utils/admin/types';
+import { Overview, StoreDetails, StoreStatus } from '../../utils/admin/types';
 import { useFormat } from '../I18n/I18nProvider';
-import { fetchJson } from './api';
+import { fetchJson, sendJson } from './api';
 import ReloadConfigButton from './ReloadConfigButton';
 import { HealthTag } from './StatusTags';
 import { ScheduleCell, ScheduleModal, ScheduleTarget } from './StoreSchedules';
+
+type StoreFlag = 'scraperEnabled' | 'apiEnabled';
+
+// Turns scheduled scans or the public search of a store on or off
+function StoreFlagSwitch({
+  store,
+  flag,
+  label,
+  onSaved
+}: {
+  store: StoreStatus;
+  flag: StoreFlag;
+  label: string;
+  onSaved: (changes: Pick<StoreStatus, StoreFlag>) => void;
+}) {
+  const { message } = App.useApp();
+  const { t } = useTranslation('stores');
+  const [saving, setSaving] = useState(false);
+  const toggle = async (value: boolean) => {
+    setSaving(true);
+    try {
+      const updated = await sendJson<StoreDetails['store']>(
+        `/api/admin/stores/${store.id}`,
+        'PATCH',
+        { [flag]: value }
+      );
+      onSaved({
+        scraperEnabled: updated.scraperEnabled,
+        apiEnabled: updated.apiEnabled
+      });
+    } catch (e) {
+      message.error((e as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  };
+  return (
+    <Switch
+      size="small"
+      checked={store[flag]}
+      loading={saving}
+      onChange={(value) => void toggle(value)}
+      aria-label={t('list.toggle', { setting: label, store: store.name })}
+    />
+  );
+}
 
 export default function StoreList() {
   const { t } = useTranslation('stores');
@@ -34,6 +82,19 @@ export default function StoreList() {
     setEditing(target);
     setEditorOpen(true);
   };
+  // Shows a saved change right away, then reloads the overview for the health
+  // and next runs that follow from it
+  const updateStore = (id: number, changes: Partial<StoreStatus>) =>
+    void mutate((current) =>
+      current
+        ? {
+            ...current,
+            stores: current.stores.map((store) =>
+              store.id === id ? { ...store, ...changes } : store
+            )
+          }
+        : current
+    );
   return (
     <Flex vertical gap={16}>
       <Flex justify="space-between" align="center" wrap gap={8}>
@@ -93,12 +154,24 @@ export default function StoreList() {
                 )
             },
             {
+              title: t('list.columns.scheduledScans'),
+              render: (_, store) => (
+                <StoreFlagSwitch
+                  store={store}
+                  flag="scraperEnabled"
+                  label={t('list.columns.scheduledScans')}
+                  onSaved={(changes) => updateStore(store.id, changes)}
+                />
+              )
+            },
+            {
               title: t('list.columns.fullCrawl'),
               render: (_, store) => (
                 <ScheduleCell
                   store={store}
                   mode="crawler"
                   onEdit={() => edit({ store, mode: 'crawler' })}
+                  onSaved={(schedules) => updateStore(store.id, { schedules })}
                 />
               )
             },
@@ -109,19 +182,20 @@ export default function StoreList() {
                   store={store}
                   mode="list"
                   onEdit={() => edit({ store, mode: 'list' })}
+                  onSaved={(schedules) => updateStore(store.id, { schedules })}
                 />
               )
             },
             {
               title: t('list.columns.publicSearch'),
-              render: (_, store) =>
-                store.apiEnabled ? (
-                  t('list.on')
-                ) : (
-                  <Typography.Text type="secondary">
-                    {t('list.off')}
-                  </Typography.Text>
-                )
+              render: (_, store) => (
+                <StoreFlagSwitch
+                  store={store}
+                  flag="apiEnabled"
+                  label={t('list.columns.publicSearch')}
+                  onSaved={(changes) => updateStore(store.id, changes)}
+                />
+              )
             },
             {
               title: t('list.columns.products'),
@@ -153,7 +227,9 @@ export default function StoreList() {
         target={editing}
         open={editorOpen}
         onClose={() => setEditorOpen(false)}
-        onSaved={() => void mutate()}
+        onSaved={(schedules) =>
+          editing && updateStore(editing.store.id, { schedules })
+        }
       />
     </Flex>
   );
