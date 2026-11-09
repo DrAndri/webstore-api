@@ -86,8 +86,8 @@ export const priceRangeKey = ([from, to]: [number | null, number | null]) =>
 export interface SearchRequest {
   q?: string;
   conditions?: SearchCondition[];
-  // Selected facet values: storeId, manufacturerId, categoryId, inStock, price
-  // or attr_<id>
+  // Selected facet values: storeId, manufacturerId, categoryId, inStock,
+  // active, price or attr_<id>
   filters?: Record<string, string[]>;
   sort?: SortKey;
   page?: number;

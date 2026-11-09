@@ -107,6 +107,8 @@ let schema:
       attrIds: boolean;
       namePrefix: boolean;
       skuPrefix: boolean;
+      // Whether a product was seen in the last scan of its store
+      active: boolean;
     }
   | undefined;
 
@@ -126,7 +128,8 @@ const getSchemaSupport = async () => {
         body.dynamicFields.some((f) => f.name === 'attrci_*'),
       attrIds: fields.has('attrIds'),
       namePrefix: fields.has('name_prefix'),
-      skuPrefix: fields.has('sku_prefix')
+      skuPrefix: fields.has('sku_prefix'),
+      active: fields.has('active')
     };
   } catch (e) {
     console.error('Reading the Solr schema failed', e);
@@ -135,7 +138,8 @@ const getSchemaSupport = async () => {
       exact: false,
       attrIds: false,
       namePrefix: false,
-      skuPrefix: false
+      skuPrefix: false,
+      active: false
     };
   }
   return schema;
@@ -225,7 +229,12 @@ const conditionClause = (
   return `${field}:(${words.join(' AND ')})`;
 };
 
-const filterQuery = (key: string, values: string[]): string => {
+// hasActive is whether the products core has the active field yet
+const filterQuery = (
+  key: string,
+  values: string[],
+  hasActive: boolean
+): string => {
   const tag = `{!tag=f_${key}}`;
   if (key === 'storeId' || key === 'manufacturerId' || key === 'categoryId') {
     const ids = values.map(Number).filter(Number.isInteger);
@@ -233,8 +242,8 @@ const filterQuery = (key: string, values: string[]): string => {
       throw new SearchError({ key: 'search.invalidFilter' });
     return `${tag}${key}:(${ids.join(' OR ')})`;
   }
-  if (key === 'inStock')
-    return `${tag}inStock:(${values.map((v) => (v === 'false' ? 'false' : 'true')).join(' OR ')})`;
+  if (key === 'inStock' || (key === 'active' && hasActive))
+    return `${tag}${key}:(${values.map((v) => (v === 'false' ? 'false' : 'true')).join(' OR ')})`;
   if (key === 'price') {
     const ranges = values.map((value) => {
       const range = PRICE_RANGES.find((r) => priceRangeKey(r) === value);
@@ -315,7 +324,7 @@ export const search = async (
     ([, values]) => Array.isArray(values) && values.length > 0
   );
   const filterQueries = filters.map(([key, values]) =>
-    filterQuery(key, values.slice(0, 50).map(String))
+    filterQuery(key, values.slice(0, 50).map(String), support.active)
   );
 
   const params = new URLSearchParams();
@@ -372,6 +381,7 @@ export const search = async (
   params.append('facet.field', '{!ex=f_manufacturerId}manufacturerId');
   params.append('facet.field', '{!ex=f_categoryId}categoryId');
   params.append('facet.field', '{!ex=f_inStock}inStock');
+  if (support.active) params.append('facet.field', '{!ex=f_active}active');
   params.set('f.manufacturerId.facet.limit', '100');
   params.set('f.categoryId.facet.limit', '100');
   for (const range of PRICE_RANGES)
@@ -418,6 +428,16 @@ export const search = async (
           value === 'true'
             ? t('facets.inStockValue')
             : t('facets.outOfStockValue')
+      }))
+    },
+    {
+      key: 'active',
+      label: t('facets.active'),
+      values: pairs(fields.active).map(({ value, count }) => ({
+        value,
+        count,
+        label:
+          value === 'true' ? t('facets.activeValue') : t('facets.inactiveValue')
       }))
     },
     {

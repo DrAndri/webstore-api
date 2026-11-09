@@ -210,6 +210,12 @@ Search conditions are `{ field, op, value, value2? }` where `field` is `name`,
 `startsWith`, `endsWith`, `exact`, `between` or `is`. See
 `utils/searchFields.ts`.
 
+Search filters are the selected facet values, `{ <key>: [values] }`, where the
+key is `storeId`, `manufacturerId`, `categoryId`, `inStock`, `active`, `price`
+or `attr_<attributeId>`. `active` is `true` for products seen in the last scan
+of their store and `false` for the ones a store no longer sells. It needs the
+`active` field in the products core: sync the Solr schema and reindex.
+
 Autocomplete matches each word of the term anywhere in the name or the sku, so
 `fart` finds `Fartölva` and `1000XM` finds `WH1000XM6B.CE7`. Whole words and
 skus rank above their starts, and those above a match in the middle. It
