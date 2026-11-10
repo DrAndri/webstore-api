@@ -16,6 +16,7 @@ import { useTranslation } from 'react-i18next';
 import { Job } from '../../utils/admin/types';
 import { useFormat } from '../I18n/I18nProvider';
 import { sendJson } from './api';
+import JobDetails from './JobDetails';
 import { JobStatusTag } from './StatusTags';
 
 // A running job whose heartbeat is this old has probably died with the scraper
@@ -85,6 +86,9 @@ export default function ActiveJobs({
       pagination={false}
       dataSource={visible}
       scroll={{ x: true }}
+      expandable={{
+        expandedRowRender: (job) => <JobDetails job={job} />
+      }}
       columns={[
         {
           title: t('columns.store'),

@@ -8,7 +8,7 @@ import useSWR from 'swr';
 import { isSolrJob, Job, SolrJobMode } from '../../utils/admin/types';
 import { useFormat } from '../I18n/I18nProvider';
 import { fetchJson } from './api';
-import { JobDetails } from './JobHistory';
+import JobDetails from './JobDetails';
 import LogViewer from './LogViewer';
 import { JobStatusTag } from './StatusTags';
 
