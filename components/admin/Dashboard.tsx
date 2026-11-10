@@ -43,6 +43,7 @@ import ActiveJobs from './ActiveJobs';
 import { fetchJson, sendJson } from './api';
 import { FieldErrorsChart, Sparkline } from './charts';
 import RunScanModal from './RunScanModal';
+import { useScraperSettings } from './Settings';
 import { HealthTag, JobStatusTag } from './StatusTags';
 
 const HEALTH_ORDER = { error: 0, warning: 1, unknown: 2, ok: 3, disabled: 4 };
@@ -71,6 +72,8 @@ function ScraperCard({ overview }: { overview: Overview }) {
   const { scraper, stores } = overview;
   const { t } = useTranslation('admin');
   const format = useFormat();
+  const { data: settings } = useScraperSettings();
+  const schedulerOff = settings?.schedulesEnabled === false;
   return (
     <Card
       title={t('dashboard.scraper')}
@@ -105,7 +108,7 @@ function ScraperCard({ overview }: { overview: Overview }) {
               {scraper.concurrency !== null && (
                 <>
                   ,{' '}
-                  <Link href="/admin/schedules">
+                  <Link href="/admin/settings">
                     {t('dashboard.concurrency', { count: scraper.concurrency })}
                   </Link>
                 </>
@@ -127,7 +130,11 @@ function ScraperCard({ overview }: { overview: Overview }) {
             return (
               <Typography.Text key={mode}>
                 {t(`modes.${mode}`)}:{' '}
-                {next ? (
+                {schedulerOff ? (
+                  <Link href="/admin/settings">
+                    {t('dashboard.schedulerOff')}
+                  </Link>
+                ) : next ? (
                   <Link href="/admin/stores">
                     {t('dashboard.scheduled', {
                       count,

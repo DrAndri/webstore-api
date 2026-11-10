@@ -102,6 +102,8 @@
   },
   "settings": {
     "notFound": "The scraper settings do not exist yet, run the scraperSettings migration",
-    "concurrencyRange": "The number of stores scanned at a time must be a whole number from {{min}} to {{max}}"
+    "concurrencyRange": "The number of stores scanned at a time must be a whole number from {{min}} to {{max}}",
+    "schedulesEnabledType": "schedulesEnabled must be true or false",
+    "nothingToChange": "No setting to change was sent"
   }
 }

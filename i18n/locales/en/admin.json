@@ -5,7 +5,7 @@
     "jobs": "Scan history",
     "logs": "Logs",
     "stores": "Stores",
-    "schedules": "Schedules",
+    "settings": "Settings",
     "apiUsers": "API users"
   },
   "noAccess": {
@@ -188,7 +188,8 @@
     "schemaReindex": "Reindex Solr if a schema changed",
     "schemaOk": "Sync",
     "schemaQueued": "Solr schema sync queued",
-    "schemaAlreadyQueued": "A schema sync is already queued or running"
+    "schemaAlreadyQueued": "A schema sync is already queued or running",
+    "schedulerOff": "scheduler off"
   },
   "charts": {
     "chart": "Chart",
@@ -262,7 +263,6 @@
     "loadOlder": "Load older lines"
   },
   "schedules": {
-    "title": "Schedules",
     "descriptions": {
       "crawler": "Crawls the store from its start page and sitemaps. Finds new products, slow.",
       "list": "Re-scrapes the product pages found in the last scan of the store. Keeps prices fresh, faster."
@@ -309,17 +309,29 @@
     "storeOff": "Store off",
     "storeScansOff": "Scheduled scans are off for this store, its schedules run once they are turned on.",
     "cancel": "Cancel",
-    "perStore": "Each store has its own full crawl and active products schedules, they are edited on the stores page.",
-    "toStores": "Stores"
+    "schedulerOff": "Scheduler off",
+    "schedulerOffHelp": "The scheduler is turned off under Settings, no schedule runs until it is turned on."
   },
   "concurrency": {
     "title": "Concurrent scans",
     "description": "How many stores the scraper scans at a time. Lowering it lets the running scans finish, new scans wait until there is room. A Solr reindex and config tests do not count.",
     "label": "Stores at a time",
     "saved": "Saved, the scraper applies it within a few seconds",
-    "changed": "Changed {{changed}}",
-    "changedBy": "Changed {{changed}} by {{user}}",
     "save": "Save",
     "reset": "Reset"
+  },
+  "settings": {
+    "title": "Settings",
+    "changed": "Changed {{changed}}",
+    "changedBy": "Changed {{changed}} by {{user}}"
+  },
+  "scheduler": {
+    "title": "Scheduler",
+    "description": "Runs the full crawl and active products schedules of the stores. Turning it off stops the schedules of every store without changing them. Scans started by hand still run, and queued and running scans are not cancelled.",
+    "label": "Run scheduled scans",
+    "on": "On",
+    "off": "Off",
+    "savedOn": "Scheduler turned on, the scraper applies it within 30 seconds",
+    "savedOff": "Scheduler turned off, the scraper applies it within 30 seconds"
   }
 }

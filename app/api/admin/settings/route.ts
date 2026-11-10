@@ -10,15 +10,17 @@ const getSettings = async (): Promise<ScraperSettings> => {
   const [row] = await adminQuery<
     {
       concurrency: number;
+      schedulesEnabled: number | boolean;
       updatedAt: Date | null;
       updatedBy: string | null;
     }[]
   >(
-    'SELECT concurrency, updatedAt, updatedBy FROM scraperSettings WHERE id = 1'
+    'SELECT concurrency, schedulesEnabled, updatedAt, updatedBy FROM scraperSettings WHERE id = 1'
   );
   if (!row) throw new HttpError(404, { key: 'settings.notFound' });
   return {
     concurrency: row.concurrency,
+    schedulesEnabled: !!row.schedulesEnabled,
     updatedAt: row.updatedAt?.toISOString() ?? null,
     updatedBy: row.updatedBy
   };
@@ -26,23 +28,38 @@ const getSettings = async (): Promise<ScraperSettings> => {
 
 export const GET = withAdmin(getSettings);
 
-// The scraper reads the settings every 5 seconds
+// Changes the settings in the body, the others are kept. The job runner reads
+// the concurrency every 5 seconds, the scheduler reads schedulesEnabled every
+// 30 seconds.
 export const PUT = withAdmin(async (request, { user }) => {
-  const body = await readJson<{ concurrency?: unknown }>(request);
-  const { concurrency } = body;
-  if (
-    typeof concurrency !== 'number' ||
-    !Number.isInteger(concurrency) ||
-    concurrency < MIN_CONCURRENCY ||
-    concurrency > MAX_CONCURRENCY
-  )
-    throw new HttpError(400, {
-      key: 'settings.concurrencyRange',
-      values: { min: MIN_CONCURRENCY, max: MAX_CONCURRENCY }
-    });
+  const { concurrency, schedulesEnabled } = await readJson<{
+    concurrency?: unknown;
+    schedulesEnabled?: unknown;
+  }>(request);
+  const changes: [string, unknown][] = [];
+  if (concurrency !== undefined) {
+    if (
+      typeof concurrency !== 'number' ||
+      !Number.isInteger(concurrency) ||
+      concurrency < MIN_CONCURRENCY ||
+      concurrency > MAX_CONCURRENCY
+    )
+      throw new HttpError(400, {
+        key: 'settings.concurrencyRange',
+        values: { min: MIN_CONCURRENCY, max: MAX_CONCURRENCY }
+      });
+    changes.push(['concurrency', concurrency]);
+  }
+  if (schedulesEnabled !== undefined) {
+    if (typeof schedulesEnabled !== 'boolean')
+      throw new HttpError(400, { key: 'settings.schedulesEnabledType' });
+    changes.push(['schedulesEnabled', schedulesEnabled]);
+  }
+  if (changes.length === 0)
+    throw new HttpError(400, { key: 'settings.nothingToChange' });
   await adminQuery(
-    'UPDATE scraperSettings SET concurrency = ?, updatedAt = UTC_TIMESTAMP(), updatedBy = ? WHERE id = 1',
-    [concurrency, user.email]
+    `UPDATE scraperSettings SET ${changes.map(([column]) => `${column} = ?`).join(', ')}, updatedAt = UTC_TIMESTAMP(), updatedBy = ? WHERE id = 1`,
+    [...changes.map(([, value]) => value), user.email]
   );
   return getSettings();
 });

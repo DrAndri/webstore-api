@@ -13,7 +13,7 @@ import isStores from './locales/is/stores.json';
 
 // One namespace for each part of the app. common: shared by every page,
 // site: the public pages, admin: the admin shell, dashboard, scans, logs and
-// schedules, stores: the stores and their configs, apiUsers: api users and
+// settings, stores: the stores and their configs, apiUsers: api users and
 // tokens, errors: the error messages of the api.
 const en = {
   common: enCommon,

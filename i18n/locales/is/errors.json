@@ -102,6 +102,8 @@
   },
   "settings": {
     "notFound": "Stillingar skrapara eru ekki til, keyrðu scraperSettings-uppfærsluna",
-    "concurrencyRange": "Fjöldi verslana sem eru skannaðar í einu verður að vera heiltala frá {{min}} til {{max}}"
+    "concurrencyRange": "Fjöldi verslana sem eru skannaðar í einu verður að vera heiltala frá {{min}} til {{max}}",
+    "schedulesEnabledType": "schedulesEnabled verður að vera true eða false",
+    "nothingToChange": "Engin stilling til að breyta var send"
   }
 }

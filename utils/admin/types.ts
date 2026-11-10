@@ -8,8 +8,8 @@ export type SolrJobMode = Extract<JobMode, 'index' | 'schema'>;
 
 // The schedules a new store gets, turned off. Evaluated in UTC.
 export const DEFAULT_SCHEDULES: Record<ScheduledMode, string> = {
-  crawler: '0 1 * * 1',
-  list: '0 4 * * *'
+  crawler: '0 7 * * 1',
+  list: '0 7 * * *'
 };
 
 // The jobs that work on Solr instead of a store, one runs at a time
@@ -411,9 +411,12 @@ export interface LogsResponse {
 export const MIN_CONCURRENCY = 1;
 export const MAX_CONCURRENCY = 20;
 
-// The row of scraperSettings
+// The row of scraperSettings, the time and user are of the last change of
+// any setting
 export interface ScraperSettings {
   concurrency: number;
+  // Off stops the full crawl and active products schedules of every store
+  schedulesEnabled: boolean;
   updatedAt: string | null;
   updatedBy: string | null;
 }

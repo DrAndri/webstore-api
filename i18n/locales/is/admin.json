@@ -5,7 +5,7 @@
     "jobs": "Saga skannana",
     "logs": "Atvikaskrár",
     "stores": "Verslanir",
-    "schedules": "Tímaáætlanir",
+    "settings": "Stillingar",
     "apiUsers": "API-notendur"
   },
   "noAccess": {
@@ -188,7 +188,8 @@
     "schemaReindex": "Endurskrá Solr ef skema breyttist",
     "schemaOk": "Samstilla",
     "schemaQueued": "Samstilling Solr-skema komin í biðröð",
-    "schemaAlreadyQueued": "Samstilling skema er þegar í biðröð eða í gangi"
+    "schemaAlreadyQueued": "Samstilling skema er þegar í biðröð eða í gangi",
+    "schedulerOff": "slökkt á tímaáætlunum"
   },
   "charts": {
     "chart": "Graf",
@@ -262,7 +263,6 @@
     "loadOlder": "Hlaða eldri línum"
   },
   "schedules": {
-    "title": "Tímaáætlanir",
     "descriptions": {
       "crawler": "Fer í gegnum verslunina frá upphafssíðu og veftrjám. Finnur nýjar vörur, hægvirk.",
       "list": "Skrapar aftur vörusíðurnar sem fundust í síðustu skönnun verslunarinnar. Heldur verðum nýjum, fljótlegri."
@@ -309,17 +309,29 @@
     "storeOff": "Verslun óvirk",
     "storeScansOff": "Áætlaðar skannanir eru óvirkar fyrir þessa verslun, tímaáætlanir hennar keyra þegar kveikt er á þeim.",
     "cancel": "Hætta við",
-    "perStore": "Hver verslun hefur sínar eigin tímaáætlanir fyrir heildarskönnun og virkar vörur, þeim er breytt á verslanasíðunni.",
-    "toStores": "Verslanir"
+    "schedulerOff": "Tímaáætlanir óvirkar",
+    "schedulerOffHelp": "Slökkt er á tímaáætlunum undir Stillingum, engin tímaáætlun keyrir fyrr en kveikt er á þeim."
   },
   "concurrency": {
     "title": "Samtímis skannanir",
     "description": "Hve margar verslanir skraparinn skannar í einu. Ef talan er lækkuð klárast skannanir í gangi og nýjar bíða þar til pláss losnar. Endurskráning í Solr og prófanir á stillingum teljast ekki með.",
     "label": "Verslanir í einu",
     "saved": "Vistað, skraparinn notar þetta innan nokkurra sekúndna",
-    "changed": "Breytt {{changed}}",
-    "changedBy": "Breytt {{changed}} af {{user}}",
     "save": "Vista",
     "reset": "Endurstilla"
+  },
+  "settings": {
+    "title": "Stillingar",
+    "changed": "Breytt {{changed}}",
+    "changedBy": "Breytt {{changed}} af {{user}}"
+  },
+  "scheduler": {
+    "title": "Tímaáætlanir",
+    "description": "Keyrir tímaáætlanir verslana fyrir heildarskönnun og virkar vörur. Ef slökkt er á þeim stöðvast tímaáætlanir allra verslana án þess að þeim sé breytt. Skannanir sem eru ræstar handvirkt keyra áfram og skannanir í biðröð eða í gangi eru ekki stöðvaðar.",
+    "label": "Keyra áætlaðar skannanir",
+    "on": "Virkt",
+    "off": "Óvirkt",
+    "savedOn": "Kveikt á tímaáætlunum, skraparinn tekur breytinguna í notkun innan 30 sekúndna",
+    "savedOff": "Slökkt á tímaáætlunum, skraparinn tekur breytinguna í notkun innan 30 sekúndna"
   }
 }

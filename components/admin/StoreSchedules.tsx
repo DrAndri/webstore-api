@@ -29,6 +29,7 @@ import {
 } from '../../utils/admin/types';
 import { useFormat } from '../I18n/I18nProvider';
 import { fetchJson, sendJson } from './api';
+import { useScraperSettings } from './Settings';
 
 // A schedule the preset controls can show and edit. The labels are
 // schedules.presets.<kind> in the admin namespace.
@@ -302,8 +303,14 @@ export function ScheduleCell({
   const { t } = useTranslation('admin');
   const format = useFormat();
   const [saving, setSaving] = useState(false);
+  const { data: settings } = useScraperSettings();
+  const schedulerOff = settings?.schedulesEnabled === false;
   const schedule = store.schedules.find((s) => s.mode === mode);
-  const runs = schedule?.enabled && store.scraperEnabled && schedule.valid;
+  const runs =
+    schedule?.enabled &&
+    store.scraperEnabled &&
+    !schedulerOff &&
+    schedule.valid;
   const label = schedule && describeSchedule(schedule.cron, t, format.locale);
 
   const toggle = async (enabled: boolean) => {
@@ -376,6 +383,10 @@ export function ScheduleCell({
           <Tooltip title={t('schedules.storeScansOff')}>
             <Tag>{t('schedules.storeOff')}</Tag>
           </Tooltip>
+        ) : schedule?.enabled && schedulerOff ? (
+          <Tooltip title={t('schedules.schedulerOffHelp')}>
+            <Tag>{t('schedules.schedulerOff')}</Tag>
+          </Tooltip>
         ) : (
           runs && (
             <Tooltip title={format.time(schedule.nextRuns[0])}>
@@ -404,6 +415,8 @@ function ScheduleForm({
   const { message } = App.useApp();
   const { t } = useTranslation('admin');
   const format = useFormat();
+  const { data: settings } = useScraperSettings();
+  const schedulerOff = settings?.schedulesEnabled === false;
   const schedule = store.schedules.find((s) => s.mode === mode);
   const initialCron = schedule?.cron ?? DEFAULT_SCHEDULES[mode];
   const initialEnabled = schedule?.enabled ?? false;
@@ -451,6 +464,13 @@ function ScheduleForm({
       {!store.scraperEnabled && (
         <Alert type="warning" showIcon title={t('schedules.storeScansOff')} />
       )}
+      {schedulerOff && (
+        <Alert
+          type="warning"
+          showIcon
+          title={t('schedules.schedulerOffHelp')}
+        />
+      )}
       <Flex gap={8} align="center">
         <Switch
           checked={enabled}
@@ -488,7 +508,7 @@ function ScheduleForm({
       {preview?.valid && (
         <div>
           <Typography.Text strong>
-            {enabled && store.scraperEnabled
+            {enabled && store.scraperEnabled && !schedulerOff
               ? t('schedules.nextRuns')
               : t('schedules.wouldRun')}
           </Typography.Text>

@@ -1,11 +1,11 @@
 'use client';
 import {
-  CalendarOutlined,
   DashboardOutlined,
   FileTextOutlined,
   HistoryOutlined,
   KeyOutlined,
   LogoutOutlined,
+  SettingOutlined,
   ShopOutlined
 } from '@ant-design/icons';
 import { App, Avatar, Button, Flex, Layout, Menu, Typography } from 'antd';
@@ -22,12 +22,8 @@ const ITEMS = [
   { key: '/admin/jobs', icon: <HistoryOutlined />, label: 'nav.jobs' },
   { key: '/admin/logs', icon: <FileTextOutlined />, label: 'nav.logs' },
   { key: '/admin/stores', icon: <ShopOutlined />, label: 'nav.stores' },
-  {
-    key: '/admin/schedules',
-    icon: <CalendarOutlined />,
-    label: 'nav.schedules'
-  },
-  { key: '/admin/api-users', icon: <KeyOutlined />, label: 'nav.apiUsers' }
+  { key: '/admin/api-users', icon: <KeyOutlined />, label: 'nav.apiUsers' },
+  { key: '/admin/settings', icon: <SettingOutlined />, label: 'nav.settings' }
 ] as const;
 
 export default function AdminShell({

@@ -102,9 +102,10 @@ the `signIn` callback only when the provider verifies email addresses.
 
 The admin interface shows the health of the scraper and each store, running
 and past scans with error trends, lets you start and cancel scans, reindex
-Solr, edit the cron schedules of each store and how many stores are scanned at
-a time, add and edit stores, and manage api users and admins. These are only configured
-here, not with environment variables of the scraper.
+Solr, edit the cron schedules of each store, and under **Settings** turn the
+scheduler on or off and set how many stores are scanned at a time, add and edit
+stores, and manage api users and admins. These are only configured here, not
+with environment variables of the scraper.
 
 **Logs** shows the scraper's own log from Loki (the job runner, Solr, the
 scheduler, crawlee and the rest), filtered by level, by the label of the module
@@ -155,10 +156,14 @@ The admin interface and the scraper only talk through the database:
   `scraperSettings`, the scraper reads it every 5 seconds. It needs
   `migrations/2026-11-04-scraper-settings.sql` in the scraper.
 - Each store has a full crawl and an active products schedule, rows in
-  `storeSchedules` edited on the stores page. A schedule runs while it and
-  **Scheduled scans** of the store are on. A new store gets both schedules,
-  turned off, when it is created. The scraper applies changes within 30
-  seconds.
+  `storeSchedules` edited on the stores page. A schedule runs while it,
+  **Scheduled scans** of the store and **Scheduler** under Settings are on. A
+  new store gets both schedules, turned off, when it is created. The scraper
+  applies changes within 30 seconds.
+- **Scheduler** under Settings is the `schedulesEnabled` of `scraperSettings`.
+  Turning it off stops the schedules of every store without changing them,
+  scans started by hand still run and queued scans are not cancelled. It needs
+  `migrations/2026-11-10-scheduler-switch.sql` in the scraper.
 - The scraper reports in `scraperStatus` every 5 seconds.
 - The logs are read from Loki, which the scraper sends them to every 5
   seconds. The browser never talks to Loki, the admin api builds the queries.
