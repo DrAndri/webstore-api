@@ -196,12 +196,18 @@ export default function AdvancedSearch({
   ]);
 
   // The facet labels are in the language of the request, so a new language
-  // searches again
+  // searches again. Otherwise the search only runs when the request changes,
+  // not on focus, reconnect or remount.
   const { data, error, isLoading } = useSWR<SearchResponse>(
     ['/api/search', JSON.stringify(debouncedRequest), format.language],
     ([url, body]: [string, string, string]) =>
       postJson<SearchResponse>(url, body, messages),
-    { keepPreviousData: true }
+    {
+      keepPreviousData: true,
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+      revalidateIfStale: false
+    }
   );
 
   const changeFilter = (key: string, values: string[]) => {
