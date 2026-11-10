@@ -94,6 +94,9 @@
     "found_other": "{{total}} products found",
     "filters": "Filters",
     "filtersCount": "Filters ({{active}})",
+    "hideFilters": "Hide filters",
+    "start": "Type a search, add a condition or choose a filter to see products",
+    "browseFilters": "Browse filters",
     "clearFilters": "Clear all filters",
     "empty": "No products found",
     "columns": {
@@ -133,7 +136,9 @@
   "facetList": {
     "filter": "Filter",
     "showFewer": "Show fewer",
-    "showMore": "Show more ({{hidden}})"
+    "showMore": "Show more ({{hidden}})",
+    "moreFacets": "Show more filters ({{hidden}})",
+    "fewerFacets": "Show fewer filters"
   },
   "productDetails": {
     "notInLastScan": "Not in the store's last scan",

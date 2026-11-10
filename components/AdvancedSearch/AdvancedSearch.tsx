@@ -4,6 +4,7 @@ import {
   CheckOutlined,
   ColumnHeightOutlined,
   FilterOutlined,
+  MenuFoldOutlined,
   PlusOutlined,
   LineChartOutlined,
   TableOutlined,
@@ -16,6 +17,7 @@ import {
   Card,
   Col,
   Drawer,
+  Empty,
   Flex,
   Grid,
   Image,
@@ -90,6 +92,13 @@ const isComplete = (condition: SearchCondition) =>
     condition.op === 'is' ||
     !!condition.value?.trim());
 
+// Without a query, a condition or a filter there are no results, only facets
+// to start from
+const hasSearch = (request: SearchRequest) =>
+  !!request.q?.trim() ||
+  !!request.conditions?.length ||
+  Object.keys(request.filters ?? {}).length > 0;
+
 export default function AdvancedSearch({
   userMenu
 }: {
@@ -130,7 +139,11 @@ export default function AdvancedSearch({
   const [view, setView] = useState<View>(
     params.get('view') === 'cards' ? 'cards' : 'list'
   );
+  // The facet drawer on small screens
   const [facetsOpen, setFacetsOpen] = useState(false);
+  // The facet column on large screens, null follows the default: shown when
+  // there are results
+  const [facetsShown, setFacetsShown] = useState<boolean | null>(null);
   // The product shown in the drawer
   const [productId, setProductId] = useState(params.get('product'));
 
@@ -222,6 +235,14 @@ export default function AdvancedSearch({
     }
   );
 
+  // The results belong to the debounced request, like the data
+  const searched = hasSearch(debouncedRequest);
+  const products = searched ? data?.products : [];
+  const total = searched ? (data?.total ?? 0) : 0;
+  const showFacets = facetsShown ?? searched;
+  const toggleFacets = () =>
+    screens.lg ? setFacetsShown(!showFacets) : setFacetsOpen(true);
+
   const changeFilter = (key: string, values: string[]) => {
     const next = { ...filters };
     if (values.length) next[key] = values;
@@ -271,7 +292,7 @@ export default function AdvancedSearch({
   const pagination: PaginationProps = {
     current: page,
     pageSize: PAGE_SIZE,
-    total: Math.min(data?.total ?? 0, PAGE_SIZE * 200),
+    total: Math.min(total, PAGE_SIZE * 200),
     showSizeChanger: false,
     onChange: setPage
   };
@@ -323,35 +344,56 @@ export default function AdvancedSearch({
       {error && <Alert type="error" showIcon title={error.message} />}
 
       <Row gutter={[16, 16]}>
-        {screens.lg && (
-          <Col lg={7} xl={6}>
+        {screens.lg && showFacets && (
+          // Stays in view and scrolls on its own, above the selection bar
+          <Col
+            lg={7}
+            xl={6}
+            style={{
+              position: 'sticky',
+              top: 16,
+              alignSelf: 'flex-start',
+              maxHeight: `calc(100vh - ${selected.length ? 120 : 32}px)`,
+              overflowY: 'auto'
+            }}
+          >
             {facets}
           </Col>
         )}
-        <Col xs={24} lg={17} xl={18}>
+        <Col xs={24} lg={showFacets ? 17 : 24} xl={showFacets ? 18 : 24}>
           <Flex vertical gap={12}>
             <Flex justify="space-between" align="center" wrap gap={8}>
-              <Typography.Text strong>
-                {data
-                  ? t('advancedSearch.found', {
-                      count: data.total,
-                      total: format.number(data.total)
-                    })
-                  : t('searching')}
-              </Typography.Text>
               <Flex gap={8} align="center" wrap>
-                {!screens.lg && (
-                  <Button
-                    icon={<FilterOutlined />}
-                    onClick={() => setFacetsOpen(true)}
-                  >
-                    {activeFilters.length
+                <Button
+                  icon={
+                    screens.lg && showFacets ? (
+                      <MenuFoldOutlined />
+                    ) : (
+                      <FilterOutlined />
+                    )
+                  }
+                  onClick={toggleFacets}
+                >
+                  {screens.lg && showFacets
+                    ? t('advancedSearch.hideFilters')
+                    : activeFilters.length
                       ? t('advancedSearch.filtersCount', {
                           active: activeFilters.length
                         })
                       : t('advancedSearch.filters')}
-                  </Button>
+                </Button>
+                {searched && (
+                  <Typography.Text strong>
+                    {data
+                      ? t('advancedSearch.found', {
+                          count: total,
+                          total: format.number(total)
+                        })
+                      : t('searching')}
+                  </Typography.Text>
                 )}
+              </Flex>
+              <Flex gap={8} align="center" wrap>
                 <Select
                   value={sort}
                   onChange={(value) => {
@@ -409,9 +451,20 @@ export default function AdvancedSearch({
                 </Typography.Link>
               </Flex>
             )}
-            {view === 'cards' ? (
+            {!searched ? (
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description={t('advancedSearch.start')}
+              >
+                {!(screens.lg && showFacets) && (
+                  <Button icon={<FilterOutlined />} onClick={toggleFacets}>
+                    {t('advancedSearch.browseFilters')}
+                  </Button>
+                )}
+              </Empty>
+            ) : view === 'cards' ? (
               <ProductCards
-                products={data?.products}
+                products={products}
                 loading={isLoading}
                 selectedIds={selectedIds}
                 onToggleSelected={toggleSelected}
@@ -423,7 +476,7 @@ export default function AdvancedSearch({
                 rowKey="id"
                 size="small"
                 loading={isLoading}
-                dataSource={data?.products}
+                dataSource={products}
                 scroll={{ x: true }}
                 locale={{ emptyText: t('advancedSearch.empty') }}
                 onRow={(product) => ({

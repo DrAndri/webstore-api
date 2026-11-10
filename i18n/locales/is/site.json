@@ -94,6 +94,9 @@
     "found_other": "{{total}} vörur fundust",
     "filters": "Síur",
     "filtersCount": "Síur ({{active}})",
+    "hideFilters": "Fela síur",
+    "start": "Skrifaðu leitarorð, bættu við skilyrði eða veldu síu til að sjá vörur",
+    "browseFilters": "Skoða síur",
     "clearFilters": "Hreinsa allar síur",
     "empty": "Engar vörur fundust",
     "columns": {
@@ -133,7 +136,9 @@
   "facetList": {
     "filter": "Sía",
     "showFewer": "Sýna færri",
-    "showMore": "Sýna fleiri ({{hidden}})"
+    "showMore": "Sýna fleiri ({{hidden}})",
+    "moreFacets": "Sýna fleiri síur ({{hidden}})",
+    "fewerFacets": "Sýna færri síur"
   },
   "productDetails": {
     "notInLastScan": "Ekki í síðustu skönnun verslunarinnar",
