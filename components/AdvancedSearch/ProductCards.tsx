@@ -6,7 +6,6 @@ import {
   Col,
   Empty,
   Flex,
-  Image,
   Pagination,
   PaginationProps,
   Row,
@@ -64,27 +63,41 @@ export default function ProductCards({
                     )
                       onOpen(product.id);
                   }}
+                  // A column, so the body fills what the cover leaves and the
+                  // price lines up at the bottom of every card in a row
                   style={{
                     height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
                     borderColor: isSelected ? token.colorPrimary : undefined
                   }}
-                  styles={{ body: { height: '100%' } }}
+                  styles={{
+                    body: { flex: 1, display: 'flex', flexDirection: 'column' }
+                  }}
                   cover={
-                    <Flex
-                      align="center"
-                      justify="center"
-                      style={{ height: IMAGE_HEIGHT, padding: 12 }}
+                    // Inline styles, the card makes children of the cover
+                    // display: block
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        height: IMAGE_HEIGHT,
+                        padding: 12,
+                        boxSizing: 'border-box'
+                      }}
                     >
                       {product.image ? (
-                        <Image
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
                           src={product.image}
                           alt=""
-                          height={IMAGE_HEIGHT - 24}
+                          loading="lazy"
                           style={{
                             maxWidth: '100%',
+                            maxHeight: '100%',
                             objectFit: 'contain'
                           }}
-                          preview={false}
                         />
                       ) : (
                         <PictureOutlined
@@ -94,10 +107,10 @@ export default function ProductCards({
                           }}
                         />
                       )}
-                    </Flex>
+                    </div>
                   }
                 >
-                  <Flex vertical gap={4} style={{ height: '100%' }}>
+                  <Flex vertical gap={4} style={{ flex: 1 }}>
                     <Typography.Paragraph
                       strong
                       ellipsis={{
