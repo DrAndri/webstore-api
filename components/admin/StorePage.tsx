@@ -14,9 +14,11 @@ import {
   Typography
 } from 'antd';
 import Link from 'next/link';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import {
+  Schedule,
   ScheduledMode,
   StoreDetails,
   StoreStatus
@@ -28,12 +30,16 @@ import JobHistory from './JobHistory';
 import ReloadConfigButton from './ReloadConfigButton';
 import { HealthTag, JobStatusTag } from './StatusTags';
 import StoreConfigEditor from './StoreConfigEditor';
+import { ScheduleCell, ScheduleModal, ScheduleTarget } from './StoreSchedules';
 import StoreTrends from './StoreTrends';
 
 export default function StorePage({ storeId }: { storeId: number }) {
   const { message } = App.useApp();
   const { t } = useTranslation('stores');
+  const { t: tAdmin } = useTranslation('admin');
   const format = useFormat();
+  const [editing, setEditing] = useState<ScheduleTarget | null>(null);
+  const [editorOpen, setEditorOpen] = useState(false);
   const { data, error, mutate } = useSWR<StoreDetails>(
     `/api/admin/stores/${storeId}`,
     fetchJson,
@@ -63,6 +69,11 @@ export default function StorePage({ storeId }: { storeId: number }) {
       message.error((e as Error).message);
     }
   };
+
+  // Shows saved schedules right away, then reloads the status for the health
+  // and next runs that follow from them
+  const updateSchedules = (schedules: Schedule[]) =>
+    void mutateStatus((current) => current && { ...current, schedules });
 
   const run = async (mode: ScheduledMode) => {
     try {
@@ -178,6 +189,32 @@ export default function StorePage({ storeId }: { storeId: number }) {
           </Space.Compact>
         </Flex>
       </Flex>
+      {status && (
+        <Flex gap={24} wrap>
+          {(['crawler', 'list'] as const).map((mode) => (
+            <Flex key={mode} vertical gap={4}>
+              <Typography.Text type="secondary">
+                {tAdmin(`modes.${mode}`)}
+              </Typography.Text>
+              <ScheduleCell
+                store={status}
+                mode={mode}
+                onEdit={() => {
+                  setEditing({ store: status, mode });
+                  setEditorOpen(true);
+                }}
+                onSaved={updateSchedules}
+              />
+            </Flex>
+          ))}
+        </Flex>
+      )}
+      <ScheduleModal
+        target={editing}
+        open={editorOpen}
+        onClose={() => setEditorOpen(false)}
+        onSaved={updateSchedules}
+      />
       {status && status.health.reasons.length > 0 && (
         <Alert
           type={status.health.level === 'error' ? 'error' : 'warning'}
