@@ -111,7 +111,11 @@
     "clearSelection": "Clear selection",
     "compare": "Compare",
     "compareFirst": "Compare (first {{max}})",
-    "showPriceHistory": "Show price history"
+    "showPriceHistory": "Show price history",
+    "views": {
+      "list": "List",
+      "cards": "Cards"
+    }
   },
   "conditionEditor": {
     "attributePlaceholder": "Search for an attribute, e.g. Litur (colour)",

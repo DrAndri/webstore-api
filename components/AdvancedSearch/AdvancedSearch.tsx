@@ -1,11 +1,13 @@
 'use client';
 import {
+  AppstoreOutlined,
   CheckOutlined,
   ColumnHeightOutlined,
   FilterOutlined,
   PlusOutlined,
   LineChartOutlined,
-  TableOutlined
+  TableOutlined,
+  UnorderedListOutlined
 } from '@ant-design/icons';
 import {
   Affix,
@@ -18,7 +20,9 @@ import {
   Grid,
   Image,
   Input,
+  PaginationProps,
   Row,
+  Segmented,
   Select,
   Table,
   Tag,
@@ -43,8 +47,11 @@ import { useFormat } from '../I18n/I18nProvider';
 import ProductDetails from '../ProductDetails/ProductDetails';
 import ConditionEditor from './ConditionEditor';
 import FacetList from './FacetList';
+import ProductCards from './ProductCards';
 
 const PAGE_SIZE = 24;
+
+type View = 'list' | 'cards';
 
 // messages are shown when the api gives no error of its own
 const postJson = async <T,>(
@@ -120,6 +127,9 @@ export default function AdvancedSearch({
       .filter(Boolean)
       .map((id) => ({ id, label: id }))
   );
+  const [view, setView] = useState<View>(
+    params.get('view') === 'cards' ? 'cards' : 'list'
+  );
   const [facetsOpen, setFacetsOpen] = useState(false);
   // The product shown in the drawer
   const [productId, setProductId] = useState(params.get('product'));
@@ -180,6 +190,7 @@ export default function AdvancedSearch({
     if (Object.keys(filters).length) next.set('f', JSON.stringify(filters));
     if (sort !== 'relevance') next.set('sort', sort);
     if (page > 1) next.set('page', String(page));
+    if (view !== 'list') next.set('view', view);
     if (selected.length)
       next.set('selectedProductIds', selected.map((s) => s.id).join(','));
     if (productId) next.set('product', productId);
@@ -191,6 +202,7 @@ export default function AdvancedSearch({
     selected,
     attributeLabels,
     productId,
+    view,
     router,
     pathname
   ]);
@@ -256,6 +268,14 @@ export default function AdvancedSearch({
         : current.filter((s) => s.id !== product.id)
     );
 
+  const pagination: PaginationProps = {
+    current: page,
+    pageSize: PAGE_SIZE,
+    total: Math.min(data?.total ?? 0, PAGE_SIZE * 200),
+    showSizeChanger: false,
+    onChange: setPage
+  };
+
   const facets = data && (
     <FacetList facets={data.facets} filters={filters} onChange={changeFilter} />
   );
@@ -319,7 +339,7 @@ export default function AdvancedSearch({
                     })
                   : t('searching')}
               </Typography.Text>
-              <Flex gap={8} align="center">
+              <Flex gap={8} align="center" wrap>
                 {!screens.lg && (
                   <Button
                     icon={<FilterOutlined />}
@@ -344,6 +364,22 @@ export default function AdvancedSearch({
                     label: t(`searchFields.sorts.${value}`)
                   }))}
                   style={{ width: 180 }}
+                />
+                <Segmented<View>
+                  value={view}
+                  onChange={setView}
+                  options={[
+                    {
+                      value: 'list',
+                      icon: <UnorderedListOutlined />,
+                      title: t('advancedSearch.views.list')
+                    },
+                    {
+                      value: 'cards',
+                      icon: <AppstoreOutlined />,
+                      title: t('advancedSearch.views.cards')
+                    }
+                  ]}
                 />
               </Flex>
             </Flex>
@@ -373,104 +409,111 @@ export default function AdvancedSearch({
                 </Typography.Link>
               </Flex>
             )}
-            <Table<SearchProduct>
-              rowKey="id"
-              size="small"
-              loading={isLoading}
-              dataSource={data?.products}
-              scroll={{ x: true }}
-              locale={{ emptyText: t('advancedSearch.empty') }}
-              onRow={(product) => ({
-                style: { cursor: 'pointer' },
-                // The checkbox and the image preview do their own thing
-                onClick: (event) => {
-                  if (
-                    !(event.target as HTMLElement).closest(
-                      '.ant-table-selection-column, .ant-image'
+            {view === 'cards' ? (
+              <ProductCards
+                products={data?.products}
+                loading={isLoading}
+                selectedIds={selectedIds}
+                onToggleSelected={toggleSelected}
+                onOpen={setProductId}
+                pagination={pagination}
+              />
+            ) : (
+              <Table<SearchProduct>
+                rowKey="id"
+                size="small"
+                loading={isLoading}
+                dataSource={data?.products}
+                scroll={{ x: true }}
+                locale={{ emptyText: t('advancedSearch.empty') }}
+                onRow={(product) => ({
+                  style: { cursor: 'pointer' },
+                  // The checkbox and the image preview do their own thing
+                  onClick: (event) => {
+                    if (
+                      !(event.target as HTMLElement).closest(
+                        '.ant-table-selection-column, .ant-image'
+                      )
                     )
-                  )
-                    setProductId(product.id);
-                }
-              })}
-              rowSelection={{
-                selectedRowKeys: selectedIds,
-                preserveSelectedRowKeys: true,
-                onSelect: (product, checked) =>
-                  toggleSelected(product, checked),
-                onSelectAll: (checked, _, changed) =>
-                  changed.forEach((product) => toggleSelected(product, checked))
-              }}
-              pagination={{
-                current: page,
-                pageSize: PAGE_SIZE,
-                total: Math.min(data?.total ?? 0, PAGE_SIZE * 200),
-                showSizeChanger: false,
-                onChange: setPage
-              }}
-              columns={[
-                {
-                  title: '',
-                  width: 56,
-                  render: (_, product) =>
-                    product.image ? (
-                      <Image
-                        src={product.image}
-                        alt=""
-                        width={40}
-                        height={40}
-                        style={{ objectFit: 'contain' }}
-                        preview={{ mask: null }}
-                      />
-                    ) : null
-                },
-                {
-                  title: t('advancedSearch.columns.product'),
-                  render: (_, product) => (
-                    <Flex vertical>
-                      <Typography.Link>
-                        {product.name ?? product.sku}
-                      </Typography.Link>
-                      <Typography.Text
-                        type="secondary"
-                        style={{ fontSize: 12 }}
-                      >
-                        {[product.manufacturer, product.category]
-                          .filter(Boolean)
-                          .join(' · ')}
-                      </Typography.Text>
-                    </Flex>
-                  )
-                },
-                {
-                  title: t('advancedSearch.columns.store'),
-                  dataIndex: 'storeName'
-                },
-                { title: t('advancedSearch.columns.sku'), dataIndex: 'sku' },
-                {
-                  title: t('advancedSearch.columns.price'),
-                  align: 'right',
-                  render: (_, product) => format.price(product.price)
-                },
-                {
-                  title: t('advancedSearch.columns.inStock'),
-                  render: (_, product) =>
-                    product.inStock === undefined
-                      ? '–'
-                      : product.inStock
-                        ? t('yes')
-                        : t('no')
-                },
-                {
-                  title: t('advancedSearch.columns.lastChange'),
-                  render: (_, product) =>
-                    product.lastChangeDate
-                      ? dayjs(product.lastChangeDate)
-                          .locale(format.language)
-                          .format(t('dates.day'))
-                      : '–'
-                }
-              ]}
-            />
+                      setProductId(product.id);
+                  }
+                })}
+                rowSelection={{
+                  selectedRowKeys: selectedIds,
+                  preserveSelectedRowKeys: true,
+                  onSelect: (product, checked) =>
+                    toggleSelected(product, checked),
+                  onSelectAll: (checked, _, changed) =>
+                    changed.forEach((product) =>
+                      toggleSelected(product, checked)
+                    )
+                }}
+                pagination={pagination}
+                columns={[
+                  {
+                    title: '',
+                    width: 56,
+                    render: (_, product) =>
+                      product.image ? (
+                        <Image
+                          src={product.image}
+                          alt=""
+                          width={40}
+                          height={40}
+                          style={{ objectFit: 'contain' }}
+                          preview={{ mask: null }}
+                        />
+                      ) : null
+                  },
+                  {
+                    title: t('advancedSearch.columns.product'),
+                    render: (_, product) => (
+                      <Flex vertical>
+                        <Typography.Link>
+                          {product.name ?? product.sku}
+                        </Typography.Link>
+                        <Typography.Text
+                          type="secondary"
+                          style={{ fontSize: 12 }}
+                        >
+                          {[product.manufacturer, product.category]
+                            .filter(Boolean)
+                            .join(' · ')}
+                        </Typography.Text>
+                      </Flex>
+                    )
+                  },
+                  {
+                    title: t('advancedSearch.columns.store'),
+                    dataIndex: 'storeName'
+                  },
+                  { title: t('advancedSearch.columns.sku'), dataIndex: 'sku' },
+                  {
+                    title: t('advancedSearch.columns.price'),
+                    align: 'right',
+                    render: (_, product) => format.price(product.price)
+                  },
+                  {
+                    title: t('advancedSearch.columns.inStock'),
+                    render: (_, product) =>
+                      product.inStock === undefined
+                        ? '–'
+                        : product.inStock
+                          ? t('yes')
+                          : t('no')
+                  },
+                  {
+                    title: t('advancedSearch.columns.lastChange'),
+                    render: (_, product) =>
+                      product.lastChangeDate
+                        ? dayjs(product.lastChangeDate)
+                            .locale(format.language)
+                            .format(t('dates.day'))
+                        : '–'
+                  }
+                ]}
+              />
+            )}
           </Flex>
         </Col>
       </Row>

@@ -111,7 +111,11 @@
     "clearSelection": "Hreinsa val",
     "compare": "Bera saman",
     "compareFirst": "Bera saman (fyrstu {{max}})",
-    "showPriceHistory": "Sýna verðsögu"
+    "showPriceHistory": "Sýna verðsögu",
+    "views": {
+      "list": "Listi",
+      "cards": "Spjöld"
+    }
   },
   "conditionEditor": {
     "attributePlaceholder": "Leitaðu að eiginleika, t.d. Litur",
