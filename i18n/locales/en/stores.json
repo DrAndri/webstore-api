@@ -18,7 +18,12 @@
     "missing": "Missing",
     "reloadNeeded": "Not reloaded",
     "reloadNeededHelp": "The scraper uses an older version of this config or has not loaded it. Reload it to use the saved version.",
-    "toggle": "{{setting}} for {{store}}"
+    "toggle": "{{setting}} for {{store}}",
+    "filters": {
+      "name": "Filter by name",
+      "activeSchedules": "Only stores with active schedules",
+      "noSchedules": "Only stores with no schedules"
+    }
   },
   "page": {
     "back": "Stores",
@@ -194,6 +199,8 @@
     "startUrlsHelp": "The crawl starts from these too, e.g. a product listing with a larger page size than the site links to.",
     "sitemaps": "Sitemaps",
     "sitemapsHelp": "Product urls in these sitemaps are crawled too. Useful when category pages do not link to every product.",
+    "hostAliases": "Other hosts of the site",
+    "hostAliasesHelp": "Only links on the start url's host are crawled. Links on these hosts are moved to it, e.g. when the sitemap lists its urls on a host that does not serve them. Type a host name and press enter.",
     "maxRequestsPerMinute": "Pages a minute",
     "maxRequestsPerMinuteHelp": "How many pages a scan of the store requests a minute, 60 when empty. Raise it only for a site that handles it, lower it for a site that answers with 429 or 503.",
     "productFeed": "Product feed",
@@ -292,6 +299,7 @@
     "string": "{{path}} must be a string",
     "nonEmpty": "{{path}} must not be empty",
     "url": "{{path}} must be an absolute http(s) url",
+    "hostname": "{{path}} must be a host name without http:// or a path, e.g. www.example.is",
     "boolean": "{{path}} must be true or false",
     "oneOf": "{{path}} must be one of {{values}}",
     "list": "{{path}} must be a list",

@@ -18,7 +18,12 @@
     "missing": "Vantar",
     "reloadNeeded": "Ekki endurhlaðið",
     "reloadNeededHelp": "Skraparinn notar eldri útgáfu af þessum stillingum eða hefur ekki hlaðið þær. Endurhladdu þær til að nota vistuðu útgáfuna.",
-    "toggle": "{{setting}} fyrir {{store}}"
+    "toggle": "{{setting}} fyrir {{store}}",
+    "filters": {
+      "name": "Sía eftir nafni",
+      "activeSchedules": "Aðeins verslanir með virkar áætlanir",
+      "noSchedules": "Aðeins verslanir án áætlana"
+    }
   },
   "page": {
     "back": "Verslanir",
@@ -194,6 +199,8 @@
     "startUrlsHelp": "Skönnunin hefst líka á þessum síðum, t.d. vörulista með fleiri vörum á síðu en vefurinn tengir á.",
     "sitemaps": "Veftré",
     "sitemapsHelp": "Vöruslóðir í þessum veftrjám eru líka skannaðar. Gagnlegt þegar flokkasíður tengja ekki á allar vörur.",
+    "hostAliases": "Önnur lén vefsins",
+    "hostAliasesHelp": "Aðeins tenglar á léni upphafsslóðarinnar eru skannaðir. Tenglar á þessum lénum eru færðir á það, t.d. þegar veftréð birtir slóðir sínar á léni sem svarar þeim ekki. Sláðu inn lén og ýttu á Enter.",
     "maxRequestsPerMinute": "Síður á mínútu",
     "maxRequestsPerMinuteHelp": "Hve margar síður skönnun verslunarinnar sækir á mínútu, 60 ef tómt. Hækkaðu það aðeins fyrir vef sem ræður við það og lækkaðu það fyrir vef sem svarar með 429 eða 503.",
     "productFeed": "Vörustraumur",
@@ -292,6 +299,7 @@
     "string": "{{path}} verður að vera texti",
     "nonEmpty": "{{path}} má ekki vera tómt",
     "url": "{{path}} verður að vera full http(s)-slóð",
+    "hostname": "{{path}} verður að vera lén án http:// og slóðar, t.d. www.example.is",
     "boolean": "{{path}} verður að vera true eða false",
     "oneOf": "{{path}} verður að vera eitt af {{values}}",
     "list": "{{path}} verður að vera listi",

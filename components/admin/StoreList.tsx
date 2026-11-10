@@ -1,10 +1,11 @@
 'use client';
-import { PlusOutlined } from '@ant-design/icons';
+import { PlusOutlined, SearchOutlined } from '@ant-design/icons';
 import {
   Alert,
   App,
   Button,
   Flex,
+  Input,
   Spin,
   Switch,
   Table,
@@ -13,7 +14,7 @@ import {
   Typography
 } from 'antd';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import { Overview, StoreDetails, StoreStatus } from '../../utils/admin/types';
@@ -24,6 +25,14 @@ import { HealthTag } from './StatusTags';
 import { ScheduleCell, ScheduleModal, ScheduleTarget } from './StoreSchedules';
 
 type StoreFlag = 'scraperEnabled' | 'apiEnabled';
+
+type ScheduleFilter = 'active' | 'none' | null;
+
+// A store has an active schedule when at least one of its schedules is on and
+// valid. The store's scheduled scans switch and the scheduler switch in
+// Settings are left out.
+const hasActiveSchedule = (store: StoreStatus) =>
+  store.schedules.some((s) => s.enabled && s.valid);
 
 // Turns scheduled scans or the public search of a store on or off
 function StoreFlagSwitch({
@@ -76,6 +85,20 @@ export default function StoreList() {
     '/api/admin/overview',
     fetchJson
   );
+  const [search, setSearch] = useState('');
+  const [scheduleFilter, setScheduleFilter] = useState<ScheduleFilter>(null);
+  const stores = useMemo(() => {
+    const query = search.trim().toLocaleLowerCase();
+    return (data?.stores ?? []).filter(
+      (store) =>
+        (!query || store.name.toLocaleLowerCase().includes(query)) &&
+        (scheduleFilter === null ||
+          hasActiveSchedule(store) === (scheduleFilter === 'active'))
+    );
+  }, [data, search, scheduleFilter]);
+  // The two filters exclude each other, turning one on turns the other off
+  const toggleScheduleFilter = (filter: 'active' | 'none', on: boolean) =>
+    setScheduleFilter(on ? filter : null);
   const [editing, setEditing] = useState<ScheduleTarget | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
   const edit = (target: ScheduleTarget) => {
@@ -113,10 +136,39 @@ export default function StoreList() {
       {error && <Alert type="error" showIcon title={error.message} />}
       {!data && !error && <Spin />}
       {data && (
+        <Flex gap={16} wrap align="center">
+          <Input
+            allowClear
+            prefix={<SearchOutlined />}
+            placeholder={t('list.filters.name')}
+            aria-label={t('list.filters.name')}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{ width: 260, maxWidth: '100%' }}
+          />
+          <Flex gap={8} align="center" component="label">
+            <Switch
+              size="small"
+              checked={scheduleFilter === 'active'}
+              onChange={(on) => toggleScheduleFilter('active', on)}
+            />
+            {t('list.filters.activeSchedules')}
+          </Flex>
+          <Flex gap={8} align="center" component="label">
+            <Switch
+              size="small"
+              checked={scheduleFilter === 'none'}
+              onChange={(on) => toggleScheduleFilter('none', on)}
+            />
+            {t('list.filters.noSchedules')}
+          </Flex>
+        </Flex>
+      )}
+      {data && (
         <Table<StoreStatus>
           rowKey="id"
           size="small"
-          dataSource={data.stores}
+          dataSource={stores}
           pagination={false}
           scroll={{ x: true }}
           columns={[
