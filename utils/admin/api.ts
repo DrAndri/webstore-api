@@ -34,7 +34,9 @@ export const withAdmin =
       if (e instanceof HttpError)
         return json({ error: e.translate(t) }, e.status);
       console.error(
-        `Admin api ${request.method} ${request.nextUrl.pathname}`,
+        'Admin api %s %s',
+        request.method,
+        request.nextUrl.pathname,
         e
       );
       return json({ error: t('somethingWentWrong') }, 500);
