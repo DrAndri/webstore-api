@@ -2,7 +2,6 @@ export interface AutocompleteApiRequest extends NextApiRequest {
   body: AutocompleteApiRequestBody;
 }
 export interface AutocompleteApiRequestBody {
-  stores: string[];
   term: string;
   // Also products their store no longer sells, left out by default
   includeInactive?: boolean;
