@@ -83,6 +83,11 @@ export const PRICE_RANGES: [number | null, number | null][] = [
 export const priceRangeKey = ([from, to]: [number | null, number | null]) =>
   `${from ?? ''}-${to ?? ''}`;
 
+// Attribute facets, the ones most products in the result have. "Show more
+// filters" asks for ATTRIBUTE_FACETS more at a time, up to MAX_ATTRIBUTE_FACETS
+export const ATTRIBUTE_FACETS = 12;
+export const MAX_ATTRIBUTE_FACETS = 60;
+
 export interface SearchRequest {
   q?: string;
   conditions?: SearchCondition[];
@@ -92,6 +97,8 @@ export interface SearchRequest {
   sort?: SortKey;
   page?: number;
   pageSize?: number;
+  // The number of attribute facets, ATTRIBUTE_FACETS by default
+  facetLimit?: number;
 }
 
 export interface SearchProduct {
@@ -126,4 +133,6 @@ export interface SearchResponse {
   total: number;
   products: SearchProduct[];
   facets: Facet[];
+  // Solr has more attribute facets than facetLimit
+  moreFacets?: boolean;
 }

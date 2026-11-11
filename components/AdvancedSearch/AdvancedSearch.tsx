@@ -38,6 +38,8 @@ import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import { MAX_COMPARED } from '../../utils/compareLimits';
 import {
+  ATTRIBUTE_FACETS,
+  MAX_ATTRIBUTE_FACETS,
   SearchCondition,
   SearchProduct,
   SearchRequest,
@@ -130,6 +132,8 @@ export default function AdvancedSearch({
     (params.get('sort') as SortKey) ?? 'relevance'
   );
   const [page, setPage] = useState(Number(params.get('page')) || 1);
+  // The number of attribute facets, "show more filters" loads more from Solr
+  const [facetLimit, setFacetLimit] = useState(ATTRIBUTE_FACETS);
   const [selected, setSelected] = useState<Selected[]>(
     (params.get('selectedProductIds') ?? '')
       .split(',')
@@ -178,9 +182,10 @@ export default function AdvancedSearch({
       filters,
       sort,
       page,
-      pageSize: PAGE_SIZE
+      pageSize: PAGE_SIZE,
+      facetLimit
     }),
-    [q, conditions, filters, sort, page]
+    [q, conditions, filters, sort, page, facetLimit]
   );
   const [debouncedRequest, setDebouncedRequest] = useState(request);
   useEffect(() => {
@@ -223,7 +228,7 @@ export default function AdvancedSearch({
   // The facet labels are in the language of the request, so a new language
   // searches again. Otherwise the search only runs when the request changes,
   // not on focus, reconnect or remount.
-  const { data, error, isLoading } = useSWR<SearchResponse>(
+  const { data, error, isLoading, isValidating } = useSWR<SearchResponse>(
     ['/api/search', JSON.stringify(debouncedRequest), format.language],
     ([url, body]: [string, string, string]) =>
       postJson<SearchResponse>(url, body, messages),
@@ -297,8 +302,22 @@ export default function AdvancedSearch({
     onChange: setPage
   };
 
+  // A click is not typing, so more facets are loaded without the debounce
+  const loadMoreFacets = () => {
+    const next = Math.min(facetLimit + ATTRIBUTE_FACETS, MAX_ATTRIBUTE_FACETS);
+    setFacetLimit(next);
+    setDebouncedRequest({ ...request, facetLimit: next });
+  };
+
   const facets = data && (
-    <FacetList facets={data.facets} filters={filters} onChange={changeFilter} />
+    <FacetList
+      facets={data.facets}
+      filters={filters}
+      onChange={changeFilter}
+      moreFacets={!!data.moreFacets}
+      loadingMore={isValidating}
+      onLoadMore={loadMoreFacets}
+    />
   );
 
   return (

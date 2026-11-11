@@ -138,6 +138,7 @@
     "showFewer": "Show fewer",
     "showMore": "Show more ({{hidden}})",
     "moreFacets": "Show more filters ({{hidden}})",
+    "loadMoreFacets": "Show more filters",
     "fewerFacets": "Show fewer filters"
   },
   "productDetails": {

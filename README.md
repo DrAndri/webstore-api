@@ -203,15 +203,15 @@ the limits are exact for a single instance of the app. The limit on new visitor
 tokens per ip address relies on a reverse proxy that appends the client address
 to `X-Forwarded-For`.
 
-| Endpoint                       | Method | Body or query                                            |
-| ------------------------------ | ------ | -------------------------------------------------------- |
-| `/api/autocomplete`            | POST   | `{ term, includeInactive? }`                             |
-| `/api/prices`                  | POST   | `{ productIds, start?, end? }`                           |
-| `/api/search`                  | POST   | `{ q?, conditions?, filters?, sort?, page?, pageSize? }` |
-| `/api/search/attributes`       | GET    | `?q=` attribute name                                     |
-| `/api/search/attribute-values` | GET    | `?id=<attributeId>&q=`                                   |
-| `/api/compare`                 | POST   | `{ productIds }`, at most 6                              |
-| `/api/products/<id>`           | GET    | One product with all its details and price history       |
+| Endpoint                       | Method | Body or query                                                         |
+| ------------------------------ | ------ | --------------------------------------------------------------------- |
+| `/api/autocomplete`            | POST   | `{ term, includeInactive? }`                                          |
+| `/api/prices`                  | POST   | `{ productIds, start?, end? }`                                        |
+| `/api/search`                  | POST   | `{ q?, conditions?, filters?, sort?, page?, pageSize?, facetLimit? }` |
+| `/api/search/attributes`       | GET    | `?q=` attribute name                                                  |
+| `/api/search/attribute-values` | GET    | `?id=<attributeId>&q=`                                                |
+| `/api/compare`                 | POST   | `{ productIds }`, at most 6                                           |
+| `/api/products/<id>`           | GET    | One product with all its details and price history                    |
 
 Search conditions are `{ field, op, value, value2? }` where `field` is `name`,
 `sku`, `ean`, `description`, `price`, `inStock`, `firstSeenDate`,
@@ -224,6 +224,10 @@ key is `storeId`, `manufacturerId`, `categoryId`, `inStock`, `active`, `price`
 or `attr_<attributeId>`. `active` is `true` for products seen in the last scan
 of their store and `false` for the ones a store no longer sells. It needs the
 `active` field in the products core.
+
+`facetLimit` is the number of attribute facets, the ones most products in the
+result have, 12 by default and at most 60. `moreFacets` in the response is
+`true` when there are more, and "Show more filters" asks for 12 more.
 
 Autocomplete matches each word of the term anywhere in the name or the sku, so
 `fart` finds `Fartölva` and `1000XM` finds `WH1000XM6B.CE7`. Whole words and

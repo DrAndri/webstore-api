@@ -5,10 +5,12 @@ import { queryPool } from './mariadb';
 import { ErrorMessage, HttpError } from './httpError';
 import { solrUrl } from './solr';
 import {
+  ATTRIBUTE_FACETS,
   ATTRIBUTE_FIELD,
   Facet,
   fieldKind,
   fieldOps,
+  MAX_ATTRIBUTE_FACETS,
   PRICE_RANGES,
   priceRangeKey,
   SearchCondition,
@@ -21,7 +23,6 @@ import {
 const MAX_CONDITIONS = 12;
 const MAX_VALUE_LENGTH = 100;
 const MAX_PAGE_SIZE = 48;
-const ATTRIBUTE_FACETS = 12;
 const LOOKUP_TTL_MS = 10 * 60 * 1000;
 const PRODUCT_FIELDS =
   'id,storeId,manufacturerId,categoryId,sku,name,ean,image,inStock,price,lastChangeDate';
@@ -312,14 +313,24 @@ export const search = async (
       'facet.query',
       `{!ex=f_price key=price_${priceRangeKey(range)}}${priceRangeQuery(range)}`
     );
+  // One more than the limit tells if there are more
+  const facetLimit = Math.min(
+    Math.max(Math.trunc(Number(request.facetLimit)) || ATTRIBUTE_FACETS, 1),
+    MAX_ATTRIBUTE_FACETS
+  );
   params.append('facet.field', 'attrIds');
-  params.set('f.attrIds.facet.limit', String(ATTRIBUTE_FACETS));
+  params.set('f.attrIds.facet.limit', String(facetLimit + 1));
 
   const result = await querySolr(params);
   const fields = result.facet_counts?.facet_fields ?? {};
 
   // The attributes most products in the result have, and the ones filtered on
-  const attributeIds = pairs(fields.attrIds).map(({ value }) => Number(value));
+  const topAttributes = pairs(fields.attrIds);
+  const moreFacets =
+    topAttributes.length > facetLimit && facetLimit < MAX_ATTRIBUTE_FACETS;
+  const attributeIds = topAttributes
+    .slice(0, facetLimit)
+    .map(({ value }) => Number(value));
   for (const [key] of filters) {
     const id = ATTRIBUTE_FIELD.exec(key)?.[1];
     if (id && !attributeIds.includes(Number(id))) attributeIds.push(Number(id));
@@ -434,7 +445,8 @@ export const search = async (
   return {
     total: result.response.numFound,
     products,
-    facets
+    facets,
+    moreFacets
   };
 };
 

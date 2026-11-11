@@ -138,6 +138,7 @@
     "showFewer": "Sýna færri",
     "showMore": "Sýna fleiri ({{hidden}})",
     "moreFacets": "Sýna fleiri síur ({{hidden}})",
+    "loadMoreFacets": "Sýna fleiri síur",
     "fewerFacets": "Sýna færri síur"
   },
   "productDetails": {

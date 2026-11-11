@@ -88,15 +88,23 @@ function FacetValues({
   );
 }
 
-// Filters with the number of products each value would give
+// Filters with the number of products each value would give. "Show more
+// filters" first shows the facets that are already loaded, then asks for more
+// with onLoadMore while moreFacets says Solr has more.
 export default function FacetList({
   facets,
   filters,
-  onChange
+  onChange,
+  moreFacets,
+  loadingMore,
+  onLoadMore
 }: {
   facets: Facet[];
   filters: Record<string, string[]>;
   onChange: (key: string, values: string[]) => void;
+  moreFacets: boolean;
+  loadingMore: boolean;
+  onLoadMore: () => void;
 }) {
   const { t } = useTranslation('site');
   // Facets the user opened or closed, the rest follow the default: open unless
@@ -160,13 +168,27 @@ export default function FacetList({
           )
         }))}
       />
-      {(hidden > 0 || showAll) && facets.length > COLLAPSED_FACETS && (
-        <Button block onClick={() => setShowAll(!showAll)}>
-          {showAll
-            ? t('facetList.fewerFacets')
-            : t('facetList.moreFacets', { hidden })}
-        </Button>
-      )}
+      <Flex gap={8}>
+        {(hidden > 0 || moreFacets) && (
+          <Button
+            style={{ flex: 1 }}
+            loading={hidden === 0 && loadingMore}
+            onClick={() => {
+              setShowAll(true);
+              if (hidden === 0) onLoadMore();
+            }}
+          >
+            {hidden > 0
+              ? t('facetList.moreFacets', { hidden })
+              : t('facetList.loadMoreFacets')}
+          </Button>
+        )}
+        {showAll && facets.length > COLLAPSED_FACETS && (
+          <Button style={{ flex: 1 }} onClick={() => setShowAll(false)}>
+            {t('facetList.fewerFacets')}
+          </Button>
+        )}
+      </Flex>
     </Flex>
   );
 }
