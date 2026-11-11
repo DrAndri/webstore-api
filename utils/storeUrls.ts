@@ -1,5 +1,8 @@
-// The scraper saves the url of a product relative to its store, the path of
-// the page. The start url in the config of the store gives the site.
+// The scraper saves the url of a product relative to the start url in the
+// config of its store, the rest of the url after it: /vara/x for
+// https://s4s.is/premium-outlet/vara/x with the start url
+// https://s4s.is/premium-outlet. A page outside the start url is saved as its
+// absolute url. The same as crawler/ProductUrl.ts in webstore-scraper.
 import { parse } from 'jsonc-parser';
 import { getConfigFile } from './admin/github';
 
@@ -63,6 +66,9 @@ export const productPageUrls = async (
     if (!url) return null;
     if (/^https?:\/\//.test(url)) return url;
     const startUrl = startUrls.get(storeId);
-    return startUrl ? new URL(url, startUrl).href : null;
+    if (!startUrl) return null;
+    // Joined, not resolved, which would drop the path of the start url
+    const start = new URL(startUrl);
+    return start.origin + start.pathname.replace(/\/$/, '') + url;
   });
 };
