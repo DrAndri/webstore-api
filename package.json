@@ -10,7 +10,7 @@
     "prettier": "prettier --write \"pages/**/*\""
   },
   "dependencies": {
-    "@ant-design/cssinjs": "2.1.2",
+    "@ant-design/cssinjs": "2.2.0",
     "@next/third-parties": "^16.4.3",
     "antd": "^6.6.8",
     "dayjs": "^1.11.23",
