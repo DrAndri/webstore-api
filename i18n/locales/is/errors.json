@@ -59,7 +59,8 @@
     "textRequired": "text vantar",
     "commitMessage": "Skrifaðu lýsingu á breytingunni",
     "configNotFound": "{{path}} fannst ekki í kóðasafni skraparans",
-    "idTaken": "Verslun með auðkennið {{id}} er þegar til"
+    "idTaken": "Verslun með auðkennið {{id}} er þegar til",
+    "solrFailed": "Verslunin var vistuð en ekki tókst að senda hana í Solr, leitin er enn með gömlu útgáfuna. Vistaðu aftur eða endurskráðu Solr."
   },
   "github": {
     "repoNotSet": "GITHUB_CONFIG_REPO er ekki stillt",

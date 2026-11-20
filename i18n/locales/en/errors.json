@@ -59,7 +59,8 @@
     "textRequired": "text is required",
     "commitMessage": "Describe the change in the commit message",
     "configNotFound": "{{path}} was not found in the scraper repository",
-    "idTaken": "A store with id {{id}} already exists"
+    "idTaken": "A store with id {{id}} already exists",
+    "solrFailed": "The store was saved but sending it to Solr failed, the search still has the old store. Save it again or reindex Solr."
   },
   "github": {
     "repoNotSet": "GITHUB_CONFIG_REPO is not set",

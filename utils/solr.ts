@@ -30,23 +30,76 @@ export type SolrAutocompleteResponse = SolrResponse<AutocompleteDoc> & {
 export const solrUrl = (path: string) =>
   `${(process.env.SOLR_URL ?? '').replace(/\/+$/, '')}/${path}`;
 
+export interface SolrSelectResponse {
+  response: { numFound: number; docs: Record<string, unknown>[] };
+  facet_counts?: {
+    facet_fields: Record<string, (string | number)[]>;
+    facet_queries: Record<string, number>;
+  };
+  error?: { msg: string };
+}
+
+// The select handler of a core, the params are posted so long filters fit
+export const selectSolr = async (
+  core: string,
+  params: URLSearchParams
+): Promise<SolrSelectResponse> => {
+  const response = await fetch(solrUrl(`${core}/select`), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: params,
+    cache: 'no-store'
+  });
+  const body = (await response.json()) as SolrSelectResponse;
+  if (!response.ok) {
+    console.error('Solr select on %s failed', core, body.error?.msg);
+    throw new Error(`Solr ${core} returned ${response.status}`);
+  }
+  return body;
+};
+
+// Adds or replaces documents. The autoSoftCommit of the core makes them
+// searchable after a while, or at once with commit.
+export const updateSolr = async (
+  core: string,
+  docs: object[],
+  { commit = false } = {}
+) => {
+  const path = `${core}/update${commit ? '?softCommit=true' : ''}`;
+  const response = await fetch(solrUrl(path), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(docs),
+    cache: 'no-store'
+  });
+  if (!response.ok)
+    throw new Error(
+      `Updating Solr core ${core} failed with ${response.status}: ${await response.text()}`
+    );
+};
+
 export const querySolrAutocomplete = async (
   collection: string,
   query: string,
+  // The query of the highlighting: the matches in the name field itself, the
+  // query matches parts of words in fields with no stored value
+  highlightQuery: string,
   filterQueries: string[] = []
 ) => {
-  const params = {
+  const params = new URLSearchParams({
     q: query,
-    // The query names its fields and has wildcards, instead of the edismax
-    // and qf of the handler
+    // The query names its fields, boosts and constant scores
     defType: 'lucene',
     // Every part of a word, FART-9 is fart and 9 in the name
     'q.op': 'AND',
-    //TODO: remove when I've updated the core
+    rows: '10',
     fl: 'id,storeId,name,sku',
     // The words of the name the query matched in each result, the matched
-    // parts of the sku are found by the route
+    // parts of the sku are found by the route. The unified highlighter matches
+    // the wildcards of hl.q against the words of each result, not the index.
     hl: 'true',
+    'hl.q': highlightQuery,
+    'hl.qparser': 'lucene',
     'hl.method': 'unified',
     'hl.fl': 'name',
     'hl.requireFieldMatch': 'true',
@@ -55,12 +108,13 @@ export const querySolrAutocomplete = async (
     'hl.fragsize': '0',
     'hl.tag.pre': HIGHLIGHT_START,
     'hl.tag.post': HIGHLIGHT_END
-  };
-  const searchParams = new URLSearchParams(params);
-  for (const fq of filterQueries) searchParams.append('fq', fq);
-  const queryString = searchParams.toString();
-  const response = await fetch(
-    solrUrl(`${collection}/autocomplete?${queryString}`)
-  );
+  });
+  for (const fq of filterQueries) params.append('fq', fq);
+  const response = await fetch(solrUrl(`${collection}/select`), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: params,
+    cache: 'no-store'
+  });
   return response.json() as Promise<SolrAutocompleteResponse>;
 };

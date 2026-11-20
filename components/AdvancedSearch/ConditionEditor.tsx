@@ -126,12 +126,14 @@ function ValueInput({
   const { t } = useTranslation('site');
   const kind = fieldKind(condition.field);
   const attributeId = ATTRIBUTE_FIELD.exec(condition.field)?.[1];
-  if (kind === 'number')
+  // The price, or an attribute between two numbers, which can be negative
+  if (kind === 'number' || (attributeId && condition.op === 'between')) {
+    const isPrice = condition.field === 'price';
     return (
       <Flex gap={4} align="center">
         <InputNumber
           placeholder={t('conditionEditor.numberFrom')}
-          min={0}
+          min={isPrice ? 0 : undefined}
           value={condition.value ? Number(condition.value) : null}
           onChange={(value) =>
             onChange({
@@ -143,7 +145,7 @@ function ValueInput({
         –
         <InputNumber
           placeholder={t('conditionEditor.numberTo')}
-          min={0}
+          min={isPrice ? 0 : undefined}
           value={condition.value2 ? Number(condition.value2) : null}
           onChange={(value) =>
             onChange({
@@ -152,9 +154,10 @@ function ValueInput({
             })
           }
         />
-        kr.
+        {isPrice && 'kr.'}
       </Flex>
     );
+  }
   if (kind === 'date')
     return (
       <DatePicker.RangePicker
@@ -270,7 +273,15 @@ export default function ConditionEditor({
                 <Select
                   value={condition.op}
                   style={{ width: 150 }}
-                  onChange={(op) => update(index, { ...condition, op })}
+                  onChange={(op) =>
+                    update(
+                      index,
+                      // A text value is not a number, and the other way around
+                      (op === 'between') === (condition.op === 'between')
+                        ? { ...condition, op }
+                        : { field: condition.field, op }
+                    )
+                  }
                   options={fieldOps(condition.field).map((op) => ({
                     value: op,
                     label: t(`searchFields.ops.${op}`)

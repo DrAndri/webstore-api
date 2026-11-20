@@ -28,6 +28,8 @@ export type SearchFieldKey =
   | 'name'
   | 'sku'
   | 'ean'
+  | 'manufacturer'
+  | 'category'
   | 'description'
   | 'price'
   | 'inStock'
@@ -41,6 +43,9 @@ export const SEARCH_FIELDS: Record<
   name: { kind: 'text', ops: MATCH_OPS },
   sku: { kind: 'text', ops: MATCH_OPS },
   ean: { kind: 'text', ops: MATCH_OPS },
+  manufacturer: { kind: 'text', ops: MATCH_OPS },
+  // The name of the category or of one of its parents
+  category: { kind: 'text', ops: MATCH_OPS },
   description: { kind: 'words', ops: ['contains', 'exact'] },
   price: { kind: 'number', ops: ['between'] },
   inStock: { kind: 'boolean', ops: ['is'] },
@@ -56,9 +61,11 @@ export const fieldKind = (field: string): FieldKind | undefined =>
     ? 'text'
     : SEARCH_FIELDS[field as SearchFieldKey]?.kind;
 
+// An attribute is between two numbers when its value starts with a number,
+// like 15,6" or 2 kg
 export const fieldOps = (field: string): ConditionOp[] =>
   ATTRIBUTE_FIELD.test(field)
-    ? MATCH_OPS
+    ? [...MATCH_OPS, 'between']
     : (SEARCH_FIELDS[field as SearchFieldKey]?.ops ?? []);
 
 // The labels are in the site namespace, searchFields.sorts.<key>

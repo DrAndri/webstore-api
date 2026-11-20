@@ -155,7 +155,7 @@
     "reindexQueued": "Solr reindex queued",
     "reindexAlreadyQueued": "A reindex is already queued or running",
     "reindexConfirm": "Reindex Solr?",
-    "reindexDescription": "Sends every product, category, manufacturer and attribute in the database to Solr again.",
+    "reindexDescription": "Sends every store, product and attribute in the database to Solr again.",
     "reindexOk": "Reindex",
     "reindex": "Reindex Solr",
     "reindexing": "Reindexing Solr",

@@ -151,7 +151,10 @@ The admin interface and the scraper only talk through the database:
   the scraper's `solr-configsets`, run the sync, and only then deploy the api.
   The sync only adds fields, so the running api is not affected. Do this for
   every Solr the api is pointed at, local and staging included. It needs
-  `migrations/2026-11-04-solr-schema-jobs.sql` in the scraper.
+  `migrations/2026-11-04-solr-schema-jobs.sql` in the scraper. A change Lucene
+  does not allow in an existing index, like turning off docValues, fails the
+  sync of that core and needs the core created again, see the Solr section of
+  the scraper's README.
 - How many stores are scanned at a time is the `concurrency` of
   `scraperSettings`, the scraper reads it every 5 seconds. It needs
   `migrations/2026-11-04-scraper-settings.sql` in the scraper.
@@ -214,10 +217,15 @@ to `X-Forwarded-For`.
 | `/api/products/<id>`           | GET    | One product with all its details and price history                    |
 
 Search conditions are `{ field, op, value, value2? }` where `field` is `name`,
-`sku`, `ean`, `description`, `price`, `inStock`, `firstSeenDate`,
-`lastChangeDate` or `attr_<attributeId>`, and `op` is `contains`,
-`startsWith`, `endsWith`, `exact`, `between` or `is`. See
-`utils/searchFields.ts`.
+`sku`, `ean`, `manufacturer`, `category`, `description`, `price`, `inStock`,
+`firstSeenDate`, `lastChangeDate` or `attr_<attributeId>`, and `op` is
+`contains`, `startsWith`, `endsWith`, `exact`, `between` or `is`. See
+`utils/searchFields.ts`. `category` matches the name of the category or of
+one of its parents, so `Tölvur` finds the products of `Tölvur › Fartölvur`. An
+attribute `between` two numbers matches the number at the start of its value,
+`15.6` for `15,6"`; values with more numbers in them, like `1920x1080`, have
+none. Units are not converted, `1 TB` is 1. Date ranges include the whole last
+day.
 
 Search filters are the selected facet values, `{ <key>: [values] }`, where the
 key is `storeId`, `manufacturerId`, `categoryId`, `inStock`, `active`, `price`
@@ -231,12 +239,20 @@ result have, 12 by default and at most 60. `moreFacets` in the response is
 
 Autocomplete matches each word of the term anywhere in the name or the sku, so
 `fart` finds `Fartölva` and `1000XM` finds `WH1000XM6B.CE7`. Whole words and
-skus rank above their starts, and those above a match in the middle. It
-searches the `name` and `sku` fields with wildcards, so it needs no reindex.
+skus rank above their starts, and those above a match in the middle. The
+starts are in `name_prefix` and `sku_prefix`, the parts in the middle in
+`name_ngram` and `sku_ngram`, so it uses no leading wildcards. A product
+indexed before these fields were added is found by whole words and starts
+until it is reindexed. The highlights are found with wildcards on `name`,
+which the highlighter matches against the results only.
 
-Autocomplete leaves out the products their store no longer sells, `active` is
-`false`, unless `includeInactive` is `true`. Products indexed before the
-`active` field was added are kept until a reindex sets it.
+Every query sends all its parameters, the parser, fields, boosts and rows. The
+search does not depend on the defaults in the `solrconfig.xml` of a core.
+
+Autocomplete has the products of the stores in the public api only, and leaves
+out the products their store no longer sells, `active` is `false`, unless
+`includeInactive` is `true`. Products indexed before the `active` field was
+added are kept until a reindex sets it.
 
 Autocomplete answers `{ total, results }`, where `total` is how many products
 matched and `results` has the first 10. Each result has `matches`, the parts of
@@ -256,10 +272,38 @@ value:
 In the advanced search, clicking a product opens its details and price history
 in a drawer. The product id is kept in the url as `product`.
 
-Conditions match whole values on the `name_ci`, `sku_ci` and `attrci_*` fields
-of the products core, and the attribute facets come from `attrIds`. Products
-indexed before those fields were added have no values in them until a reindex.
+The search reads everything from Solr, not MariaDB, in two queries:
 
-The search box of the advanced search also matches the start of words in the
-name through `name_prefix`, so `fart` finds `fartölva`, ranked below products
-with the whole word. It is used once the products core has that field.
+1. The products with their facets.
+2. The values of the attribute facets, which depend on the attributes the
+   first query found.
+
+The stores in the public api, and their names, are read from the `stores` core
+and cached for a minute. The products are filtered on their ids, a filter Solr
+caches. The admin interface sends a store to the `stores` core when it is
+added, renamed or `apiEnabled` changes, commits it and clears the cache, so the
+change is in the next search. The names of the manufacturers, categories
+(`Parent › Child`) and attributes are in the products, in `manufacturerLabel`,
+`categoryLabel` and `attrLabels` with their ids, and the facets are on those
+fields. Only a filtered attribute that is not among the top attributes has its
+name read from the `attributes` core, which has the name of each attribute's
+group in `group`. The compare view reads the category paths from
+`categoryLabel` too.
+
+Every word of the search box has to be in the name, sku, barcode, manufacturer,
+category or description. A whole word or sku ranks above the start of one
+(`name_prefix`, `sku_prefix`), so `fart` finds `fartölva`. A word the search
+splits, like `WH-1000XM5`, has to be in that order.
+
+Conditions match whole values on the `name_ci`, `sku_ci`, `manufacturer_ci`,
+`category_ci` and `attrci_*` fields of the products core, and numbers on
+`attrnum_*`.
+
+The attribute picker of the condition editor searches the `attributes` core:
+whole words, then the start of a word, then anywhere in a word.
+
+The search needs the products core of the scraper's current `solr-configsets`,
+created again from the configset and reindexed, see the Solr section of the
+scraper's README. Deploy the api right after the core is created, an older api
+uses fields the new core does not have. Until the reindex is done the search
+has only the products indexed so far.

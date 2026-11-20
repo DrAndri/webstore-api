@@ -22,6 +22,14 @@ import {
 } from '../../../../utils/admin/types';
 import { UpsertResult } from 'mariadb';
 import { invalidatePublicStores } from '../../../../utils/stores';
+import { indexStore } from '../../../../utils/admin/storeIndex';
+
+// The search reads the stores from Solr. A new store that is not sent is only
+// missing from the search, until a reindex.
+const indexNewStore = (storeId: number) =>
+  indexStore(storeId).catch((e: unknown) =>
+    console.error('Sending new store %d to Solr failed', storeId, e)
+  );
 
 const invalidConfig = (errors: string[]) =>
   new HttpError(400, {
@@ -125,6 +133,7 @@ export const POST = withAdmin(async (request, { user }) => {
       throw e;
     }
     invalidatePublicStores();
+    await indexNewStore(existingId);
     return { id: existingId };
   }
 
@@ -137,6 +146,7 @@ export const POST = withAdmin(async (request, { user }) => {
   );
   // The website lists the stores in the public search
   invalidatePublicStores();
+  await indexNewStore(storeId);
 
   // storeId first, the rest in the order of the form
   const config = { storeId, ...body.config } as WebshopCrawlerOptions;

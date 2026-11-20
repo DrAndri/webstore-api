@@ -1,5 +1,5 @@
 import { queryPool } from './mariadb';
-import { getLookups } from './search';
+import { productCategoryPaths } from './solrNames';
 import { productPageUrls } from './storeUrls';
 
 export { MAX_COMPARED } from './compareLimits';
@@ -130,7 +130,7 @@ export const compareProducts = async (
   knownSummaries?: Promise<Map<number, PriceSummary>>
 ): Promise<ComparedProduct[]> => {
   if (ids.length === 0) return [];
-  const [products, summaries, attributes, { categories }] = await Promise.all([
+  const [products, summaries, attributes, categories] = await Promise.all([
     queryPool<ProductRow[]>(
       `SELECT p.id, p.storeId, s.name AS storeName, p.sku, p.name, p.ean, p.image, p.description,
            p.url, p.inStock, m.name AS manufacturer, p.categoryId, p.firstSeenDate, p.lastChangeDate, s.lastScanDate
@@ -153,7 +153,8 @@ export const compareProducts = async (
          WHERE ap.productId IN (?) ORDER BY g.name, a.name`,
       [ids]
     ),
-    getLookups()
+    // From the categoryLabel of the products in Solr
+    productCategoryPaths(ids)
   ]);
 
   const urls = await productPageUrls(
@@ -183,7 +184,7 @@ export const compareProducts = async (
       inStock: product.inStock === null ? null : !!product.inStock,
       manufacturer: product.manufacturer,
       category: product.categoryId
-        ? (categories.get(Number(product.categoryId)) ?? null)
+        ? (categories.get(String(id)) ?? null)
         : null,
       firstSeenDate: day(product.firstSeenDate)!,
       lastChangeDate: day(product.lastChangeDate)!,

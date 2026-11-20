@@ -48,6 +48,8 @@
       "name": "Name",
       "sku": "SKU",
       "ean": "Barcode",
+      "manufacturer": "Manufacturer",
+      "category": "Category",
       "description": "Description",
       "price": "Price",
       "inStock": "In stock",

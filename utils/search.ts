@@ -1,9 +1,19 @@
-// Advanced product search on the Solr products core
+// Advanced product search on the Solr products core. A search is two queries:
+// the products with their facets, then the values of the attribute facets.
+// The stores in the search are cached from the stores core, the names of the
+// manufacturers, categories and attributes are in the labels of the products.
 import type { TFunction } from 'i18next';
 import type { Format } from '../i18n/format';
-import { queryPool } from './mariadb';
 import { ErrorMessage, HttpError } from './httpError';
-import { solrUrl } from './solr';
+import { selectSolr } from './solr';
+import {
+  attributeNames,
+  escapeTerm,
+  parseAttributeLabel,
+  parseLabel,
+  publicStores,
+  storeFilter
+} from './solrNames';
 import {
   ATTRIBUTE_FACETS,
   ATTRIBUTE_FIELD,
@@ -23,9 +33,8 @@ import {
 const MAX_CONDITIONS = 12;
 const MAX_VALUE_LENGTH = 100;
 const MAX_PAGE_SIZE = 48;
-const LOOKUP_TTL_MS = 10 * 60 * 1000;
 const PRODUCT_FIELDS =
-  'id,storeId,manufacturerId,categoryId,sku,name,ean,image,inStock,price,lastChangeDate';
+  'id,storeId,manufacturerLabel,categoryLabel,sku,name,ean,image,inStock,price,lastChangeDate';
 
 // A search that can not run, a 400 response with the message
 export class SearchError extends HttpError {
@@ -34,77 +43,10 @@ export class SearchError extends HttpError {
   }
 }
 
-const productsUrl = (handler: string) => solrUrl(`products/${handler}`);
-
-// Lookups
-
-interface Lookups {
-  stores: Map<number, string>;
-  manufacturers: Map<number, string>;
-  categories: Map<number, string>;
-  attributes: Map<number, { name: string; group?: string }>;
-}
-
-let lookups: { at: number; value: Promise<Lookups> } | undefined;
-
-const loadLookups = async (): Promise<Lookups> => {
-  const [stores, manufacturers, categories, attributes] = await Promise.all([
-    queryPool<{ id: number; name: string }[]>(
-      'SELECT id, name FROM stores WHERE apiEnabled = true'
-    ),
-    queryPool<{ id: number; name: string }[]>(
-      'SELECT id, name FROM manufacturers'
-    ),
-    queryPool<{ id: number; parentId: number | null; name: string }[]>(
-      'SELECT id, parentId, name FROM categories'
-    ),
-    queryPool<{ id: number; name: string; groupName: string | null }[]>(
-      'SELECT a.id, a.name, g.name AS groupName FROM attributes a LEFT JOIN attributeGroups g ON g.id = a.groupId'
-    )
-  ]);
-  const categoryRows = new Map(categories.map((c) => [Number(c.id), c]));
-  // "Parent › Child" for each category
-  const categoryPath = (id: number) => {
-    const names: string[] = [];
-    let current = categoryRows.get(id);
-    while (current && names.length < 6) {
-      names.unshift(current.name);
-      current = current.parentId
-        ? categoryRows.get(Number(current.parentId))
-        : undefined;
-    }
-    return names.join(' › ');
-  };
-  return {
-    stores: new Map(stores.map((s) => [Number(s.id), s.name])),
-    manufacturers: new Map(manufacturers.map((m) => [Number(m.id), m.name])),
-    categories: new Map(
-      categories.map((c) => [Number(c.id), categoryPath(Number(c.id))])
-    ),
-    attributes: new Map(
-      attributes.map((a) => [
-        Number(a.id),
-        { name: a.name, group: a.groupName ?? undefined }
-      ])
-    )
-  };
-};
-
-export const getLookups = () => {
-  if (!lookups || Date.now() - lookups.at > LOOKUP_TTL_MS) {
-    const value = loadLookups();
-    lookups = { at: Date.now(), value };
-    value.catch(() => (lookups = undefined));
-  }
-  return lookups.value;
-};
+const querySolr = (params: URLSearchParams) => selectSolr('products', params);
 
 // Query building
 
-// Escapes a term for the standard query parser, including whitespace so a
-// wildcard term stays one term
-const escapeTerm = (value: string) =>
-  value.replace(/[+\-&|!(){}[\]^"~*?:\\/\s]/g, '\\$&');
 const quote = (value: string) => `"${value.replace(/["\\]/g, '\\$&')}"`;
 
 const wildcard = (op: string, term: string) =>
@@ -124,11 +66,13 @@ const parseNumber = (value: string | undefined) => {
   return String(number);
 };
 
-const parseDate = (value: string | undefined, endOfDay: boolean) => {
+// The start of the day, or of the next day for the end of a range, so the
+// whole last day is in it
+const parseDate = (value: string | undefined, nextDay: boolean) => {
   if (!value) return '*';
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value))
     throw new SearchError({ key: 'search.notADate', values: { value } });
-  return `${value}T${endOfDay ? '23:59:59' : '00:00:00'}Z`;
+  return `${value}T00:00:00Z${nextDay ? '+1DAY' : ''}`;
 };
 
 const conditionClause = (condition: SearchCondition): string | undefined => {
@@ -138,14 +82,19 @@ const conditionClause = (condition: SearchCondition): string | undefined => {
   const kind = fieldKind(field);
   if (!kind || !fieldOps(field).includes(op))
     throw new SearchError({ key: 'search.invalidCondition' });
+  const attribute = ATTRIBUTE_FIELD.exec(field);
   const value = String(condition.value ?? '')
     .trim()
     .slice(0, MAX_VALUE_LENGTH);
 
-  if (kind === 'number')
-    return `${field}:[${parseNumber(condition.value)} TO ${parseNumber(condition.value2)}]`;
+  // An attribute between two numbers is on the number at the start of its
+  // value, set by the scraper
+  if (kind === 'number' || (attribute && op === 'between')) {
+    const target = attribute ? `attrnum_${attribute[1]}` : field;
+    return `${target}:[${parseNumber(condition.value)} TO ${parseNumber(condition.value2)}]`;
+  }
   if (kind === 'date')
-    return `${field}:[${parseDate(condition.value, false)} TO ${parseDate(condition.value2, true)}]`;
+    return `${field}:[${parseDate(condition.value, false)} TO ${parseDate(condition.value2, true)}}`;
   if (kind === 'boolean')
     return `${field}:${value === 'false' ? 'false' : 'true'}`;
   if (value === '') return undefined;
@@ -163,8 +112,8 @@ const conditionClause = (condition: SearchCondition): string | undefined => {
   if (field === 'ean')
     return `ean:${op === 'exact' ? quote(value) : wildcard(op, escapeTerm(value))}`;
 
-  // Keyword fields that are lowercased and accent folded, wildcards included
-  const attribute = ATTRIBUTE_FIELD.exec(field);
+  // Keyword fields that are lowercased and accent folded, wildcards included.
+  // The category is the name of the category or of one of its parents.
   const target = attribute ? `attrci_${attribute[1]}` : `${field}_ci`;
   return `${target}:${op === 'exact' ? quote(value) : wildcard(op, escapeTerm(value))}`;
 };
@@ -195,30 +144,6 @@ const filterQuery = (key: string, values: string[]): string => {
 const priceRangeQuery = ([from, to]: [number | null, number | null]) =>
   `price:[${from ?? '*'} TO ${to ?? '*'}}`;
 
-interface SolrResponse {
-  response: { numFound: number; docs: Record<string, unknown>[] };
-  facet_counts?: {
-    facet_fields: Record<string, (string | number)[]>;
-    facet_queries: Record<string, number>;
-  };
-  error?: { msg: string };
-}
-
-const querySolr = async (params: URLSearchParams): Promise<SolrResponse> => {
-  const response = await fetch(productsUrl('select'), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: params,
-    cache: 'no-store'
-  });
-  const body = (await response.json()) as SolrResponse;
-  if (!response.ok) {
-    console.error('Solr search failed', body.error?.msg);
-    throw new Error(`Solr returned ${response.status}`);
-  }
-  return body;
-};
-
 // [value, count, value, count, ...] from Solr
 const pairs = (list: (string | number)[] = []) => {
   const result: { value: string; count: number }[] = [];
@@ -237,9 +162,6 @@ export const search = async (
   request: SearchRequest,
   { t, format }: SearchLabels
 ): Promise<SearchResponse> => {
-  const { stores, manufacturers, categories, attributes } = await getLookups();
-  if (stores.size === 0) return { total: 0, products: [], facets: [] };
-
   if (request.conditions !== undefined && !Array.isArray(request.conditions))
     throw new SearchError({ key: 'search.invalidConditions' });
   if (
@@ -263,21 +185,29 @@ export const search = async (
   const params = new URLSearchParams();
   const q = (request.q ?? '').trim().slice(0, MAX_VALUE_LENGTH);
   if (q) {
-    // Words only, operators in the free text are escaped
-    params.set('q', q.split(/\s+/).map(escapeTerm).join(' '));
+    // Words only: operators in the free text are escaped, and lowercased so a
+    // typed AND, OR or NOT is a word. Every field lowercases anyway.
+    params.set('q', q.toLowerCase().split(/\s+/).map(escapeTerm).join(' '));
     params.set('defType', 'edismax');
     // name and sku match whole words and skus, name_prefix and sku_prefix the
     // start of them, so fart finds fartölva, ranked below a whole word
     params.set(
       'qf',
-      'name^3 name_prefix^1.5 sku^4 sku_prefix^2 ean^4 description^0.5'
+      'name^3 name_prefix^1.5 sku^4 sku_prefix^2 ean^4 manufacturer^2 category^1.5 description^0.5'
     );
+    // Every word in one of the fields. Each word is analyzed on its own,
+    // otherwise sku, which keeps the whole text as one token, makes edismax
+    // apply mm to each field and every word has to be in the same field.
     params.set('mm', '100%');
+    params.set('sow', 'true');
+    // Products with the words next to each other in the name rank higher
+    params.set('pf', 'name^5');
   } else {
     params.set('q', '*:*');
     params.set('defType', 'lucene');
   }
-  params.append('fq', `storeId:(${[...stores.keys()].join(' OR ')})`);
+  const stores = await publicStores();
+  params.append('fq', storeFilter(stores));
   for (const clause of clauses) params.append('fq', clause);
   for (const fq of filterQueries) params.append('fq', fq);
 
@@ -302,12 +232,13 @@ export const search = async (
   params.set('facet', 'true');
   params.set('facet.mincount', '1');
   params.append('facet.field', '{!ex=f_storeId}storeId');
-  params.append('facet.field', '{!ex=f_manufacturerId}manufacturerId');
-  params.append('facet.field', '{!ex=f_categoryId}categoryId');
+  // The labels have the names with the ids, filters are on the ids
+  params.append('facet.field', '{!ex=f_manufacturerId}manufacturerLabel');
+  params.append('facet.field', '{!ex=f_categoryId}categoryLabel');
   params.append('facet.field', '{!ex=f_inStock}inStock');
   params.append('facet.field', '{!ex=f_active}active');
-  params.set('f.manufacturerId.facet.limit', '100');
-  params.set('f.categoryId.facet.limit', '100');
+  params.set('f.manufacturerLabel.facet.limit', '100');
+  params.set('f.categoryLabel.facet.limit', '100');
   for (const range of PRICE_RANGES)
     params.append(
       'facet.query',
@@ -318,24 +249,42 @@ export const search = async (
     Math.max(Math.trunc(Number(request.facetLimit)) || ATTRIBUTE_FACETS, 1),
     MAX_ATTRIBUTE_FACETS
   );
-  params.append('facet.field', 'attrIds');
-  params.set('f.attrIds.facet.limit', String(facetLimit + 1));
+  params.append('facet.field', 'attrLabels');
+  params.set('f.attrLabels.facet.limit', String(facetLimit + 1));
 
   const result = await querySolr(params);
   const fields = result.facet_counts?.facet_fields ?? {};
+  const docs = result.response.docs;
 
   // The attributes most products in the result have, and the ones filtered on
-  const topAttributes = pairs(fields.attrIds);
+  const topAttributes = pairs(fields.attrLabels);
   const moreFacets =
     topAttributes.length > facetLimit && facetLimit < MAX_ATTRIBUTE_FACETS;
-  const attributeIds = topAttributes
-    .slice(0, facetLimit)
-    .map(({ value }) => Number(value));
-  for (const [key] of filters) {
-    const id = ATTRIBUTE_FIELD.exec(key)?.[1];
-    if (id && !attributeIds.includes(Number(id))) attributeIds.push(Number(id));
-  }
-  const attributeFacets = await attributeFacetValues(params, attributeIds);
+  const attributes = new Map<number, { name: string; group?: string }>(
+    topAttributes
+      .slice(0, facetLimit)
+      .map(({ value }) => parseAttributeLabel(value))
+      .map((attribute) => [attribute.id, attribute])
+  );
+  const filteredIds = filters
+    .map(([key]) => Number(ATTRIBUTE_FIELD.exec(key)?.[1]))
+    .filter((id) => Number.isInteger(id) && !attributes.has(id));
+  const attributeIds = [...attributes.keys(), ...filteredIds];
+  // A filtered attribute is on every product in the result, so it is nearly
+  // always in the top ones. When it is not, its name is read from its core.
+  const [attributeFacets, filteredAttributes] = await Promise.all([
+    attributeFacetValues(params, attributeIds),
+    filteredIds.length ? attributeNames(filteredIds) : []
+  ]);
+  for (const attribute of filteredAttributes)
+    attributes.set(attribute.id, attribute);
+
+  // Values with the id and the name
+  const labelValues = (list: (string | number)[] | undefined) =>
+    pairs(list).flatMap(({ value, count }) => {
+      const label = parseLabel(value);
+      return label ? [{ value: label.id, count, label: label.name }] : [];
+    });
 
   const facets: Facet[] = [
     {
@@ -391,24 +340,16 @@ export const search = async (
     {
       key: 'manufacturerId',
       label: t('facets.manufacturerId'),
-      values: pairs(fields.manufacturerId).map(({ value, count }) => ({
-        value,
-        count,
-        label: manufacturers.get(Number(value)) ?? value
-      }))
+      values: labelValues(fields.manufacturerLabel)
     },
     {
       key: 'categoryId',
       label: t('facets.categoryId'),
-      values: pairs(fields.categoryId).map(({ value, count }) => ({
-        value,
-        count,
-        label: categories.get(Number(value)) ?? value
-      }))
+      values: labelValues(fields.categoryLabel)
     },
     ...attributeIds.map((id) => ({
       key: `attr_${id}`,
-      label: attributes.get(id)?.name ?? t('facets.attribute', { id }),
+      label: attributes.get(id)?.name || t('facets.attribute', { id }),
       group: attributes.get(id)?.group,
       values: pairs(attributeFacets[`attr_${id}`]).map(({ value, count }) => ({
         value,
@@ -418,7 +359,7 @@ export const search = async (
     }))
   ].filter((facet) => facet.values.length > 0);
 
-  const products: SearchProduct[] = result.response.docs.map((doc) => ({
+  const products: SearchProduct[] = docs.map((doc) => ({
     id: String(doc.id),
     storeId: Number(doc.storeId),
     storeName: stores.get(Number(doc.storeId)) ?? '',
@@ -431,14 +372,8 @@ export const search = async (
         : undefined,
     price: doc.price as number | undefined,
     inStock: doc.inStock as boolean | undefined,
-    manufacturer:
-      doc.manufacturerId !== undefined
-        ? manufacturers.get(Number(doc.manufacturerId))
-        : undefined,
-    category:
-      doc.categoryId !== undefined
-        ? categories.get(Number(doc.categoryId))
-        : undefined,
+    manufacturer: parseLabel(doc.manufacturerLabel)?.name,
+    category: parseLabel(doc.categoryLabel)?.name,
     lastChangeDate: doc.lastChangeDate as string | undefined
   }));
 
@@ -467,15 +402,15 @@ const attributeFacetValues = async (base: URLSearchParams, ids: number[]) => {
 
 // Values of an attribute for suggestions in the condition editor
 export const attributeValues = async (id: number, contains: string) => {
-  const { stores } = await getLookups();
   const params = new URLSearchParams({
     q: '*:*',
+    defType: 'lucene',
     rows: '0',
     facet: 'true',
     'facet.field': `attr_${id}`,
     'facet.limit': '30',
     'facet.mincount': '1',
-    fq: `storeId:(${[...stores.keys()].join(' OR ') || '0'})`
+    fq: storeFilter(await publicStores())
   });
   if (contains) {
     params.set('facet.contains', contains.slice(0, MAX_VALUE_LENGTH));
@@ -486,14 +421,4 @@ export const attributeValues = async (id: number, contains: string) => {
 };
 
 // Attributes whose name matches, for picking one in the condition editor
-export const findAttributes = async (term: string) => {
-  const { attributes } = await getLookups();
-  const needle = term.trim().toLocaleLowerCase('is');
-  const matches: { id: number; name: string; group?: string }[] = [];
-  for (const [id, attribute] of attributes) {
-    if (attribute.name.toLocaleLowerCase('is').includes(needle))
-      matches.push({ id, ...attribute });
-    if (matches.length >= 50) break;
-  }
-  return matches.sort((a, b) => a.name.length - b.name.length).slice(0, 20);
-};
+export { findAttributes } from './solrNames';

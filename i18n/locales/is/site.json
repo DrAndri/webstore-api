@@ -48,6 +48,8 @@
       "name": "Heiti",
       "sku": "Vörunúmer",
       "ean": "Strikamerki",
+      "manufacturer": "Framleiðandi",
+      "category": "Flokkur",
       "description": "Lýsing",
       "price": "Verð",
       "inStock": "Á lager",

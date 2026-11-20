@@ -155,7 +155,7 @@
     "reindexQueued": "Endurskráning í Solr sett í biðröð",
     "reindexAlreadyQueued": "Endurskráning er þegar í biðröð eða í gangi",
     "reindexConfirm": "Endurskrá Solr?",
-    "reindexDescription": "Sendir allar vörur, flokka, framleiðendur og eiginleika í gagnagrunninum aftur í Solr.",
+    "reindexDescription": "Sendir allar verslanir, vörur og eiginleika í gagnagrunninum aftur í Solr.",
     "reindexOk": "Endurskrá",
     "reindex": "Endurskrá Solr",
     "reindexing": "Endurskráning í Solr í gangi",

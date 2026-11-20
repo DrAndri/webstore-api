@@ -7,6 +7,7 @@ import {
   withAdmin
 } from '../../../../../utils/admin/api';
 import { adminQuery } from '../../../../../utils/admin/db';
+import { indexStore } from '../../../../../utils/admin/storeIndex';
 import {
   configPath,
   fileUrl,
@@ -109,5 +110,15 @@ export const PATCH = withAdmin<Context>(async (request, { params }) => {
   }
   // The website lists the names of the stores in the public search
   invalidatePublicStores();
+  // The search reads the names and apiEnabled from Solr. Saving again sends
+  // the store again.
+  if (body.name !== undefined || body.apiEnabled !== undefined) {
+    try {
+      await indexStore(id);
+    } catch (e) {
+      console.error('Sending store %d to Solr failed', id, e);
+      throw new HttpError(502, { key: 'stores.solrFailed' });
+    }
+  }
   return getStore(id);
 });

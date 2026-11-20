@@ -6,6 +6,7 @@ import {
   querySolrAutocomplete,
   SolrAutocompleteResponse
 } from '../../../utils/solr';
+import { publicStores, storeFilter } from '../../../utils/solrNames';
 import { AutocompleteMatch, AutocompleteResult } from '../../../types';
 
 type Range = [start: number, end: number];
@@ -126,48 +127,96 @@ const quote = (value: string) => `"${value.replace(/[\\"]/g, '\\$&')}"`;
 const escape = (value: string) =>
   value.replace(/[+\-&|!(){}[\]^"~*?:\\/\s]/g, '\\$&');
 
+// The longest part of a word of the name in name_prefix and name_ngram, and of
+// the sku in sku_prefix and sku_ngram, see the products schema of the scraper.
+// The shortest part is two letters.
+const NAME_GRAMS = 20;
+const SKU_GRAMS = 30;
+
+const inGrams = (word: string, maxGram: number) =>
+  word.length >= 2 && word.length <= maxGram;
+
+// The start of a word or sku from its prefix field. A word the field does not
+// hold parts of that length for is a trailing wildcard on the field itself,
+// which only reads the words that start with it.
+const startsWith = (
+  field: 'name' | 'sku',
+  word: string,
+  maxGram: number,
+  score: number
+) =>
+  inGrams(word, maxGram)
+    ? `(${field}_prefix:${quote(word)})^=${score}`
+    : `${field}:${escape(word)}*^${score}`;
+
+// A word anywhere in a word or sku from its ngram field, not a leading
+// wildcard, which reads every word in the index
+const anywhere = (
+  field: 'name' | 'sku',
+  word: string,
+  maxGram: number,
+  score: number
+) => inGrams(word, maxGram) && `(${field}_ngram:${quote(word)})^=${score}`;
+
 // A word as a whole word or sku, the start of one or anywhere in one, ranked in
-// that order and a sku above a name. One letter only matches the start of a
-// word, anywhere would match almost every product.
-const wordQuery = (word: string) => {
-  const escaped = escape(word);
-  const anywhere = word.length > 1;
-  return `(${[
+// that order and a sku above a name. The start and anywhere matches have
+// constant scores. One letter only matches the start of a word, anywhere
+// would match almost every product.
+const wordQuery = (word: string) =>
+  `(${[
     `sku:${quote(word)}^8`,
-    `sku:${escaped}*^4`,
-    anywhere && `sku:*${escaped}*^2`,
+    startsWith('sku', word, SKU_GRAMS, 4),
+    anywhere('sku', word, SKU_GRAMS, 2),
     `name:${quote(word)}^4`,
-    `name:${escaped}*^2`,
-    anywhere && `name:*${escaped}*`
+    startsWith('name', word, NAME_GRAMS, 2),
+    anywhere('name', word, NAME_GRAMS, 1)
   ]
     .filter(Boolean)
     .join(' OR ')})`;
-};
 
 // Each word of the term in the name or the sku, so fart finds Fartölva, 1000XM
 // finds WH1000XM6B.CE7 and sony 1000xm finds Sony headphones with that sku.
-// A term with spaces also matches a sku with those spaces. The wildcards search
-// name and sku, the fields every products core has, so the matching needs no
-// reindex. The term is lower cased so a typed AND, OR or NOT is a word.
+// A term with spaces also matches a sku with those spaces. The term is lower
+// cased so a typed AND, OR or NOT is a word.
 const autocompleteQuery = (term: string) => {
   const lower = term.toLowerCase();
   const words = lower.split(/\s+/);
   if (words.length === 1) return wordQuery(lower);
   return [
     `sku:${quote(lower)}^8`,
-    `sku:*${escape(lower)}*^2`,
+    anywhere('sku', lower, SKU_GRAMS, 2),
     `(${words.map(wordQuery).join(' AND ')})`
-  ].join(' OR ');
+  ]
+    .filter(Boolean)
+    .join(' OR ');
 };
+
+// The words of the term in the name, for the highlighting: the name field has
+// the stored value the highlights are in, the prefix and ngram fields don't.
+// The highlighter matches these wildcards against the words of each result,
+// they don't read the index.
+const highlightQuery = (term: string) =>
+  term
+    .toLowerCase()
+    .split(/\s+/)
+    .flatMap((word) => [
+      `name:${quote(word)}`,
+      `name:${escape(word)}*`,
+      ...(word.length > 1 ? [`name:*${escape(word)}*`] : [])
+    ])
+    .join(' OR ');
 
 export const POST = withApiAccess(async (request: Request) => {
   const searchSolr = async (term: string, includeInactive: boolean) => {
-    // Products a store no longer sells are left out unless asked for. A product
-    // indexed before the active field was added has no value and is kept.
-    const filterQueries = includeInactive ? [] : ['-active:false'];
+    // Only the stores in the public api. Products a store no longer sells are
+    // left out unless asked for. A product indexed before the active field was
+    // added has no value and is kept.
+    const filterQueries = [storeFilter(await publicStores())];
+    if (!includeInactive) filterQueries.push('-active:false');
     const response = await querySolrAutocomplete(
       'products',
       autocompleteQuery(term),
+      highlightQuery(term),
       filterQueries
     );
     return {
