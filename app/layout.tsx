@@ -2,6 +2,7 @@ import { AntdRegistry } from '@ant-design/nextjs-registry';
 import { GoogleAnalytics } from '@next/third-parties/google';
 import { cookies } from 'next/headers';
 import I18nProvider from '../components/I18n/I18nProvider';
+import SelectionProvider from '../components/Selection/SelectionProvider';
 import ThemeProvider from '../components/Theme/ThemeProvider';
 import { getLanguage } from '../i18n/server';
 import { parseThemeMode, THEME_COOKIE } from '../utils/theme';
@@ -19,7 +20,9 @@ export default async function Layout({
         <main>
           <AntdRegistry>
             <I18nProvider initialLanguage={language}>
-              <ThemeProvider initialMode={mode}>{children}</ThemeProvider>
+              <ThemeProvider initialMode={mode}>
+                <SelectionProvider>{children}</SelectionProvider>
+              </ThemeProvider>
             </I18nProvider>
           </AntdRegistry>
         </main>

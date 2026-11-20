@@ -14,7 +14,6 @@ import {
 } from 'antd';
 import type { TFunction } from 'i18next';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
@@ -24,6 +23,7 @@ import type { ComparedProduct } from '../../utils/compare';
 import { MAX_COMPARED } from '../../utils/compareLimits';
 import { useFormat } from '../I18n/I18nProvider';
 import PriceChart from '../PriceChart/PriceChart';
+import { useSelection } from '../Selection/SelectionProvider';
 
 interface Row {
   key: string;
@@ -166,11 +166,9 @@ const differs = (row: Row) =>
 export default function Compare({ stores }: { stores: StoreConfig[] }) {
   const { t } = useTranslation('site');
   const format = useFormat();
-  const params = useSearchParams();
-  const ids = (params.get('selectedProductIds') ?? '')
-    .split(',')
-    .filter(Boolean)
-    .slice(0, MAX_COMPARED);
+  // The first of the selected products, the same as in the url on the first
+  // load
+  const ids = useSelection().selectedIds.slice(0, MAX_COMPARED);
   const { data, error, isLoading } = useSWR(
     ids.length ? ids.join(',') : null,
     (key: string) =>
@@ -197,7 +195,7 @@ export default function Compare({ stores }: { stores: StoreConfig[] }) {
           <Switch checked={onlyDifferences} onChange={setOnlyDifferences} />
           {t('compare.onlyDifferences')}
         </Flex>
-        <Link href={`/?selectedProductIds=${ids.join(',')}`}>
+        <Link href="/prices">
           <Button icon={<LineChartOutlined />}>
             {t('compare.openPriceHistory')}
           </Button>
@@ -254,7 +252,7 @@ export default function Compare({ stores }: { stores: StoreConfig[] }) {
       />
       <Card size="small" title={t('compare.priceHistory')}>
         <div style={{ height: 420 }}>
-          <PriceChart stores={stores} />
+          <PriceChart stores={stores} productIds={ids} />
         </div>
       </Card>
     </Flex>

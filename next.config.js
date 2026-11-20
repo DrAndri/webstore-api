@@ -4,6 +4,10 @@ const nextConfig = {
   // Loaded at runtime instead of bundled, node-cron spawns its own worker files
   serverExternalPackages: ['node-cron'],
   reactStrictMode: true,
+  // The advanced search moved from /search to the root, the query is kept
+  async redirects() {
+    return [{ source: '/search', destination: '/', permanent: false }];
+  },
   transpilePackages: [
     // antd & deps
     '@ant-design',

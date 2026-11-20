@@ -22,6 +22,7 @@ import type {
   SameSkuProduct
 } from '../../utils/product';
 import { useFormat } from '../I18n/I18nProvider';
+import { useSelection } from '../Selection/SelectionProvider';
 import Description from './Description';
 import PriceHistory from './PriceHistory';
 
@@ -172,6 +173,7 @@ export default function ProductDetails({
 }) {
   const { t } = useTranslation('site');
   const format = useFormat();
+  const { selectedIds, toggle } = useSelection();
   const formatDay = (day: string | null) =>
     day ? dayjs(day).locale(format.language).format(t('dates.day')) : '–';
   const { data: product, error } = useSWR(`/api/products/${id}`, (url) =>
@@ -225,7 +227,13 @@ export default function ProductDetails({
                 {t('productDetails.viewInStore')}
               </Button>
             )}
-            <Link href={`/?selectedProductIds=${product.id}`}>
+            {/* Adds the product to the selection the price history shows */}
+            <Link
+              href="/prices"
+              onClick={() => {
+                if (!selectedIds.includes(product.id)) toggle(product, true);
+              }}
+            >
               <Button icon={<LineChartOutlined />}>
                 {t('productDetails.openPriceHistory')}
               </Button>

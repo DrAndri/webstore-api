@@ -13,8 +13,14 @@
     "compareFailed": "The comparison failed",
     "productFailed": "Could not load the product"
   },
-  "home": {
-    "advancedSearch": "Advanced search"
+  "header": {
+    "advancedSearch": "Advanced search",
+    "priceHistory": "Price history",
+    "priceHistoryCount": "Price history ({{selected}})"
+  },
+  "prices": {
+    "title": "Price history",
+    "empty": "Search for products above, or select them in the advanced search, to see their price history."
   },
   "login": {
     "title": "Sign in",
@@ -90,7 +96,6 @@
   },
   "advancedSearch": {
     "title": "Advanced search",
-    "backToPriceHistory": "Back to price history",
     "placeholder": "Search names, SKUs, barcodes and descriptions",
     "found_one": "{{total}} product found",
     "found_other": "{{total}} products found",
@@ -199,7 +204,6 @@
   },
   "compare": {
     "title": "Compare",
-    "backToSearch": "Back to search",
     "empty": "Select products in the advanced search to compare them.",
     "onlyDifferences": "Show only differences",
     "openPriceHistory": "Open in price history",

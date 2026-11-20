@@ -49,6 +49,8 @@ import {
 } from '../../utils/searchFields';
 import { useFormat } from '../I18n/I18nProvider';
 import ProductDetails from '../ProductDetails/ProductDetails';
+import { SELECTION_PARAM, useSelection } from '../Selection/SelectionProvider';
+import SiteHeader from '../SiteHeader/SiteHeader';
 import ConditionEditor from './ConditionEditor';
 import FacetList from './FacetList';
 import ProductCards from './ProductCards';
@@ -81,11 +83,6 @@ const parseJsonParam = <T,>(value: string | null, fallback: T): T => {
     return fallback;
   }
 };
-
-interface Selected {
-  id: string;
-  label: string;
-}
 
 // Conditions that are not filled in yet are not sent
 const isComplete = (condition: SearchCondition) =>
@@ -134,12 +131,15 @@ export default function AdvancedSearch({
   const [page, setPage] = useState(Number(params.get('page')) || 1);
   // The number of attribute facets, "show more filters" loads more from Solr
   const [facetLimit, setFacetLimit] = useState(ATTRIBUTE_FACETS);
-  const [selected, setSelected] = useState<Selected[]>(
-    (params.get('selectedProductIds') ?? '')
-      .split(',')
-      .filter(Boolean)
-      .map((id) => ({ id, label: id }))
-  );
+  // Shared with the other pages, so the products stay selected in the price
+  // history
+  const {
+    selected,
+    selectedIds,
+    setSelected,
+    toggle: toggleSelected,
+    setLastSearch
+  } = useSelection();
   const [view, setView] = useState<View>(
     params.get('view') === 'cards' ? 'cards' : 'list'
   );
@@ -150,30 +150,6 @@ export default function AdvancedSearch({
   const [facetsShown, setFacetsShown] = useState<boolean | null>(null);
   // The product shown in the drawer
   const [productId, setProductId] = useState(params.get('product'));
-
-  // Labels for products that were selected in the url
-  useEffect(() => {
-    const unlabeled = selected.filter((s) => s.id === s.label).map((s) => s.id);
-    if (unlabeled.length === 0) return;
-    void postJson<
-      { id: string; name: string | null; sku: string; storeName: string }[]
-    >('/api/compare', JSON.stringify({ productIds: unlabeled }), messages).then(
-      (products) =>
-        setSelected((current) =>
-          current.map((s) => {
-            const product = products.find((p) => p.id === s.id);
-            return product
-              ? {
-                  id: s.id,
-                  label: `${product.name ?? product.sku} · ${product.storeName}`
-                }
-              : s;
-          })
-        )
-    );
-    // Only for the selection in the initial url
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const request: SearchRequest = useMemo(
     () => ({
@@ -209,8 +185,10 @@ export default function AdvancedSearch({
     if (sort !== 'relevance') next.set('sort', sort);
     if (page > 1) next.set('page', String(page));
     if (view !== 'list') next.set('view', view);
-    if (selected.length)
-      next.set('selectedProductIds', selected.map((s) => s.id).join(','));
+    // Coming back from another page shows the same search, without the
+    // product that was open
+    setLastSearch(next.toString());
+    if (selected.length) next.set(SELECTION_PARAM, selectedIds.join(','));
     if (productId) next.set('product', productId);
     router.replace(`${pathname}?${next.toString()}`, { scroll: false });
     // The search is written when the debounced request changes
@@ -272,28 +250,6 @@ export default function AdvancedSearch({
     }))
   );
 
-  const selectedIds = selected.map((s) => s.id);
-  const toggleSelected = (
-    product: {
-      id: string;
-      name?: string | null;
-      sku: string;
-      storeName: string;
-    },
-    checked: boolean
-  ) =>
-    setSelected((current) =>
-      checked
-        ? [
-            ...current.filter((s) => s.id !== product.id),
-            {
-              id: product.id,
-              label: `${product.name ?? product.sku} · ${product.storeName}`
-            }
-          ]
-        : current.filter((s) => s.id !== product.id)
-    );
-
   const pagination: PaginationProps = {
     current: page,
     pageSize: PAGE_SIZE,
@@ -326,15 +282,7 @@ export default function AdvancedSearch({
       gap={16}
       style={{ padding: screens.md ? 24 : 12, paddingBottom: 96 }}
     >
-      <Flex justify="space-between" align="center" wrap gap={8}>
-        <Typography.Title level={3} style={{ margin: 0 }}>
-          {t('advancedSearch.title')}
-        </Typography.Title>
-        <Flex gap={16} align="center" wrap>
-          <Link href="/">{t('advancedSearch.backToPriceHistory')}</Link>
-          {userMenu}
-        </Flex>
-      </Flex>
+      <SiteHeader page="search" userMenu={userMenu} />
 
       <Card size="small">
         <Flex vertical gap={12}>
@@ -668,7 +616,7 @@ export default function AdvancedSearch({
                   {t('advancedSearch.clearSelection')}
                 </Button>
                 <Link
-                  href={`/compare?selectedProductIds=${selectedIds.slice(0, MAX_COMPARED).join(',')}`}
+                  href={`/compare?${SELECTION_PARAM}=${selectedIds.slice(0, MAX_COMPARED).join(',')}`}
                 >
                   <Button
                     icon={<TableOutlined />}
@@ -679,7 +627,7 @@ export default function AdvancedSearch({
                       : t('advancedSearch.compare')}
                   </Button>
                 </Link>
-                <Link href={`/?selectedProductIds=${selectedIds.join(',')}`}>
+                <Link href="/prices">
                   <Button type="primary" icon={<LineChartOutlined />}>
                     {t('advancedSearch.showPriceHistory')}
                   </Button>

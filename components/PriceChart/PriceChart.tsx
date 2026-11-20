@@ -26,21 +26,26 @@ import { getCached } from '../../utils/api';
 import useChartTheme from '../Theme/useChartTheme';
 import { useFormat } from '../I18n/I18nProvider';
 
-export default function PriceChart({ stores }: { stores: StoreConfig[] }) {
+export default function PriceChart({
+  stores,
+  productIds
+}: {
+  stores: StoreConfig[];
+  productIds: string[];
+}) {
   const { cache, mutate } = useSWRConfig();
   const chart = useChartTheme();
   const { t } = useTranslation('site');
   const format = useFormat();
   const [loadedPrices, setPrices] = useState<RechartFormat[]>([]);
   const searchParams = useSearchParams();
-  const selectedProductIdsString = searchParams.get('selectedProductIds');
-  const productIdsFromParams = selectedProductIdsString?.split(',') || [];
+  const productIdsKey = productIds.join(',');
   const selectedRangeFromParams = searchParams.get('selectedRange');
   const selectedRange = selectedRangeFromParams
     ? selectedRangeFromParams.split(',').map((date) => dayjs(date))
     : null;
   useEffect(() => {
-    if (productIdsFromParams.length === 0) return;
+    if (productIds.length === 0) return;
     const addToArray = (price: RechartFormat, prices: RechartFormat[]) => {
       const index = prices.findIndex(
         (onePrice) => onePrice.timestamp === price.timestamp
@@ -112,7 +117,7 @@ export default function PriceChart({ stores }: { stores: StoreConfig[] }) {
       return prices;
     };
     const body: PricesApiRequestBody = {
-      productIds: productIdsFromParams
+      productIds
     };
 
     if (selectedRange !== null) {
@@ -121,7 +126,7 @@ export default function PriceChart({ stores }: { stores: StoreConfig[] }) {
     }
 
     sendGAEvent('event', 'prices', {
-      productIds: productIdsFromParams,
+      productIds,
       start: body.start,
       end: body.end
     });
@@ -129,7 +134,7 @@ export default function PriceChart({ stores }: { stores: StoreConfig[] }) {
       'prices',
       cache,
       mutate,
-      productIdsFromParams,
+      productIds,
       (missingIds: string[]) => {
         const body: PricesApiRequestBody = {
           productIds: missingIds
@@ -146,10 +151,10 @@ export default function PriceChart({ stores }: { stores: StoreConfig[] }) {
         setPrices(formatPricesForRechart(res));
       })
       .catch((error) => console.log(error));
-    // The other values are derived from the selected products in the url
+    // The other values are derived from the selected products
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedProductIdsString]);
-  const prices = productIdsFromParams.length === 0 ? [] : loadedPrices;
+  }, [productIdsKey]);
+  const prices = productIds.length === 0 ? [] : loadedPrices;
 
   const colors = [
     '#c10000',

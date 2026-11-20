@@ -13,8 +13,14 @@
     "compareFailed": "Samanburðurinn mistókst",
     "productFailed": "Ekki tókst að sækja vöruna"
   },
-  "home": {
-    "advancedSearch": "Ítarleg leit"
+  "header": {
+    "advancedSearch": "Ítarleg leit",
+    "priceHistory": "Verðsaga",
+    "priceHistoryCount": "Verðsaga ({{selected}})"
+  },
+  "prices": {
+    "title": "Verðsaga",
+    "empty": "Leitaðu að vörum hér fyrir ofan, eða veldu þær í ítarlegri leit, til að sjá verðsögu þeirra."
   },
   "login": {
     "title": "Innskráning",
@@ -90,7 +96,6 @@
   },
   "advancedSearch": {
     "title": "Ítarleg leit",
-    "backToPriceHistory": "Til baka í verðsögu",
     "placeholder": "Leitaðu í heiti, vörunúmeri, strikamerki og lýsingu",
     "found_one": "{{total}} vara fannst",
     "found_other": "{{total}} vörur fundust",
@@ -199,7 +204,6 @@
   },
   "compare": {
     "title": "Samanburður",
-    "backToSearch": "Til baka í leit",
     "empty": "Veldu vörur í ítarlegu leitinni til að bera þær saman.",
     "onlyDifferences": "Sýna aðeins það sem er ólíkt",
     "openPriceHistory": "Opna í verðsögu",
